@@ -38,7 +38,11 @@ ORDER BY [DATE_UPDATED] ASC;
 
 Because the `DATE_UPDATED` column is a DateTime field, the where clause comparison operator is `>=`. The connector will take care of deduplication before upserting tags to WiseTime. In any case, upserting a tag is an idempotent operation. If the `sync_marker` field is an auto incremented integer field, then we can simply use `>` as the comparison operator.
 
-The following configuration options are optional.
+The WHERE clause must contain a `:sync_marker` parameter placeholder. The connector will inject its current sync marker value at this position in the SQL query.
+
+### Optional Configuration Parameters
+
+The following configuration parameters are optional.
 
 | Environment Variable | Description |
 | ---  | --- |
@@ -54,7 +58,7 @@ docker run -d \
     --restart=unless-stopped \
     -e API_KEY=yourwisetimeapikey \
     -e TAG_UPSERT_PATH=/My Connected System/ \
-    -e TAG_SQL=""
+    -e TAG_SQL="SELECT TOP 500 [IRN] AS [tag_name], [IRN] AS [keyword], [TITLE] AS [description], [DATE_UPDATED] AS [sync_marker] FROM [dbo].[CASES] WHERE [DATE_UPDATED] >= :sync_marker ORDER BY [DATE_UPDATED] ASC;"
     -e JDBC_URL="jdbc:sqlserver://HOST:PORT;databaseName=DATABASE_NAME;ssl=request;useCursors=true" \
     -e JDBC_USER=dbuser \
     -e JDBC_PASSWORD=dbpass \
