@@ -95,7 +95,7 @@ docker run -d \
     --restart=unless-stopped \
     -e API_KEY=yourwisetimeapikey \
     -e TAG_UPSERT_PATH=/My Connected System/ \
-    -e TAG_SQL="SELECT TOP 500 [IRN] AS [tag_name], [IRN] AS [keyword], [TITLE] AS [description], [DATE_UPDATED] AS [sync_marker] FROM [dbo].[CASES] WHERE [DATE_UPDATED] >= :previous_sync_marker ORDER BY [DATE_UPDATED] ASC;"
+    -e TAG_SQL_FILE=/connector/tag_sql.yaml \
     -e JDBC_URL="jdbc:sqlserver://HOST:PORT;databaseName=DATABASE_NAME;ssl=request;useCursors=true" \
     -e JDBC_USER=dbuser \
     -e JDBC_PASSWORD=dbpass \
