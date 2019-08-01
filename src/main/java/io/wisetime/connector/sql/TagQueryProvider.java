@@ -37,7 +37,7 @@ class TagQueryProvider {
   private CompletableFuture<Void> fileWatch;
   private List<TagQuery> tagQueries;
 
-  TagQueryProvider(final Path tagSqlPath) throws IOException {
+  TagQueryProvider(final Path tagSqlPath) {
     tagQueries = parseTagSqlFile(tagSqlPath);
     fileWatch = startWatchingFile(tagSqlPath);
   }
@@ -88,23 +88,29 @@ class TagQueryProvider {
     });
   }
 
-  private List<TagQuery> parseTagSqlFile(final Path path) throws IOException {
-    final Stream<String> lines = Files.lines(path);
-    final String contents = lines.collect(Collectors.joining("\n"));
-    lines.close();
+  private List<TagQuery> parseTagSqlFile(final Path path) {
+    try {
+      final Stream<String> lines = Files.lines(path);
+      final String contents = lines.collect(Collectors.joining("\n"));
+      lines.close();
 
-    final Yaml yaml = new Yaml();
-    final Map<String, String> namedQueries = yaml.load(contents);
+      final Yaml yaml = new Yaml();
+      final Map<String, String> namedQueries = yaml.load(contents);
 
-    return namedQueries
-        .entrySet()
-        .stream()
-        .map(entry -> {
-          final TagQuery tagQuery = new TagQuery();
-          tagQuery.setName(entry.getKey());
-          tagQuery.setSql(entry.getValue());
-          return tagQuery;
-        })
-        .collect(Collectors.toList());
+      return namedQueries
+          .entrySet()
+          .stream()
+          .map(entry -> {
+            final TagQuery tagQuery = new TagQuery();
+            tagQuery.setName(entry.getKey());
+            tagQuery.setSql(entry.getValue());
+            return tagQuery;
+          })
+          .collect(Collectors.toList());
+
+    } catch (IOException ioe) {
+      log.error("Failed to read tag SQL configuration file at {}", path);
+      return ImmutableList.of();
+    }
   }
 }
