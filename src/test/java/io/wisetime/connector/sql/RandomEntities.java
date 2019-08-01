@@ -21,6 +21,7 @@ public class RandomEntities {
 
   public static SyncItem randomSyncItem() {
     final SyncItem item = new SyncItem();
+    item.setReference(faker.numerify("#####"));
     item.setTagName(faker.bothify("??######??").toUpperCase());
     item.setKeyword(item.getTagName());
     item.setDescription(faker.lorem().characters(12, 35));

@@ -41,18 +41,18 @@ class SyncStoreTest {
   void namespaces_are_independent() {
     final SyncItem syncItem = randomSyncItem();
 
-    syncStore.markSyncPosition("cases", ImmutableList.of(syncItem), SyncItem::getTagName);
+    syncStore.markSyncPosition("cases", ImmutableList.of(syncItem));
     verify(mockConnectorStore).putString("cases_sync_marker", syncItem.getSyncMarker());
-    verify(mockConnectorStore).putString("cases_last_synced_references", syncItem.getTagName());
+    verify(mockConnectorStore).putString("cases_last_synced_references", syncItem.getReference());
 
-    syncStore.markSyncPosition("projects", ImmutableList.of(syncItem), SyncItem::getTagName);
+    syncStore.markSyncPosition("projects", ImmutableList.of(syncItem));
     verify(mockConnectorStore).putString("projects_sync_marker", syncItem.getSyncMarker());
-    verify(mockConnectorStore).putString("projects_last_synced_references", syncItem.getTagName());
+    verify(mockConnectorStore).putString("projects_last_synced_references", syncItem.getReference());
   }
 
   @Test
   void markSyncPosition_nothing_to_persist() {
-    syncStore.markSyncPosition("cases", ImmutableList.of(), SyncItem::getTagName);
+    syncStore.markSyncPosition("cases", ImmutableList.of());
     verify(mockConnectorStore, never()).putString(anyString(), anyString());
   }
 
@@ -63,7 +63,7 @@ class SyncStoreTest {
         randomSyncItem(fixedTimeMinusMinutes(1))
     );
     assertThrows(IllegalArgumentException.class, () ->
-        syncStore.markSyncPosition("cases", items, SyncItem::getTagName)
+        syncStore.markSyncPosition("cases", items)
     );
   }
 
@@ -74,13 +74,13 @@ class SyncStoreTest {
         randomSyncItem(fixedTime()),
         randomSyncItem(fixedTimeMinusMinutes(10))
     );
-    syncStore.markSyncPosition("cases", items, SyncItem::getTagName);
+    syncStore.markSyncPosition("cases", items);
 
     // Verify that the persisted sync marker is the most recent time
     verify(mockConnectorStore, times(1)).putString("cases_sync_marker", fixedTime());
 
     // Verify that the persisted references are the two most recent with the same sync marker
-    final String persistedReferences = items.get(0).getTagName() + "," + items.get(1).getTagName();
+    final String persistedReferences = items.get(0).getReference() + "," + items.get(1).getReference();
     verify(mockConnectorStore, times(1))
         .putString("cases_last_synced_references", persistedReferences);
   }

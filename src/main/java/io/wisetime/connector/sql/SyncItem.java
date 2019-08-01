@@ -11,6 +11,7 @@ import lombok.Data;
  */
 @Data
 public class SyncItem {
+  String reference;
   String tagName;
   String keyword;
   String description;

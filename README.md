@@ -13,32 +13,69 @@ The database user that the connector uses (see below JDBC_USER variable) require
 Configuration is done through environment variables. The following configuration options are required.
 
 | Environment Variable | Description |
-| --- | --- |
+--- | ---
 | API_KEY | Your WiseTime Connect API Key |
 | TAG_UPSERT_PATH | The tag folder path to use for tags |
-| TAG_SQL | The SQL to run to detect new tags to be upserted to WiseTime. See below for SQL requirements. |
+| TAG_SQL_FILE | The path to a YAML configuration file containing the SQL queries to run to detect new tags and keywords to be upserted to WiseTime. See below for file format. |
 | JDBC_URL | The JDBC URL for your database |
 | JDBC_USER | Username to use to connect to the database |
 | JDBC_PASSWORD | Password to use to connect to the database |
 
-### `TAG_SQL` Requirements
+### `TAG_SQL_FILE` Requirements
 
-The `TAG_SQL` needs to select the relevant information as `tag_name`, `keyword`, `description` and `sync_marker`. The connector will upsert a tag into WiseTime for each row in the result set. The connector uses `sync_marker` to remember what tags it has already upserted. Here's a sample `TAG_SQL`:
+The yaml configuration file expects one or more SQL queries to be provided, each labelled with a unique name. Here's a sample `TAG_SQL_FILE`:
 
-```sql
-SELECT TOP 500
-[IRN] AS [tag_name],
-[IRN] AS [keyword],
-[TITLE] AS [description],
-[DATE_UPDATED] AS [sync_marker]
-FROM [dbo].[CASES]
-WHERE [DATE_UPDATED] >= :previous_sync_marker
-ORDER BY [DATE_UPDATED] ASC;
+```yaml
+cases: >
+  SELECT TOP 500
+  [IRN] as [reference],
+  [IRN] AS [tag_name],
+  [IRN] AS [keyword],
+  [TITLE] AS [description],
+  [DATE_UPDATED] AS [sync_marker]
+  FROM [dbo].[CASES]
+  WHERE [DATE_UPDATED] >= :previous_sync_marker
+  AND [IRN] NOT IN (:previous_sync_references)
+  ORDER BY [DATE_UPDATED] ASC;
+keywords: >
+  SELECT TOP 500
+  [PRJ_ID] AS [reference],
+  [IRN] AS [tag_name],
+  CONCAT("FID", [PRJ_ID]) AS [keyword],
+  [DESCRIPTION] AS [description],
+  [PRJ_ID] AS [sync_marker]
+  FROM [dbo].[PROJECTS]
+  WHERE [PRJ_ID] > :previous_sync_marker
+  AND [PRJ_ID] NOT IN (:previous_sync_references)
+  ORDER BY [PRJ_ID] ASC;
 ```
 
-Because the `DATE_UPDATED` column is a DateTime field, the where clause comparison operator is `>=`. The connector will take care of deduplication before upserting tags to WiseTime. In any case, upserting a tag is an idempotent operation. If the `sync_marker` field is an auto incremented integer field, then we can simply use `>` as the comparison operator.
+In the above example, we have provided two queries, named `cases` and `keywords`. The connector will each query and upsert a tag in WiseTime for each record found. Starting from the top of the configuration file, each query is run repeatedly until there are no more records before moving on to the next query. This is behaviour is especially desirable when doing initial imports of a large number of tags. In this example we would prefer to import all cases first before moving on to the secondary task of detecting keywords.
 
-The WHERE clause must contain a `:previous_sync_marker` parameter placeholder. The connector will inject its current sync marker value at this position in the SQL query.
+#### Selected Fields
+
+The `TAG_SQL` must select the relevant information as `reference`, `tag_name`, `keyword`, `description` and `sync_marker`. The connector expects these names in the result set. The connector uses `sync_marker` to remember what tags it has already upserted. The following table explains how each selected field is used by the connector.
+
+| Field | Explanation |
+--- | ---
+| reference | Used to perform deduplication during sync when the sync_marker is not unique |
+| tag_name | Used as the tag name when creating a tag for the record |
+| keyword | Used as the keyword to **add** to the tag during upsert. Previous keywords are not removed if the tag already exists. |
+| description | Used as the tag description when creating the tag. This description will be searchable in the WiseTime Console UI |
+| sync_marker | Used as the sync position marker so that the connector remembers which records it has already synced |
+
+#### Placeholde Parameters
+
+The SQL queries are parametised and the following placeholder parameters are required. They must be provided verbatim in each query.
+
+| Placeholder Parameter | Explanation |
+--- | ---
+| :previous_sync_marker | The connector will inject its current sync marker value at this position in the SQL query. This is how the connector skips over records that it has already synced. |
+| :previous_sync_references | The connector will inject a list of previously synced references as a CSV using this placeholder parameter. This is how the connector performs deduplication in the event that the sync marker is non-unique, e.g. when a datetime type is used as the sync marker. |
+
+For `cases` in the above example, because the `DATE_UPDATED` column is a DateTime field, we use the comparison operator `>=` in the WHERE clause. The connector will take care of deduplication before upserting tags to WiseTime. In any case, upserting a tag is an idempotent operation.
+
+For the `keywords` query in the above example, if the `sync_marker` field is an auto incremented integer field, then we can simply use `>` as the comparison operator. In this case, the clause `AND [PRJ_ID] NOT IN (:previous_sync_references)` is redundant. However, we must still use the placeholder because the connector expects it when it generates the query.
 
 ### Optional Configuration Parameters
 
@@ -58,7 +95,7 @@ docker run -d \
     --restart=unless-stopped \
     -e API_KEY=yourwisetimeapikey \
     -e TAG_UPSERT_PATH=/My Connected System/ \
-    -e TAG_SQL="SELECT TOP 500 [IRN] AS [tag_name], [IRN] AS [keyword], [TITLE] AS [description], [DATE_UPDATED] AS [sync_marker] FROM [dbo].[CASES] WHERE [DATE_UPDATED] >= :sync_marker ORDER BY [DATE_UPDATED] ASC;"
+    -e TAG_SQL="SELECT TOP 500 [IRN] AS [tag_name], [IRN] AS [keyword], [TITLE] AS [description], [DATE_UPDATED] AS [sync_marker] FROM [dbo].[CASES] WHERE [DATE_UPDATED] >= :previous_sync_marker ORDER BY [DATE_UPDATED] ASC;"
     -e JDBC_URL="jdbc:sqlserver://HOST:PORT;databaseName=DATABASE_NAME;ssl=request;useCursors=true" \
     -e JDBC_USER=dbuser \
     -e JDBC_PASSWORD=dbpass \

@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -31,8 +30,7 @@ class SyncStore {
    * Persist the latest sync marker as well as the sync item references at that marker.
    * The sync items provided must be sorted by sync marker in lexicographically descending order.
    */
-  public void markSyncPosition(final String namespace, final Iterable<SyncItem> syncItemsInDescMarkerOrder,
-      final Function<SyncItem, String> referenceField) {
+  public void markSyncPosition(final String namespace, final Iterable<SyncItem> syncItemsInDescMarkerOrder) {
     final List<SyncItem> latestSynced = extractMostRecentItemsWithSameMarker(syncItemsInDescMarkerOrder);
 
     if (!latestSynced.isEmpty()) {
@@ -40,7 +38,7 @@ class SyncStore {
       connectorStore.putString(getMarkerKey(namespace), latestMarker);
 
       final String syncedReferences = latestSynced.stream()
-          .map(referenceField)
+          .map(SyncItem::getReference)
           .collect(Collectors.joining(","));
       connectorStore.putString(getReferencesKey(namespace), syncedReferences);
     }
