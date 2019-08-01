@@ -2,5 +2,6 @@
 .gradle/
 .gradle.properties
 build/
+out/
 src/gen/
 **/.DS_Store

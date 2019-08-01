@@ -32,13 +32,13 @@ SELECT TOP 500
 [TITLE] AS [description],
 [DATE_UPDATED] AS [sync_marker]
 FROM [dbo].[CASES]
-WHERE [DATE_UPDATED] >= :sync_marker
+WHERE [DATE_UPDATED] >= :previous_sync_marker
 ORDER BY [DATE_UPDATED] ASC;
 ```
 
 Because the `DATE_UPDATED` column is a DateTime field, the where clause comparison operator is `>=`. The connector will take care of deduplication before upserting tags to WiseTime. In any case, upserting a tag is an idempotent operation. If the `sync_marker` field is an auto incremented integer field, then we can simply use `>` as the comparison operator.
 
-The WHERE clause must contain a `:sync_marker` parameter placeholder. The connector will inject its current sync marker value at this position in the SQL query.
+The WHERE clause must contain a `:previous_sync_marker` parameter placeholder. The connector will inject its current sync marker value at this position in the SQL query.
 
 ### Optional Configuration Parameters
 
