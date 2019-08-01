@@ -1,0 +1,23 @@
+cases: >
+  SELECT TOP 500
+  [IRN] as [reference],
+  [IRN] AS [tag_name],
+  [IRN] AS [keyword],
+  [TITLE] AS [description],
+  [DATE_UPDATED] AS [sync_marker]
+  FROM [dbo].[CASES]
+  WHERE [DATE_UPDATED] >= :previous_sync_marker
+  AND [IRN] NOT IN (:previous_sync_references)
+  ORDER BY [DATE_UPDATED] ASC;
+keywords: >
+  SELECT TOP 500
+  [PRJ_ID] AS [reference],
+  [IRN] AS [tag_name],
+  CONCAT("FID", [PRJ_ID]) AS [keyword],
+  [DESCRIPTION] AS [description],
+  [PRJ_ID] AS [sync_marker]
+  FROM [dbo].[PROJECTS]
+  WHERE [PRJ_ID] >= :previous_sync_marker
+  AND [PRJ_ID] NOT IN (:previous_sync_references)
+  ORDER BY [PRJ_ID] ASC;
+
