@@ -42,7 +42,7 @@ keywords: >
   [PRJ_ID] AS [reference],
   [IRN] AS [tag_name],
   CONCAT("FID", [PRJ_ID]) AS [keyword],
-  [DESCRIPTION] AS [description],
+  '' AS [description],
   [PRJ_ID] AS [sync_marker]
   FROM [dbo].[PROJECTS]
   WHERE [PRJ_ID] > :previous_sync_marker
@@ -51,6 +51,8 @@ keywords: >
 ```
 
 In the above example, we have provided two queries, named `cases` and `keywords`. The connector will each query and upsert a tag in WiseTime for each record found. Starting from the top of the configuration file, each query is run repeatedly until there are no more records before moving on to the next query. This is behaviour is especially desirable when doing initial imports of a large number of tags. In this example we would prefer to import all cases first before moving on to the secondary task of detecting keywords.
+
+Selecting an empty string for a field lets the connector know that we don't want to overwrite the field during upsert if a tag already exists. For example, when sending keywords to WiseTime via the second query, we don't want to change the current tag description.
 
 #### Selected Fields
 
