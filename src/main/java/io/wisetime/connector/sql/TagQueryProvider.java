@@ -96,6 +96,10 @@ class TagQueryProvider {
 
       final Yaml yaml = new Yaml();
       final Map<String, String> namedQueries = yaml.load(contents);
+      if (namedQueries == null) {
+        log.error("Tag SQL configuration file {} is empty or invalid", path);
+        return ImmutableList.of();
+      }
 
       return namedQueries
           .entrySet()
