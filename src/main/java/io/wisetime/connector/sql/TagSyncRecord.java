@@ -10,7 +10,7 @@ import lombok.Data;
  * @author shane.xie
  */
 @Data
-public class SyncItem {
+class TagSyncRecord {
   String reference;
   String tagName;
   String keyword;

@@ -13,11 +13,12 @@ keywords: >
   SELECT TOP 500
   [PRJ_ID] AS [reference],
   [IRN] AS [tag_name],
-  CONCAT("FID", [PRJ_ID]) AS [keyword],
+  CONCAT('FID', [PRJ_ID]) AS [keyword],
   [DESCRIPTION] AS [description],
   [PRJ_ID] AS [sync_marker]
   FROM [dbo].[PROJECTS]
   WHERE [PRJ_ID] >= :previous_sync_marker
   AND [PRJ_ID] NOT IN (:previous_sync_references)
   ORDER BY [PRJ_ID] ASC;
-
+invalid:
+  SELECT 'missing required fields and parameter placeholders';

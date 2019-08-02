@@ -19,20 +19,20 @@ public class RandomEntities {
   private static Faker faker = new Faker();
   public static Instant fixedInstant = Instant.now();
 
-  public static SyncItem randomSyncItem() {
-    final SyncItem item = new SyncItem();
-    item.setReference(faker.numerify("#####"));
-    item.setTagName(faker.bothify("??######??").toUpperCase());
-    item.setKeyword(item.getTagName());
-    item.setDescription(faker.lorem().characters(12, 35));
-    item.setSyncMarker(fixedTimeMinusMinutes(faker.random().nextInt(1, 120)));
-    return item;
+  public static TagSyncRecord randomTagSyncRecord() {
+    final TagSyncRecord tagSyncRecord = new TagSyncRecord();
+    tagSyncRecord.setReference(faker.numerify("#####"));
+    tagSyncRecord.setTagName(faker.bothify("??######??").toUpperCase());
+    tagSyncRecord.setKeyword(tagSyncRecord.getTagName());
+    tagSyncRecord.setDescription(faker.lorem().characters(12, 35));
+    tagSyncRecord.setSyncMarker(fixedTimeMinusMinutes(faker.random().nextInt(1, 120)));
+    return tagSyncRecord;
   }
 
-  public static SyncItem randomSyncItem(final String syncMarker) {
-    final SyncItem item = randomSyncItem();
-    item.setSyncMarker(syncMarker);
-    return item;
+  public static TagSyncRecord randomTagSyncRecord(final String syncMarker) {
+    final TagSyncRecord tagSyncRecord = randomTagSyncRecord();
+    tagSyncRecord.setSyncMarker(syncMarker);
+    return tagSyncRecord;
   }
 
   public static String fixedTime() {

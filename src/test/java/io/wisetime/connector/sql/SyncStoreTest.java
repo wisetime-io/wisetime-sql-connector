@@ -6,7 +6,7 @@ package io.wisetime.connector.sql;
 
 import static io.wisetime.connector.sql.RandomEntities.fixedTime;
 import static io.wisetime.connector.sql.RandomEntities.fixedTimeMinusMinutes;
-import static io.wisetime.connector.sql.RandomEntities.randomSyncItem;
+import static io.wisetime.connector.sql.RandomEntities.randomTagSyncRecord;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -39,15 +39,15 @@ class SyncStoreTest {
 
   @Test
   void namespaces_are_independent() {
-    final SyncItem syncItem = randomSyncItem();
+    final TagSyncRecord tagSyncRecord = randomTagSyncRecord();
 
-    syncStore.markSyncPosition("cases", ImmutableList.of(syncItem));
-    verify(mockConnectorStore).putString("cases_sync_marker", syncItem.getSyncMarker());
-    verify(mockConnectorStore).putString("cases_last_synced_references", syncItem.getReference());
+    syncStore.markSyncPosition("cases", ImmutableList.of(tagSyncRecord));
+    verify(mockConnectorStore).putString("cases_sync_marker", tagSyncRecord.getSyncMarker());
+    verify(mockConnectorStore).putString("cases_last_synced_references", tagSyncRecord.getReference());
 
-    syncStore.markSyncPosition("projects", ImmutableList.of(syncItem));
-    verify(mockConnectorStore).putString("projects_sync_marker", syncItem.getSyncMarker());
-    verify(mockConnectorStore).putString("projects_last_synced_references", syncItem.getReference());
+    syncStore.markSyncPosition("projects", ImmutableList.of(tagSyncRecord));
+    verify(mockConnectorStore).putString("projects_sync_marker", tagSyncRecord.getSyncMarker());
+    verify(mockConnectorStore).putString("projects_last_synced_references", tagSyncRecord.getReference());
   }
 
   @Test
@@ -57,30 +57,30 @@ class SyncStoreTest {
   }
 
   @Test
-  void markSyncPosition_fail_sync_items_not_sorted_with_most_recent_first() {
-    final List<SyncItem> items = ImmutableList.of(
-        randomSyncItem(fixedTimeMinusMinutes(2)),
-        randomSyncItem(fixedTimeMinusMinutes(1))
+  void markSyncPosition_fail_sync_tags_not_sorted_with_most_recent_first() {
+    final List<TagSyncRecord> tagSyncRecords = ImmutableList.of(
+        randomTagSyncRecord(fixedTimeMinusMinutes(2)),
+        randomTagSyncRecord(fixedTimeMinusMinutes(1))
     );
     assertThrows(IllegalArgumentException.class, () ->
-        syncStore.markSyncPosition("cases", items)
+        syncStore.markSyncPosition("cases", tagSyncRecords)
     );
   }
 
   @Test
   void markSyncPosition() {
-    final List<SyncItem> items = ImmutableList.of(
-        randomSyncItem(fixedTime()),
-        randomSyncItem(fixedTime()),
-        randomSyncItem(fixedTimeMinusMinutes(10))
+    final List<TagSyncRecord> tagSyncRecords = ImmutableList.of(
+        randomTagSyncRecord(fixedTime()),
+        randomTagSyncRecord(fixedTime()),
+        randomTagSyncRecord(fixedTimeMinusMinutes(10))
     );
-    syncStore.markSyncPosition("cases", items);
+    syncStore.markSyncPosition("cases", tagSyncRecords);
 
     // Verify that the persisted sync marker is the most recent time
     verify(mockConnectorStore, times(1)).putString("cases_sync_marker", fixedTime());
 
     // Verify that the persisted references are the two most recent with the same sync marker
-    final String persistedReferences = items.get(0).getReference() + "," + items.get(1).getReference();
+    final String persistedReferences = tagSyncRecords.get(0).getReference() + "," + tagSyncRecords.get(1).getReference();
     verify(mockConnectorStore, times(1))
         .putString("cases_last_synced_references", persistedReferences);
   }
