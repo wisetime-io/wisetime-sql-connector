@@ -2,7 +2,7 @@
  * Copyright (c) 2019 Practice Insight Pty Ltd. All Rights Reserved.
  */
 
-package io.wisetime.connector.sql;
+package io.wisetime.connector.sql.sync;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -18,11 +18,11 @@ import java.util.stream.Collectors;
  *
  * @author shane.xie
  */
-class SyncStore {
+public class SyncStore {
 
   private ConnectorStore connectorStore;
 
-  SyncStore(final ConnectorStore connectorStore) {
+  public SyncStore(final ConnectorStore connectorStore) {
     this.connectorStore = connectorStore;
   }
 
@@ -30,7 +30,7 @@ class SyncStore {
    * Persist the latest sync marker as well as the references at that marker.
    * The TagSyncRecords provided must be sorted by sync marker in lexicographically descending order.
    */
-  void markSyncPosition(final String namespace, final Iterable<TagSyncRecord> tagSyncRecordsInDescMarkerOrder) {
+  public void markSyncPosition(final String namespace, final Iterable<TagSyncRecord> tagSyncRecordsInDescMarkerOrder) {
     final List<TagSyncRecord> latestSynced =
         extractMostRecentTagSyncRecordsWithSameMarker(tagSyncRecordsInDescMarkerOrder);
 
@@ -45,11 +45,11 @@ class SyncStore {
     }
   }
 
-  Optional<String> getSyncMarker(final String namespace) {
+  public Optional<String> getSyncMarker(final String namespace) {
     return connectorStore.getString(getMarkerKey(namespace));
   }
 
-  List<String> getLastSyncedReferences(final String namespace) {
+  public List<String> getLastSyncedReferences(final String namespace) {
     return connectorStore.getString(getReferencesKey(namespace))
         .map(refs -> refs.split(","))
         .map(Arrays::asList)
