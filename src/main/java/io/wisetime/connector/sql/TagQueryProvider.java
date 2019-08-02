@@ -4,8 +4,8 @@
 
 package io.wisetime.connector.sql;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.inject.Singleton;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -30,7 +30,6 @@ import org.yaml.snakeyaml.Yaml;
  *
  * @author shane.xie
  */
-@Singleton
 @Slf4j
 class TagQueryProvider {
 
@@ -50,32 +49,44 @@ class TagQueryProvider {
     fileWatch.cancel(true);
   }
 
+  // Blocking, only meant for use in tests
+  @VisibleForTesting
+  List<TagQuery> waitForQueryChange(final List<TagQuery> awaitedResult) throws InterruptedException {
+    while (!tagQueries.equals(awaitedResult)) {
+      Thread.sleep(50);
+    }
+    return tagQueries;
+  }
+
   private CompletableFuture<Void> startWatchingFile(final Path path) {
     return CompletableFuture.supplyAsync(() -> {
-      try {
-        final WatchService watchService = FileSystems.getDefault().newWatchService();
+      try (final WatchService watchService = FileSystems.getDefault().newWatchService()) {
 
-        path.register(watchService,
+        path.getParent().register(watchService,
             StandardWatchEventKinds.ENTRY_CREATE,
             StandardWatchEventKinds.ENTRY_DELETE,
             StandardWatchEventKinds.ENTRY_MODIFY);
 
-        WatchKey key;
-        while ((key = watchService.take()) != null) {
+        while (true) {
+          final WatchKey key = watchService.take();
+
           for (WatchEvent<?> event : key.pollEvents()) {
-            switch (event.kind().name()) {
-              case "ENTRY_CREATE":
-              case "ENTRY_MODIFY":
-                tagQueries = parseTagSqlFile(path);
+            if (path.endsWith((Path) event.context())) {
+              switch (event.kind().name()) {
+                case "ENTRY_CREATE":
+                case "ENTRY_MODIFY":
+                  tagQueries = parseTagSqlFile(path);
+                  continue;
 
-              case "ENTRY_DELETE":
-                log.error("The tag SQL configuration file {} was deleted", path);
-                tagQueries = ImmutableList.of();
-                continue;
+                case "ENTRY_DELETE":
+                  log.error("The tag SQL configuration file {} was deleted", path);
+                  tagQueries = ImmutableList.of();
+                  continue;
 
-              default:
-                log.error("Unexpected file watch event");
-                continue;
+                default:
+                  log.error("Unexpected file watch event");
+                  continue;
+              }
             }
           }
           key.reset();
@@ -84,7 +95,6 @@ class TagQueryProvider {
       } catch (IOException | InterruptedException e) {
         throw new RuntimeException("Autoload failed for Tag SQL configuration file", e);
       }
-      return null;
     });
   }
 

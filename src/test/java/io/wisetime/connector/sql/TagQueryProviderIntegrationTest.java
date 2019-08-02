@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -36,49 +37,39 @@ class TagQueryProviderIntegrationTest {
         .as("The tag queries are parsed from YAML")
         .isEqualTo(3);
 
-    final TagQuery invalidQuery = new TagQuery();
-    invalidQuery.setName("invalid");
-    invalidQuery.setSql("SELECT 'missing required fields and parameter placeholders';");
+    final TagQuery invalidQuery = new TagQuery("invalid",
+        "SELECT 'missing required fields and parameter placeholders';");
+
     assertThat(tagQueries.get(2))
         .as("The tag query is correctly parsed from YAML")
         .isEqualTo(invalidQuery);
   }
 
+  /**
+   * This test is slow. It takes tens of seconds to run.
+   * It relies on filesystem notifications, which can take several seconds before firing.
+   */
   @Test
-  void getQueries_file_watch_detects_updates() throws Exception {
-    final Path path = Files.createTempFile("tag_query_test_updates", ".yaml");
+  @Disabled("This is VERY slow. Run manually.")
+  void getQueries_file_watch() throws Exception {
+    final Path path = Files.createTempFile("tag_query_test_deletes", ".yaml");
     final TagQueryProvider tagQueryProvider = new TagQueryProvider(path);
 
-    assertThat(tagQueryProvider.getQueries())
-        .as("The file is empty")
-        .isEmpty();
+    // Verify file update
+    Files.write(path, ImmutableList.of("cases: >", "  SELECT 'cases'"));
+    tagQueryProvider.waitForQueryChange(ImmutableList.of(
+        new TagQuery("cases", "SELECT 'cases'")
+    ));
 
-    Files.write(path, ImmutableList.of("name: >", "  sql"));
-    Thread.sleep(10000);
+    // Verify file deletion
+    Files.delete(path);
+    tagQueryProvider.waitForQueryChange(ImmutableList.of());
 
-    final TagQuery tagQuery = new TagQuery();
-    tagQuery.setName("name");
-    tagQuery.setSql("sql");
-
-    assertThat(tagQueryProvider.getQueries())
-        .as("The file has been updated")
-        .containsExactly(tagQuery);
-
-    // TODO(SX): This test is failing
-//    Files.delete(path);
-  }
-
-  @Test
-  void getQueries_file_watch_detects_deletes() {
-    // TODO(SX)
-  }
-
-  @Test
-  void getQueries_file_watch_detects_file_creation() {
-    // TODO(SX)
-  }
-
-  @Test
-  void stopWatching() {
+    // Verify file creation
+    Files.createFile(path);
+    Files.write(path, ImmutableList.of("keywords: >", "  SELECT 'keywords'"));
+    tagQueryProvider.waitForQueryChange(ImmutableList.of(
+        new TagQuery("keywords", "SELECT 'keywords'")
+    ));
   }
 }
