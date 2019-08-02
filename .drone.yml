@@ -1,0 +1,191 @@
+---
+kind: pipeline
+name: test-and-publish
+
+steps:
+  - name: fetch-tags
+    image: docker:git
+    commands:
+      - git fetch --tags
+
+  - name: restore-cache
+    image: drillster/drone-volume-cache
+    settings:
+      restore: true
+      mount:
+        - .gcache/wrapper
+        - .gcache/caches/modules-2
+      ttl: 21
+      cache_key: [ DRONE_REPO_OWNER, DRONE_REPO_NAME ]
+    volumes:
+      - name: host-cache
+        path: /cache
+
+  - name: unit-test
+    image: openjdk:8-jdk-slim
+    environment:
+      GRADLE_USER_HOME: .gcache
+      GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      MSSQL_TEST_HOST: mssql-service
+    commands:
+      - ./gradlew test check
+
+  - name: check-versions
+    image: openjdk:8-jdk
+    environment:
+      GRADLE_USER_HOME: .gcache
+      GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+    commands:
+      - ./gradlew versionCheck
+    when:
+      branch:
+        exclude:
+          - master
+      event:
+        - push
+
+  - name: save-cache
+    image: drillster/drone-volume-cache
+    settings:
+      rebuild: true
+      mount:
+        - .gcache/wrapper
+        - .gcache/caches/modules-2
+      cache_key: [ DRONE_REPO_OWNER, DRONE_REPO_NAME ]
+    volumes:
+      - name: host-cache
+        path: /cache
+
+  - name: publish-to-s3
+    image: openjdk:8-jdk
+    environment:
+      GRADLE_USER_HOME: .gcache
+      GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      AWS_ACCESS_KEY_ID:
+        from_secret: aws-publish-id
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: aws-publish-secret
+    commands:
+      - ./gradlew --info publish -x check -x test
+    when:
+      ref:
+        - refs/heads/master
+        - refs/tags/*
+
+#  - name: cascade-to-bamboo
+#    image: quay.io/wt-build-support/alpine-git-bash
+#    environment:
+#      BAMBOO_USER:
+#        from_secret: bamboo-user
+#      BAMBOO_PASS:
+#        from_secret: bamboo-pass
+#    commands:
+#      - echo "Caccade to artifact via user $${BAMBOO_USER}"
+#      - ./bin/cascade.sh
+#    when:
+#      ref:
+#        - refs/heads/master
+#        - refs/tags/*
+
+  - name: notify
+    image: drillster/drone-email
+    settings:
+      host: email-smtp.us-east-1.amazonaws.com
+      username:
+        from_secret: smtp-user
+      from: drone-notify@practiceinsight.io
+      password:
+        from_secret: smtp-password
+    when:
+      status: failure
+
+volumes:
+  - name: host-cache
+    host:
+      # if running locally, need once `mkdir -p /tmp/cache`
+      path: /tmp/cache
+
+services:
+  - name: mssql-service
+    image: mcr.microsoft.com/mssql/server
+    environment:
+      SA_PASSWORD: A_Str0ng_Required_Password
+      ACCEPT_EULA: Y
+
+trigger:
+  event:
+    - push
+    - tag
+
+---
+kind: pipeline
+name: mirror-to-github
+depends_on:
+  - test-and-publish
+
+#steps:
+#  - name: github-push
+#    image: quay.io/wt-build-support/alpine-git-bash
+#    environment:
+#      GITHUB_SSH_KEY_B64:
+#        from_secret: github-ssh-key-b64
+#    commands:
+#      - ./mirror.sh
+#    when:
+#      ref:
+#        - refs/heads/master
+#        - refs/tags/*
+
+trigger:
+  event:
+    - push
+    - tag
+
+---
+kind: secret
+name: aws-publish-id
+get:
+  path: drone/publish/s3
+  name: aws-publish-id
+
+---
+kind: secret
+name: aws-publish-secret
+get:
+  path: drone/publish/s3
+  name: aws-publish-secret
+
+---
+#kind: secret
+#name: github-ssh-key-b64
+#get:
+#  path: drone/publish/github/connector-sql-keys
+#  name: sql-key-name
+
+---
+kind: secret
+name: bamboo-user
+get:
+  path: drone/bamboo/trigger
+  name: bamboo-user
+
+---
+kind: secret
+name: bamboo-pass
+get:
+  path: drone/bamboo/trigger
+  name: bamboo-pass
+
+---
+kind: secret
+name: smtp-password
+get:
+  path: drone/notify/smtp
+  name: password
+
+---
+kind: secret
+name: smtp-user
+get:
+  path: drone/notify/smtp
+  name: user
