@@ -9,11 +9,14 @@ import com.zaxxer.hikari.HikariDataSource;
 import io.wisetime.connector.ConnectorController;
 import io.wisetime.connector.config.RuntimeConfig;
 import io.wisetime.connector.config.RuntimeConfigKey;
+import io.wisetime.connector.sql.queries.TagQueryProvider;
 import io.wisetime.connector.sql.sync.ConnectedDatabase;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Connector application entry point.
+ * SQL Connector application entry point.
  *
  * @author shane.xie
  */
@@ -26,9 +29,16 @@ public class ConnectorLauncher {
 
   public static ConnectorController buildConnectorController() {
     final ConnectedDatabase database = new ConnectedDatabase(buildDataSource());
+
+    final Path tagSqlPath = Paths.get(
+        RuntimeConfig.getString(SqlConnectorConfigKey.TAG_SQL_FILE)
+            .orElseThrow(() -> new RuntimeException("Missing TAG_SQL_FILE configuration"))
+    );
+    final TagQueryProvider tagQueryProvider = new TagQueryProvider(tagSqlPath);
+
     return ConnectorController.newBuilder()
-        .withWiseTimeConnector(new SqlConnector(database))
-        // This connector does not process posted time.
+        .withWiseTimeConnector(new SqlConnector(database, tagQueryProvider))
+        // This connector does not process posted time
         .useTagsOnly()
         .build();
   }
@@ -37,7 +47,6 @@ public class ConnectorLauncher {
    * Configuration keys for the WiseTime SQL Connector.
    */
   public enum SqlConnectorConfigKey implements RuntimeConfigKey {
-
     JDBC_URL("JDBC_URL"),
     JDBC_USER("JDBC_USER"),
     JDBC_PASSWORD("JDBC_PASSWORD"),
