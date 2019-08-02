@@ -155,7 +155,7 @@ get:
   path: drone/publish/s3
   name: aws-publish-secret
 
----
+#---
 #kind: secret
 #name: github-ssh-key-b64
 #get:
