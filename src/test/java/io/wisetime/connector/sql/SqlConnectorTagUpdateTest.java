@@ -33,6 +33,5 @@ class SqlConnectorTagUpdateTest {
   @Test
   void performTagUpdate() {
     // TODO(SX)
-//    connector.performTagUpdate();
   }
 }
