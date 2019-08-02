@@ -38,7 +38,7 @@ class TagQueryProviderIntegrationTest {
         .isEqualTo(3);
 
     final TagQuery invalidQuery = new TagQuery("invalid",
-        "SELECT 'missing required fields and parameter placeholders';");
+        "SELECT 'missing required fields and parameter placeholders';", "0");
 
     assertThat(tagQueries.get(2))
         .as("The tag query is correctly parsed from YAML")
@@ -56,9 +56,9 @@ class TagQueryProviderIntegrationTest {
     final TagQueryProvider tagQueryProvider = new TagQueryProvider(path);
 
     // Verify file update
-    Files.write(path, ImmutableList.of("cases: >", "  SELECT 'cases'"));
+    Files.write(path, ImmutableList.of("name: cases", "sql: SELECT 'cases'", "initialSyncMarker: 0"));
     tagQueryProvider.waitForQueryChange(ImmutableList.of(
-        new TagQuery("cases", "SELECT 'cases'")
+        new TagQuery("cases", "SELECT 'cases'", "0")
     ));
 
     // Verify file deletion
@@ -67,9 +67,9 @@ class TagQueryProviderIntegrationTest {
 
     // Verify file creation
     Files.createFile(path);
-    Files.write(path, ImmutableList.of("keywords: >", "  SELECT 'keywords'"));
+    Files.write(path, ImmutableList.of("name: keywords", "sql: SELECT 'keywords'", "initialSyncMarker: 1"));
     tagQueryProvider.waitForQueryChange(ImmutableList.of(
-        new TagQuery("keywords", "SELECT 'keywords'")
+        new TagQuery("keywords", "SELECT 'keywords'", "1")
     ));
   }
 }

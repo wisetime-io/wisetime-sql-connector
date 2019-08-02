@@ -1,4 +1,6 @@
-cases: >
+name: cases
+initialSyncMarker: 2001-01-01T00:00:00
+sql: >
   SELECT TOP 500
   [IRN] as [reference],
   [IRN] AS [tag_name],
@@ -9,7 +11,11 @@ cases: >
   WHERE [DATE_UPDATED] >= :previous_sync_marker
   AND [IRN] NOT IN (:previous_sync_references)
   ORDER BY [DATE_UPDATED] ASC;
-keywords: >
+
+---
+name: keywords
+initialSyncMarker: 0
+sql: >
   SELECT TOP 500
   [PRJ_ID] AS [reference],
   [IRN] AS [tag_name],
@@ -20,5 +26,9 @@ keywords: >
   WHERE [PRJ_ID] >= :previous_sync_marker
   AND [PRJ_ID] NOT IN (:previous_sync_references)
   ORDER BY [PRJ_ID] ASC;
-invalid:
+
+---
+name: invalid
+initialSyncMarker: 0
+sql: >
   SELECT 'missing required fields and parameter placeholders';

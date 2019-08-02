@@ -86,13 +86,22 @@ class SyncStoreTest {
   }
 
   @Test
-  void getSyncMarker() {
+  void getSyncMarker_default() {
+    when(mockConnectorStore.getString("cases_sync_marker"))
+        .thenReturn(Optional.empty());
+    assertThat(syncStore.getSyncMarker("cases", "default"))
+        .as("Pass on sync marker from the store")
+        .isEqualTo("default");
+  }
+
+  @Test
+  void getSyncMarker_from_store() {
     final String syncMarker = fixedTime();
     when(mockConnectorStore.getString("cases_sync_marker"))
         .thenReturn(Optional.of(syncMarker));
-    assertThat(syncStore.getSyncMarker("cases"))
+    assertThat(syncStore.getSyncMarker("cases", ""))
         .as("Pass on sync marker from the store")
-        .contains(syncMarker);
+        .isEqualTo(syncMarker);
   }
 
   @Test
