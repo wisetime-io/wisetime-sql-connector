@@ -1,3 +1,7 @@
+import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
+
 plugins {
     application
     checkstyle
@@ -7,6 +11,9 @@ plugins {
     java
     id("com.google.cloud.tools.jib") version "1.1.2"
     id("io.freefair.lombok") version "3.8.1"
+    id("io.wisetime.versionChecker").version("0.4.4")
+    id("fr.brouillard.oss.gradle.jgitver").version("0.9.1")
+    id("com.github.ben-manes.versions").version("0.21.0")
 }
 
 repositories {
@@ -64,6 +71,11 @@ application {
             "-XX:MaxMetaspaceSize=256m")
 }
 
+jacoco {
+    toolVersion = "0.8.4"
+}
+apply(from = "$rootDir/gradle/jacoco.gradle")
+
 jib {
     val targetArch: String? by project
     if (targetArch == "arm64v8") {
@@ -82,10 +94,78 @@ jib {
     }
 }
 
+jgitver {
+    autoIncrementPatch = false
+}
+
 checkstyle {
     toolVersion = "8.21"
     configProperties["checkstyleConfigDir"] = file("$rootDir/gradle")
     configFile = file("$rootDir/gradle/checkstyle.xml")
     isIgnoreFailures = false
     isShowViolations = true
+}
+
+tasks.versionCheck {
+    dependsOn(tasks.dependencyUpdates)
+}
+
+tasks {
+    check {
+        dependsOn(jacocoTestCoverageVerification)
+    }
+
+    clean {
+        setDelete(setOf("build", "out"))
+    }
+
+    dependencyUpdates {
+        checkForGradleUpdate = false
+        revision = "release"
+        outputFormatter = "json"
+        reportfileName = "report"
+        outputDir = "$projectDir/build/dependencyUpdates"
+    }
+
+    "dependencyUpdates"(DependencyUpdatesTask::class) {
+        resolutionStrategy {
+            componentSelection {
+                all {
+                    val skipList = listOf("alpha", "beta", "rc", "cr", "m", "preview", "snapshot")
+                    for (skipItem in skipList) {
+                        if (candidate.group.contains("io.wisetime")
+                                && candidate.version.matches(Regex("\\d+(\\.\\d+)+-\\d+.*"))) {
+                            reject("ignore prerelease versions based on commit distance")
+                        }
+                        if (candidate.version.toLowerCase().contains(skipItem)) {
+                            reject("skip version containing `$skipItem`")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    jacocoTestReport {
+        reports.findByName("xml")?.isEnabled = true
+        reports.findByName("csv")?.isEnabled = false
+
+        // disable html creation if droneTest property was set
+        reports.findByName("html")?.isEnabled = !project.hasProperty("droneTest")
+    }
+
+    test {
+        testLogging {
+            // skip logging PASSED
+            setEvents(listOf(TestLogEvent.SKIPPED, TestLogEvent.FAILED))
+            exceptionFormat = TestExceptionFormat.FULL
+        }
+
+        useJUnitPlatform {
+            excludeTags = setOf("disabled", "integration", "integration-hq-stage")
+        }
+
+        finalizedBy(jacocoTestReport)
+    }
+
 }
