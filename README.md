@@ -26,7 +26,9 @@ Configuration is done through environment variables. The following configuration
 The yaml configuration file expects one or more SQL queries to be provided, each labelled with a unique name. Here's a sample `TAG_SQL_FILE`:
 
 ```yaml
-cases: >
+name: cases
+initialSyncMarker: 2001-01-01T00:00:00
+sql: >
   SELECT TOP 500
   [IRN] as [reference],
   [IRN] AS [tag_name],
@@ -37,22 +39,28 @@ cases: >
   WHERE [DATE_UPDATED] >= :previous_sync_marker
   AND [IRN] NOT IN (:previous_sync_references)
   ORDER BY [DATE_UPDATED] ASC;
-keywords: >
+
+---
+name: keywords
+initialSyncMarker: 0
+sql: >
   SELECT TOP 500
   [PRJ_ID] AS [reference],
   [IRN] AS [tag_name],
-  CONCAT("FID", [PRJ_ID]) AS [keyword],
-  '' AS [description],
+  CONCAT('FID', [PRJ_ID]) AS [keyword],
+  [DESCRIPTION] AS [description],
   [PRJ_ID] AS [sync_marker]
   FROM [dbo].[PROJECTS]
-  WHERE [PRJ_ID] > :previous_sync_marker
+  WHERE [PRJ_ID] >= :previous_sync_marker
   AND [PRJ_ID] NOT IN (:previous_sync_references)
   ORDER BY [PRJ_ID] ASC;
 ```
 
-In the above example, we have provided two queries, named `cases` and `keywords`. The connector will each query and upsert a tag in WiseTime for each record found. Starting from the top of the configuration file, each query is run repeatedly until there are no more records before moving on to the next query. This is behaviour is especially desirable when doing initial imports of a large number of tags. In this example we would prefer to import all cases first before moving on to the secondary task of detecting keywords.
+In the above example, we have provided two queries, named `cases` and `keywords`. The connector will run the queries and upsert a tag in WiseTime for each record found. Starting from the top of the configuration file, each query is run repeatedly until there are no more records before moving on to the next query. This is behaviour is especially desirable when doing initial imports of a large number of tags. In this example we would prefer to import all cases first before moving on to the secondary task of detecting keywords.
 
 Selecting an empty string for a field lets the connector know that we don't want to overwrite the field during upsert if a tag already exists. For example, when sending keywords to WiseTime via the second query, we don't want to change the current tag description.
+
+The `initialSyncMarker` configuration is required and specifies the first value to be used for `:previous_sync_marker`.
 
 #### Selected Fields
 

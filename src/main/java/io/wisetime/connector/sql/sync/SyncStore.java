@@ -45,8 +45,8 @@ public class SyncStore {
     }
   }
 
-  public Optional<String> getSyncMarker(final String namespace) {
-    return connectorStore.getString(getMarkerKey(namespace));
+  public String getSyncMarker(final String namespace, final String defaultSyncMarker) {
+    return connectorStore.getString(getMarkerKey(namespace)).orElse(defaultSyncMarker);
   }
 
   public List<String> getLastSyncedReferences(final String namespace) {

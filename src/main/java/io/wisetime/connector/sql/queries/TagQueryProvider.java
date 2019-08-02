@@ -15,12 +15,13 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import lombok.extern.slf4j.Slf4j;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
 
 /**
  * Reads tag queries from the provided file path.
@@ -103,17 +104,9 @@ public class TagQueryProvider {
       final String contents = lines.collect(Collectors.joining("\n"));
       lines.close();
 
-      final Yaml yaml = new Yaml();
-      final Map<String, String> namedQueries = yaml.load(contents);
-      if (namedQueries == null) {
-        log.error("Tag SQL configuration file {} is empty or invalid", path);
-        return ImmutableList.of();
-      }
-
-      return namedQueries
-          .entrySet()
-          .stream()
-          .map(entry -> new TagQuery(entry.getKey(), entry.getValue()))
+      final Yaml yaml = new Yaml(new Constructor(TagQuery.class));
+      return StreamSupport.stream(yaml.loadAll(contents).spliterator(), false)
+          .map(query -> (TagQuery) query)
           .collect(Collectors.toList());
 
     } catch (IOException ioe) {

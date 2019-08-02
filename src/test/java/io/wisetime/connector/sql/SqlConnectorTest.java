@@ -61,11 +61,11 @@ class SqlConnectorTest {
     when(mockDatabase.isAvailable()).thenReturn(true);
     assertThat(connector.isConnectorHealthy()).isFalse();
 
-    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(new TagQuery("name", "sql")));
+    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(new TagQuery("name", "sql", "0")));
     when(mockDatabase.isAvailable()).thenReturn(false);
     assertThat(connector.isConnectorHealthy()).isFalse();
 
-    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(new TagQuery("name", "sql")));
+    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(new TagQuery("name", "sql", "0")));
     when(mockDatabase.isAvailable()).thenReturn(true);
     assertThat(connector.isConnectorHealthy()).isTrue();
   }

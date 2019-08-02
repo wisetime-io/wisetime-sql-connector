@@ -17,4 +17,5 @@ import lombok.NoArgsConstructor;
 public class TagQuery {
   String name;
   String sql;
+  String initialSyncMarker;
 }
