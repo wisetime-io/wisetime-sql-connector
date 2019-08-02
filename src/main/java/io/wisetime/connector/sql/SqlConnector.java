@@ -4,16 +4,18 @@
 
 package io.wisetime.connector.sql;
 
-import com.google.inject.Inject;
 import io.wisetime.connector.ConnectorModule;
 import io.wisetime.connector.WiseTimeConnector;
 import io.wisetime.connector.api_client.ApiClient;
 import io.wisetime.connector.api_client.PostResult;
-import io.wisetime.connector.datastore.ConnectorStore;
-import io.wisetime.connector.sql.queries.TagQuery;
+import io.wisetime.connector.config.RuntimeConfig;
+import io.wisetime.connector.sql.ConnectorLauncher.SqlConnectorConfigKey;
 import io.wisetime.connector.sql.queries.TagQueryProvider;
+import io.wisetime.connector.sql.sync.ConnectedDatabase;
+import io.wisetime.connector.sql.sync.SyncStore;
 import io.wisetime.generated.connect.TimeGroup;
-import java.util.List;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import lombok.extern.slf4j.Slf4j;
 import spark.Request;
 
@@ -23,22 +25,32 @@ import spark.Request;
 @Slf4j
 public class SqlConnector implements WiseTimeConnector {
 
-  @Inject
-  TagQueryProvider tagQueryProvider;
-
+  private ConnectedDatabase database;
+  private TagQueryProvider tagQueryProvider;
+  private SyncStore syncStore;
   private ApiClient apiClient;
-  private ConnectorStore connectorStore;
+
+  public SqlConnector(final ConnectedDatabase connectedDatabase) {
+    database = connectedDatabase;
+  }
 
   @Override
   public void init(ConnectorModule connectorModule) {
+    final Path tagSqlPath = Paths.get(
+        RuntimeConfig.getString(SqlConnectorConfigKey.TAG_SQL_FILE)
+            .orElseThrow(() -> new RuntimeException("Missing TAG_SQL_FILE configuration"))
+    );
+    tagQueryProvider = new TagQueryProvider(tagSqlPath);
+    syncStore = new SyncStore(connectorModule.getConnectorStore());
     apiClient = connectorModule.getApiClient();
-    connectorStore = connectorModule.getConnectorStore();
   }
 
   @Override
   public void performTagUpdate() {
-    final List<TagQuery> queries = tagQueryProvider.getQueries();
-    // TODO(SX)
+    tagQueryProvider.getQueries().stream()
+        .forEachOrdered(tagQuery -> {
+          // TODO(SX)
+        });
   }
 
   @Override
@@ -48,13 +60,12 @@ public class SqlConnector implements WiseTimeConnector {
 
   @Override
   public boolean isConnectorHealthy() {
-    // TODO(SX): Check whether we can query the database
-    return false;
+    return !tagQueryProvider.getQueries().isEmpty() && database.isAvailable();
   }
 
   @Override
   public void shutdown() {
+    database.close();
     tagQueryProvider.stopWatching();
-    // TODO(SX): Shutdown database connection
   }
 }

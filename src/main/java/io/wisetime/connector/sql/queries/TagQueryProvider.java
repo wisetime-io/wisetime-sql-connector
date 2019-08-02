@@ -36,7 +36,7 @@ public class TagQueryProvider {
   private CompletableFuture<Void> fileWatch;
   private List<TagQuery> tagQueries;
 
-  TagQueryProvider(final Path tagSqlPath) {
+  public TagQueryProvider(final Path tagSqlPath) {
     tagQueries = parseTagSqlFile(tagSqlPath);
     fileWatch = startWatchingFile(tagSqlPath);
   }
