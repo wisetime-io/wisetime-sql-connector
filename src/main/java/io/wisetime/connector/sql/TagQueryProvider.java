@@ -76,16 +76,15 @@ class TagQueryProvider {
                 case "ENTRY_CREATE":
                 case "ENTRY_MODIFY":
                   tagQueries = parseTagSqlFile(path);
-                  continue;
+                  break;
 
                 case "ENTRY_DELETE":
                   log.error("The tag SQL configuration file {} was deleted", path);
                   tagQueries = ImmutableList.of();
-                  continue;
+                  break;
 
                 default:
                   log.error("Unexpected file watch event");
-                  continue;
               }
             }
           }
@@ -114,12 +113,7 @@ class TagQueryProvider {
       return namedQueries
           .entrySet()
           .stream()
-          .map(entry -> {
-            final TagQuery tagQuery = new TagQuery();
-            tagQuery.setName(entry.getKey());
-            tagQuery.setSql(entry.getValue());
-            return tagQuery;
-          })
+          .map(entry -> new TagQuery(entry.getKey(), entry.getValue()))
           .collect(Collectors.toList());
 
     } catch (IOException ioe) {
