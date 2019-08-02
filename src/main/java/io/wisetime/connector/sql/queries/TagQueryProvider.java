@@ -2,7 +2,7 @@
  * Copyright (c) 2019 Practice Insight Pty Ltd. All Rights Reserved.
  */
 
-package io.wisetime.connector.sql;
+package io.wisetime.connector.sql.queries;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -31,7 +31,7 @@ import org.yaml.snakeyaml.Yaml;
  * @author shane.xie
  */
 @Slf4j
-class TagQueryProvider {
+public class TagQueryProvider {
 
   private CompletableFuture<Void> fileWatch;
   private List<TagQuery> tagQueries;
@@ -41,11 +41,11 @@ class TagQueryProvider {
     fileWatch = startWatchingFile(tagSqlPath);
   }
 
-  List<TagQuery> getQueries() {
+  public List<TagQuery> getQueries() {
     return tagQueries;
   }
 
-  void stopWatching() {
+  public void stopWatching() {
     fileWatch.cancel(true);
   }
 

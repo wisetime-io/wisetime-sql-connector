@@ -5,6 +5,7 @@
 package io.wisetime.connector.sql;
 
 import com.github.javafaker.Faker;
+import io.wisetime.connector.sql.sync.TagSyncRecord;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;

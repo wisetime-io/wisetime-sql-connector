@@ -2,7 +2,7 @@
  * Copyright (c) 2019 Practice Insight Pty Ltd. All Rights Reserved.
  */
 
-package io.wisetime.connector.sql;
+package io.wisetime.connector.sql.sync;
 
 import lombok.Data;
 
@@ -10,7 +10,7 @@ import lombok.Data;
  * @author shane.xie
  */
 @Data
-class TagSyncRecord {
+public class TagSyncRecord {
   String reference;
   String tagName;
   String keyword;
