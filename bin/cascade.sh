@@ -3,7 +3,7 @@ set -o errexit ; set -o errtrace ; set -o pipefail
 
 curl --silent --show-error --fail -u ${BAMBOO_USER}:${BAMBOO_PASS} \
   -X POST -d "ARTIFACT1&ExecuteAllStages" \
-  https://bamboo.dev.wisetime.com/rest/api/latest/queue/CAPI-place-project-id-here > result.xml
+  https://bamboo.dev.wisetime.com/rest/api/latest/queue/CAPI-WCS > result.xml
 
 echo "Result: "
 cat result.xml
@@ -11,7 +11,7 @@ cat result.xml
 # build for raspberry pi
 curl --silent --show-error --fail -u ${BAMBOO_USER}:${BAMBOO_PASS} \
   -X POST -d "ARTIFACT1&ExecuteAllStages" \
-  https://bamboo.dev.wisetime.com/rest/api/latest/queue/CAPI-place-project-id-here > result-arm64.xml
+  https://bamboo.dev.wisetime.com/rest/api/latest/queue/CAPI-WCSA > result-arm64.xml
 
 echo "Result (arm64): "
 cat result-arm64.xml

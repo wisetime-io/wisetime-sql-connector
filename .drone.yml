@@ -72,20 +72,20 @@ steps:
         - refs/heads/master
         - refs/tags/*
 
-#  - name: cascade-to-bamboo
-#    image: quay.io/wt-build-support/alpine-git-bash
-#    environment:
-#      BAMBOO_USER:
-#        from_secret: bamboo-user
-#      BAMBOO_PASS:
-#        from_secret: bamboo-pass
-#    commands:
-#      - echo "Caccade to artifact via user $${BAMBOO_USER}"
-#      - ./bin/cascade.sh
-#    when:
-#      ref:
-#        - refs/heads/master
-#        - refs/tags/*
+  - name: cascade-to-bamboo
+    image: quay.io/wt-build-support/alpine-git-bash
+    environment:
+      BAMBOO_USER:
+        from_secret: bamboo-user
+      BAMBOO_PASS:
+        from_secret: bamboo-pass
+    commands:
+      - echo "Caccade to artifact via user $${BAMBOO_USER}"
+      - ./bin/cascade.sh
+    when:
+      ref:
+        - refs/heads/master
+        - refs/tags/*
 
   - name: notify
     image: drillster/drone-email
@@ -118,30 +118,6 @@ trigger:
     - tag
 
 ---
-kind: pipeline
-name: mirror-to-github
-depends_on:
-  - test-and-publish
-
-#steps:
-#  - name: github-push
-#    image: quay.io/wt-build-support/alpine-git-bash
-#    environment:
-#      GITHUB_SSH_KEY_B64:
-#        from_secret: github-ssh-key-b64
-#    commands:
-#      - ./mirror.sh
-#    when:
-#      ref:
-#        - refs/heads/master
-#        - refs/tags/*
-
-trigger:
-  event:
-    - push
-    - tag
-
----
 kind: secret
 name: aws-publish-id
 get:
@@ -154,13 +130,6 @@ name: aws-publish-secret
 get:
   path: drone/publish/s3
   name: aws-publish-secret
-
-#---
-#kind: secret
-#name: github-ssh-key-b64
-#get:
-#  path: drone/publish/github/connector-sql-keys
-#  name: sql-key-name
 
 ---
 kind: secret
