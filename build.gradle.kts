@@ -26,11 +26,6 @@ dependencies {
     implementation("org.apache.commons:commons-configuration2:2.4")
     implementation("com.google.guava:guava:27.1-jre")
 
-    implementation("com.google.inject:guice:4.2.2:no_aop") {
-        exclude(group = "com.google.guava", module = "guava")
-    }
-    implementation("com.google.guava:guava:27.1-jre")
-
     implementation("ch.qos.logback:logback-classic:1.2.3")
     implementation("ch.qos.logback:logback-core:1.2.3")
     implementation("org.slf4j:slf4j-api:1.7.26")
