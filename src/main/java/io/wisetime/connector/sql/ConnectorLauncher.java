@@ -28,6 +28,8 @@ public class ConnectorLauncher {
     final ConnectedDatabase database = new ConnectedDatabase(buildDataSource());
     return ConnectorController.newBuilder()
         .withWiseTimeConnector(new SqlConnector(database))
+        // This connector does not process posted time.
+        .useTagsOnly()
         .build();
   }
 
