@@ -104,6 +104,8 @@ public class TagQueryProvider {
       final String contents = lines.collect(Collectors.joining("\n"));
       lines.close();
 
+      // TODO(SX): Check that SQL query names are unique, fail if they aren't.
+
       final Yaml yaml = new Yaml(new Constructor(TagQuery.class));
       return StreamSupport.stream(yaml.loadAll(contents).spliterator(), false)
           .map(query -> (TagQuery) query)

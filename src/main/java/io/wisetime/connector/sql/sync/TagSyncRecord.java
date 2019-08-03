@@ -4,6 +4,8 @@
 
 package io.wisetime.connector.sql.sync;
 
+import com.google.common.collect.ImmutableList;
+import io.wisetime.generated.connect.UpsertTagRequest;
 import lombok.Data;
 
 /**
@@ -16,4 +18,15 @@ public class TagSyncRecord {
   String keyword;
   String description;
   String syncMarker;
+
+  public UpsertTagRequest toUpsertTagRequest(final String path) {
+    return new UpsertTagRequest()
+        .name(tagName)
+
+        // TODO(SX) If description is empty we don't want to overwrite data in WiseTime. Check behaviour.
+        .description(description)
+
+        .additionalKeywords(ImmutableList.of(keyword))
+        .path(path);
+  }
 }

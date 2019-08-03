@@ -4,7 +4,10 @@
 
 package io.wisetime.connector.sql.sync;
 
+import com.google.common.collect.ImmutableList;
 import com.zaxxer.hikari.HikariDataSource;
+import java.util.Collection;
+import java.util.List;
 import org.codejargon.fluentjdbc.api.FluentJdbc;
 import org.codejargon.fluentjdbc.api.FluentJdbcBuilder;
 import org.codejargon.fluentjdbc.api.mapper.Mappers;
@@ -32,6 +35,13 @@ public class ConnectedDatabase {
     } catch (Exception ex) {
       return false;
     }
+  }
+
+  public Collection<TagSyncRecord> getTagsToSync(final String sql, final String syncMarker,
+      final List<String> lastSyncedReferences) {
+
+    // TODO(SX)
+    return ImmutableList.of();
   }
 
   public void close() {
