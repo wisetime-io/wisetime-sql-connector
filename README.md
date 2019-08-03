@@ -16,7 +16,7 @@ Configuration is done through environment variables. The following configuration
 --- | ---
 | API_KEY | Your WiseTime Connect API Key |
 | TAG_UPSERT_PATH | The tag folder path to use for tags |
-| TAG_SQL_FILE | The path to a YAML configuration file containing the SQL queries to run to detect new tags and keywords to be upserted to WiseTime. See below for file format. |
+| TAG_SQL_FILE | The path to a YAML configuration file containing the SQL queries to run to detect new tags and keywords to be upserted to WiseTime. The connector will watch the file for updates and is able to switch to the new queries as the file is updated, without restarting the connector. See below for file format. |
 | JDBC_URL | The JDBC URL for your database |
 | JDBC_USER | Username to use to connect to the database |
 | JDBC_PASSWORD | Password to use to connect to the database |
