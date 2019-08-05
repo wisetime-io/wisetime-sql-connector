@@ -32,8 +32,8 @@ sql: >
   SELECT TOP 500
   [IRN] as [reference],
   [IRN] AS [tag_name],
-  [IRN] AS [keyword],
-  [TITLE] AS [description],
+  [IRN] AS [additional_keyword],
+  [TITLE] AS [tag_description],
   [DATE_UPDATED] AS [sync_marker]
   FROM [dbo].[CASES]
   WHERE [DATE_UPDATED] >= :previous_sync_marker
@@ -47,8 +47,8 @@ sql: >
   SELECT TOP 500
   [PRJ_ID] AS [reference],
   [IRN] AS [tag_name],
-  CONCAT('FID', [PRJ_ID]) AS [keyword],
-  [DESCRIPTION] AS [description],
+  CONCAT('FID', [PRJ_ID]) AS [additional_keyword],
+  [DESCRIPTION] AS [tag_description],
   [PRJ_ID] AS [sync_marker]
   FROM [dbo].[PROJECTS]
   WHERE [PRJ_ID] >= :previous_sync_marker
@@ -70,8 +70,8 @@ The `TAG_SQL` must select the relevant information as `reference`, `tag_name`, `
 --- | ---
 | reference | Used to perform deduplication during sync when the sync_marker is not unique |
 | tag_name | Used as the tag name when creating a tag for the record |
-| keyword | Used as the keyword to **add** to the tag during upsert. Previous keywords are not removed if the tag already exists. |
-| description | Used as the tag description when creating the tag. This description will be searchable in the WiseTime Console UI |
+| additional_keyword | Used as the keyword to **add** to the tag during upsert. Previous keywords are not removed if the tag already exists. |
+| tag_description | Used as the tag description when creating the tag. This description will be searchable in the WiseTime Console UI. If empty, will not overwrite an existing description when upserting tag. |
 | sync_marker | Used as the sync position marker so that the connector remembers which records it has already synced |
 
 #### Placeholde Parameters

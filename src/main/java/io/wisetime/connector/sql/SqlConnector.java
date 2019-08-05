@@ -101,7 +101,7 @@ public class SqlConnector implements WiseTimeConnector {
         tagSyncRecords.size() > 1 ? "[tag|keyword]s" : "[tag|keyword]",
         ellipsize(
             tagSyncRecords.stream()
-                .map(record -> record.getTagName() + "|" + record.getKeyword())
+                .map(record -> record.getTagName() + "|" + record.getAdditionalKeyword())
                 .collect(Collectors.toList())
         )
     );

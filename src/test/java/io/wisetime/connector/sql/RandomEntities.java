@@ -24,8 +24,8 @@ public class RandomEntities {
     final TagSyncRecord tagSyncRecord = new TagSyncRecord();
     tagSyncRecord.setReference(faker.numerify("#####"));
     tagSyncRecord.setTagName(faker.bothify("??######??").toUpperCase());
-    tagSyncRecord.setKeyword(tagSyncRecord.getTagName());
-    tagSyncRecord.setDescription(faker.lorem().characters(12, 35));
+    tagSyncRecord.setAdditionalKeyword(tagSyncRecord.getTagName());
+    tagSyncRecord.setTagDescription(faker.lorem().characters(12, 35));
     tagSyncRecord.setSyncMarker(fixedTimeMinusMinutes(faker.random().nextInt(1, 120)));
     return tagSyncRecord;
   }

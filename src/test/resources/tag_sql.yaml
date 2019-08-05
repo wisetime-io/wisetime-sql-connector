@@ -4,8 +4,8 @@ sql: >
   SELECT TOP 500
   [IRN] as [reference],
   [IRN] AS [tag_name],
-  [IRN] AS [keyword],
-  [TITLE] AS [description],
+  [IRN] AS [additional_keyword],
+  [TITLE] AS [tag_description],
   [DATE_UPDATED] AS [sync_marker]
   FROM [dbo].[CASES]
   WHERE [DATE_UPDATED] >= :previous_sync_marker
@@ -19,8 +19,8 @@ sql: >
   SELECT TOP 500
   [PRJ_ID] AS [reference],
   [IRN] AS [tag_name],
-  CONCAT('FID', [PRJ_ID]) AS [keyword],
-  [DESCRIPTION] AS [description],
+  CONCAT('FID', [PRJ_ID]) AS [additional_keyword],
+  [DESCRIPTION] AS [tag_description],
   [PRJ_ID] AS [sync_marker]
   FROM [dbo].[PROJECTS]
   WHERE [PRJ_ID] >= :previous_sync_marker

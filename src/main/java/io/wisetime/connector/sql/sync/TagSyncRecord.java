@@ -15,8 +15,8 @@ import lombok.Data;
 public class TagSyncRecord {
   String reference;
   String tagName;
-  String keyword;
-  String description;
+  String additionalKeyword;
+  String tagDescription;
   String syncMarker;
 
   public UpsertTagRequest toUpsertTagRequest(final String path) {
@@ -24,9 +24,9 @@ public class TagSyncRecord {
         .name(tagName)
 
         // TODO(SX) If description is empty we don't want to overwrite data in WiseTime. Check behaviour.
-        .description(description)
+        .description(tagDescription)
 
-        .additionalKeywords(ImmutableList.of(keyword))
+        .additionalKeywords(ImmutableList.of(additionalKeyword))
         .path(path);
   }
 }
