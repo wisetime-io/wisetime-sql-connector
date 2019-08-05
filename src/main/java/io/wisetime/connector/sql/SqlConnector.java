@@ -4,9 +4,9 @@
 
 package io.wisetime.connector.sql;
 
+import static io.wisetime.connector.sql.format.LogFormatter.format;
 import static io.wisetime.connector.sql.queries.TagQueryProvider.hasUniqueQueryNames;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import io.wisetime.connector.ConnectorModule;
 import io.wisetime.connector.WiseTimeConnector;
@@ -20,7 +20,6 @@ import io.wisetime.connector.sql.sync.TagSyncRecord;
 import io.wisetime.generated.connect.TimeGroup;
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import spark.Request;
 
@@ -62,7 +61,7 @@ public class SqlConnector implements WiseTimeConnector {
           while ((tagSyncRecords = database.getTagsToSync(query.getSql(), marker, lastSyncedReferences)).size() > 0) {
             connectApi.upsertWiseTimeTags(tagSyncRecords);
             syncStore.markSyncPosition(query.getName(), tagSyncRecords);
-            log.info(formatForLog(tagSyncRecords));
+            log.info(format(tagSyncRecords));
           }
         });
   }
@@ -81,31 +80,5 @@ public class SqlConnector implements WiseTimeConnector {
   public void shutdown() {
     database.close();
     tagQueryProvider.stopWatching();
-  }
-
-  @VisibleForTesting
-  String formatForLog(final Collection<TagSyncRecord> tagSyncRecords) {
-    return String.format("Upserting %s %s: $s",
-        tagSyncRecords.size(),
-        tagSyncRecords.size() > 1 ? "[tag|keyword]s" : "[tag|keyword]",
-        ellipsize(
-            tagSyncRecords.stream()
-                .map(record -> record.getTagName() + "|" + record.getAdditionalKeyword())
-                .collect(Collectors.toList())
-        )
-    );
-  }
-
-  private String ellipsize(final List<String> items) {
-    if (items.size() == 0) {
-      return "";
-    }
-    if (items.size() == 1) {
-      return items.get(0);
-    }
-    if (items.size() < 6) {
-      return items.stream().collect(Collectors.joining(", "));
-    }
-    return items.get(0) + ", ... , " + items.get(items.size() - 1);
   }
 }
