@@ -7,17 +7,13 @@ package io.wisetime.connector.sql;
 import com.google.common.annotations.VisibleForTesting;
 import io.wisetime.connector.ConnectorModule;
 import io.wisetime.connector.WiseTimeConnector;
-import io.wisetime.connector.api_client.ApiClient;
 import io.wisetime.connector.api_client.PostResult;
-import io.wisetime.connector.config.RuntimeConfig;
-import io.wisetime.connector.sql.ConnectorLauncher.SqlConnectorConfigKey;
 import io.wisetime.connector.sql.queries.TagQueryProvider;
+import io.wisetime.connector.sql.sync.ConnectApi;
 import io.wisetime.connector.sql.sync.ConnectedDatabase;
 import io.wisetime.connector.sql.sync.SyncStore;
 import io.wisetime.connector.sql.sync.TagSyncRecord;
 import io.wisetime.generated.connect.TimeGroup;
-import io.wisetime.generated.connect.UpsertTagRequest;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,13 +26,10 @@ import spark.Request;
 @Slf4j
 public class SqlConnector implements WiseTimeConnector {
 
-  private static final String TAG_UPSERT_PATH = RuntimeConfig.getString(SqlConnectorConfigKey.TAG_UPSERT_PATH)
-      .orElseThrow(() -> new RuntimeException("Missing required TAG_UPSERT_PATH configuration"));
-
   private ConnectedDatabase database;
   private TagQueryProvider tagQueryProvider;
   private SyncStore syncStore;
-  private ApiClient apiClient;
+  private ConnectApi connectApi;
 
   public SqlConnector(final ConnectedDatabase connectedDatabase, final TagQueryProvider tagQueryProvider) {
     database = connectedDatabase;
@@ -46,7 +39,7 @@ public class SqlConnector implements WiseTimeConnector {
   @Override
   public void init(ConnectorModule connectorModule) {
     syncStore = new SyncStore(connectorModule.getConnectorStore());
-    apiClient = connectorModule.getApiClient();
+    connectApi = new ConnectApi(connectorModule.getApiClient());
   }
 
   @Override
@@ -58,7 +51,7 @@ public class SqlConnector implements WiseTimeConnector {
           Collection<TagSyncRecord> tagSyncRecords;
 
           while ((tagSyncRecords = database.getTagsToSync(query.getSql(), marker, lastSyncedReferences)).size() > 0) {
-            upsertWiseTimeTags(tagSyncRecords, TAG_UPSERT_PATH);
+            connectApi.upsertWiseTimeTags(tagSyncRecords);
             syncStore.markSyncPosition(query.getName(), tagSyncRecords);
             log.info(formatForLog(tagSyncRecords));
           }
@@ -79,19 +72,6 @@ public class SqlConnector implements WiseTimeConnector {
   public void shutdown() {
     database.close();
     tagQueryProvider.stopWatching();
-  }
-
-  private void upsertWiseTimeTags(Collection<TagSyncRecord> tagSyncRecords, final String path) {
-    final List<UpsertTagRequest> requests = tagSyncRecords.stream()
-        .map(tagSyncRecord -> tagSyncRecord.toUpsertTagRequest(path))
-        .collect(Collectors.toList());
-    if (!requests.isEmpty()) {
-      try {
-        apiClient.tagUpsertBatch(requests);
-      } catch (IOException ioe) {
-        throw new RuntimeException(ioe);
-      }
-    }
   }
 
   @VisibleForTesting
