@@ -52,6 +52,11 @@ public class TagQueryProvider {
     fileWatch.cancel(true);
   }
 
+  public static boolean hasUniqueQueryNames(final List<TagQuery> tagQueries) {
+    final Set<String> uniqueQueryNames = tagQueries.stream().map(TagQuery::getName).collect(Collectors.toSet());
+    return tagQueries.size() == uniqueQueryNames.size();
+  }
+
   // Blocking, only meant for use in tests
   @VisibleForTesting
   List<TagQuery> waitForQueryChange(final List<TagQuery> awaitedResult) throws InterruptedException {
@@ -111,10 +116,8 @@ public class TagQueryProvider {
           .map(query -> (TagQuery) query)
           .collect(Collectors.toList());
 
-      final Set<String> uniqueQueryNames = queries.stream().map(TagQuery::getName).collect(Collectors.toSet());
-      Preconditions.checkArgument(queries.size() == uniqueQueryNames.size(),
-          "SQL query names must be unique");
-
+      // Fail early to give the operator a tight feedback loop when configuring the connector
+      Preconditions.checkArgument(hasUniqueQueryNames(queries), "Tag SQL query names must be unique");
       return queries;
 
     } catch (IOException ioe) {

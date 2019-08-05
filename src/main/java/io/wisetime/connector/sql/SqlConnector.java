@@ -4,10 +4,14 @@
 
 package io.wisetime.connector.sql;
 
+import static io.wisetime.connector.sql.queries.TagQueryProvider.hasUniqueQueryNames;
+
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import io.wisetime.connector.ConnectorModule;
 import io.wisetime.connector.WiseTimeConnector;
 import io.wisetime.connector.api_client.PostResult;
+import io.wisetime.connector.sql.queries.TagQuery;
 import io.wisetime.connector.sql.queries.TagQueryProvider;
 import io.wisetime.connector.sql.sync.ConnectApi;
 import io.wisetime.connector.sql.sync.ConnectedDatabase;
@@ -44,7 +48,12 @@ public class SqlConnector implements WiseTimeConnector {
 
   @Override
   public void performTagUpdate() {
-    tagQueryProvider.getQueries().stream()
+    final List<TagQuery> tagQueries = tagQueryProvider.getQueries();
+
+    // Important to ensure that we maintain correct sync for each query
+    Preconditions.checkArgument(hasUniqueQueryNames(tagQueries), "Tag SQL query names must be unique");
+
+    tagQueries.stream()
         .forEachOrdered(query -> {
           final String marker = syncStore.getSyncMarker(query.getName(), query.getInitialSyncMarker());
           final List<String> lastSyncedReferences = syncStore.getLastSyncedReferences(query.getName());
