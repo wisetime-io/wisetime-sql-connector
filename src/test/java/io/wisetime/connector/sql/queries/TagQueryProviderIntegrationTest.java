@@ -5,6 +5,7 @@
 package io.wisetime.connector.sql.queries;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
@@ -43,6 +44,13 @@ class TagQueryProviderIntegrationTest {
     assertThat(tagQueries.get(2))
         .as("The tag query is correctly parsed from YAML")
         .isEqualTo(invalidQuery);
+  }
+
+  @Test
+  void getQueries_fail_non_unique_query_names() throws Exception {
+    final Path path = Files.createTempFile("tag_query_test_query_names", ".yaml");
+    Files.write(path, ImmutableList.of("name: cases", "---", "name: cases"));
+    assertThrows(IllegalArgumentException.class, () -> new TagQueryProvider(path));
   }
 
   /**

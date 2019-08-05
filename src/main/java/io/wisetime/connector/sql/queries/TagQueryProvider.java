@@ -5,6 +5,7 @@
 package io.wisetime.connector.sql.queries;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.FileSystems;
@@ -15,6 +16,7 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -104,12 +106,16 @@ public class TagQueryProvider {
       final String contents = lines.collect(Collectors.joining("\n"));
       lines.close();
 
-      // TODO(SX): Check that SQL query names are unique, fail if they aren't.
-
       final Yaml yaml = new Yaml(new Constructor(TagQuery.class));
-      return StreamSupport.stream(yaml.loadAll(contents).spliterator(), false)
+      final List<TagQuery> queries = StreamSupport.stream(yaml.loadAll(contents).spliterator(), false)
           .map(query -> (TagQuery) query)
           .collect(Collectors.toList());
+
+      final Set<String> uniqueQueryNames = queries.stream().map(TagQuery::getName).collect(Collectors.toSet());
+      Preconditions.checkArgument(queries.size() == uniqueQueryNames.size(),
+          "SQL query names must be unique");
+
+      return queries;
 
     } catch (IOException ioe) {
       log.error("Failed to read tag SQL configuration file at {}", path);
