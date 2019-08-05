@@ -7,6 +7,7 @@ package io.wisetime.connector.sql;
 import static io.wisetime.connector.sql.format.LogFormatter.format;
 import static io.wisetime.connector.sql.queries.TagQueryProvider.hasUniqueQueryNames;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import io.wisetime.connector.ConnectorModule;
 import io.wisetime.connector.WiseTimeConnector;
@@ -48,6 +49,10 @@ public class SqlConnector implements WiseTimeConnector {
   @Override
   public void performTagUpdate() {
     final List<TagQuery> tagQueries = tagQueryProvider.getQueries();
+    if (tagQueries.isEmpty()) {
+      log.warn("No tag SQL queries configured. Skipping tag sync.");
+      return;
+    }
 
     // Important to ensure that we maintain correct sync for each query
     Preconditions.checkArgument(hasUniqueQueryNames(tagQueries), "Tag SQL query names must be unique");
@@ -80,5 +85,15 @@ public class SqlConnector implements WiseTimeConnector {
   public void shutdown() {
     database.close();
     tagQueryProvider.stopWatching();
+  }
+
+  @VisibleForTesting
+  public void setSyncStore(final SyncStore syncStore) {
+    this.syncStore = syncStore;
+  }
+
+  @VisibleForTesting
+  public void setConnectApi(final ConnectApi connectApi) {
+    this.connectApi = connectApi;
   }
 }
