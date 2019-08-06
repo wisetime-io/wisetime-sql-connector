@@ -30,7 +30,7 @@ public class SyncStore {
 
   /**
    * Persist the latest sync marker as well as the ids at that marker.
-   * The TagSyncRecords provided must be sorted by sync marker in lexicographically descending order.
+   * The TagSyncRecords provided must be sorted by sync marker in lexicographically ascending order.
    */
   public void markSyncPosition(final String namespace, final LinkedList<TagSyncRecord> tagSyncRecordsInAscMarkerOrder) {
     final List<TagSyncRecord> latestSynced =

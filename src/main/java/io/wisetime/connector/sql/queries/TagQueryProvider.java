@@ -115,7 +115,7 @@ public class TagQueryProvider {
       final Yaml yaml = new Yaml(new Constructor(TagQuery.class));
       final List<TagQuery> queries = StreamSupport.stream(yaml.loadAll(contents).spliterator(), false)
           .map(query -> (TagQuery) query)
-          .map(this::validateQuery)
+          .map(this::enforceValid)
           .collect(Collectors.toList());
 
       // Fail early to give the operator a tight feedback loop when configuring the connector
@@ -128,7 +128,7 @@ public class TagQueryProvider {
     }
   }
 
-  private TagQuery validateQuery(final TagQuery query) {
+  private TagQuery enforceValid(final TagQuery query) {
     Preconditions.checkArgument(
       StringUtils.isNoneEmpty(query.getName(), query.getInitialSyncMarker(), query.getSkippedIds(), query.getSql())
     );
