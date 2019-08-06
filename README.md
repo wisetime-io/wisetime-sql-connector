@@ -31,7 +31,7 @@ initialSyncMarker: 2001-01-01T00:00:00
 skippedIds: P01003789, P1025477
 sql: >
   SELECT TOP 500
-  [IRN] as [reference],
+  [IRN] as [id],
   [IRN] AS [tag_name],
   [IRN] AS [additional_keyword],
   [TITLE] AS [tag_description],
@@ -47,7 +47,7 @@ initialSyncMarker: 0
 skippedIds: 0
 sql: >
   SELECT TOP 500
-  [PRJ_ID] AS [reference],
+  [PRJ_ID] AS [id],
   [IRN] AS [tag_name],
   CONCAT('FID', [PRJ_ID]) AS [additional_keyword],
   [DESCRIPTION] AS [tag_description],
