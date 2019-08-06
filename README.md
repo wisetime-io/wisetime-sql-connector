@@ -28,6 +28,7 @@ The yaml configuration file expects one or more SQL queries to be provided, each
 ```yaml
 name: cases
 initialSyncMarker: 2001-01-01T00:00:00
+skippedIds: P01003789, P1025477
 sql: >
   SELECT TOP 500
   [IRN] as [reference],
@@ -37,12 +38,13 @@ sql: >
   [DATE_UPDATED] AS [sync_marker]
   FROM [dbo].[CASES]
   WHERE [DATE_UPDATED] >= :previous_sync_marker
-  AND [IRN] NOT IN (:previous_sync_references)
+  AND [IRN] NOT IN (:skipped_ids)
   ORDER BY [DATE_UPDATED] ASC;
 
 ---
 name: keywords
 initialSyncMarker: 0
+skippedIds: 0
 sql: >
   SELECT TOP 500
   [PRJ_ID] AS [reference],
@@ -52,7 +54,7 @@ sql: >
   [PRJ_ID] AS [sync_marker]
   FROM [dbo].[PROJECTS]
   WHERE [PRJ_ID] >= :previous_sync_marker
-  AND [PRJ_ID] NOT IN (:previous_sync_references)
+  AND [PRJ_ID] NOT IN (:skipped_ids)
   ORDER BY [PRJ_ID] ASC;
 ```
 
@@ -64,11 +66,11 @@ The `initialSyncMarker` configuration is required and specifies the first value 
 
 #### Selected Fields
 
-The `TAG_SQL` must select the relevant information as `reference`, `tag_name`, `keyword`, `description` and `sync_marker`. The connector expects these names in the result set. The connector uses `sync_marker` to remember what tags it has already upserted. The following table explains how each selected field is used by the connector.
+The `TAG_SQL` must select the relevant information as `id`, `tag_name`, `keyword`, `description` and `sync_marker`. The connector expects these names in the result set. The connector uses `sync_marker` to remember what tags it has already upserted. The following table explains how each selected field is used by the connector.
 
 | Field | Explanation |
 --- | ---
-| reference | Used to perform deduplication during sync when the sync_marker is not unique |
+| id | Used to perform deduplication during sync when the sync_marker is not unique |
 | tag_name | Used as the tag name when creating a tag for the record |
 | additional_keyword | Used as the keyword to **add** to the tag during upsert. Previous keywords are not removed if the tag already exists. |
 | tag_description | Used as the tag description when creating the tag. This description will be searchable in the WiseTime Console UI. If empty, will not overwrite an existing description when upserting tag. |
@@ -81,11 +83,11 @@ The SQL queries are parametised and the following placeholder parameters are req
 | Placeholder Parameter | Explanation |
 --- | ---
 | :previous_sync_marker | The connector will inject its current sync marker value at this position in the SQL query. This is how the connector skips over records that it has already synced. |
-| :previous_sync_references | The connector will inject a list of previously synced references as a CSV using this placeholder parameter. This is how the connector performs deduplication in the event that the sync marker is non-unique, e.g. when a datetime type is used as the sync marker. |
+| :skipped_ids | The connector will inject a list of IDs to skip plus previously synced IDs as a CSV using this placeholder parameter. This is how the connector performs deduplication in the event that the sync marker is non-unique, e.g. when a datetime type is used as the sync marker. |
 
 For `cases` in the above example, because the `DATE_UPDATED` column is a DateTime field, we use the comparison operator `>=` in the WHERE clause. The connector will take care of deduplication before upserting tags to WiseTime. In any case, upserting a tag is an idempotent operation.
 
-For the `keywords` query in the above example, if the `sync_marker` field is an auto incremented integer field, then we can simply use `>` as the comparison operator. In this case, the clause `AND [PRJ_ID] NOT IN (:previous_sync_references)` is redundant. However, we must still use the placeholder because the connector expects it when it generates the query.
+For the `keywords` query in the above example, if the `sync_marker` field is an auto incremented integer field, then we can simply use `>` as the comparison operator. In this case, the clause `AND [PRJ_ID] NOT IN (:skipped_ids)` is redundant. However, we must still use the placeholder because the connector expects it when it generates the query.
 
 ### Optional Configuration Parameters
 

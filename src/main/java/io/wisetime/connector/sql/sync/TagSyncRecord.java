@@ -11,7 +11,7 @@ import lombok.Data;
  */
 @Data
 public class TagSyncRecord {
-  String reference;
+  String id;
   String tagName;
   String additionalKeyword;
   String tagDescription;

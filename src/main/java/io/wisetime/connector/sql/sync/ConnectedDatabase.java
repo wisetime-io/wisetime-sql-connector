@@ -41,18 +41,19 @@ public class ConnectedDatabase {
   }
 
   public LinkedList<TagSyncRecord> getTagsToSync(
-      final String sql, final String syncMarker, final List<String> lastSyncedReferences) {
+      final String sql, final String syncMarker, final List<String> skippedIds) {
 
+    Preconditions.checkArgument(!skippedIds.isEmpty(), "skippedIds must not be empty");
     Preconditions.checkArgument(
-        sql.contains(":previous_sync_marker") && sql.contains(":previous_sync_references"),
-        "The tag query SQL must contain both :previous_sync_marker and :previous_sync_references"
+        sql.contains(":previous_sync_marker") && sql.contains(":skipped_ids"),
+        "The tag query SQL must contain both :previous_sync_marker and :skipped_ids"
     );
 
     final LinkedList<TagSyncRecord> results = new LinkedList<>();
     query()
         .select(sql)
         .namedParam("previous_sync_marker", syncMarker)
-        .namedParam("previous_sync_references", lastSyncedReferences)
+        .namedParam("skipped_ids", skippedIds)
         .iterateResult(resultSet -> results.add(toTagSyncRecord(resultSet)));
     return results;
   }
@@ -68,7 +69,7 @@ public class ConnectedDatabase {
 
   private TagSyncRecord toTagSyncRecord(final ResultSet resultSet) throws SQLException {
     final TagSyncRecord tagSyncRecord = new TagSyncRecord();
-    tagSyncRecord.setReference(resultSet.getString("reference"));
+    tagSyncRecord.setId(resultSet.getString("id"));
     tagSyncRecord.setTagName(resultSet.getString("tag_name"));
     tagSyncRecord.setAdditionalKeyword(resultSet.getString("additional_keyword"));
     tagSyncRecord.setTagDescription(resultSet.getString("tag_description"));

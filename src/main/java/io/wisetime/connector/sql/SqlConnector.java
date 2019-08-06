@@ -19,9 +19,13 @@ import io.wisetime.connector.sql.sync.ConnectedDatabase;
 import io.wisetime.connector.sql.sync.SyncStore;
 import io.wisetime.connector.sql.sync.TagSyncRecord;
 import io.wisetime.generated.connect.TimeGroup;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.StringUtils;
 import spark.Request;
 
 /**
@@ -60,10 +64,10 @@ public class SqlConnector implements WiseTimeConnector {
     tagQueries.stream()
         .forEachOrdered(query -> {
           final String marker = syncStore.getSyncMarker(query.getName(), query.getInitialSyncMarker());
-          final List<String> lastSyncedReferences = syncStore.getLastSyncedReferences(query.getName());
-          LinkedList<TagSyncRecord> tagSyncRecords;
+          final List<String> idsToSkip = idsToSkip(query, syncStore);
 
-          while ((tagSyncRecords = database.getTagsToSync(query.getSql(), marker, lastSyncedReferences)).size() > 0) {
+          LinkedList<TagSyncRecord> tagSyncRecords;
+          while ((tagSyncRecords = database.getTagsToSync(query.getSql(), marker, idsToSkip)).size() > 0) {
             connectApi.upsertWiseTimeTags(tagSyncRecords);
             syncStore.markSyncPosition(query.getName(), tagSyncRecords);
             log.info(format(tagSyncRecords));
@@ -88,12 +92,23 @@ public class SqlConnector implements WiseTimeConnector {
   }
 
   @VisibleForTesting
-  public void setSyncStore(final SyncStore syncStore) {
+  void setSyncStore(final SyncStore syncStore) {
     this.syncStore = syncStore;
   }
 
   @VisibleForTesting
-  public void setConnectApi(final ConnectApi connectApi) {
+  void setConnectApi(final ConnectApi connectApi) {
     this.connectApi = connectApi;
+  }
+
+  private List<String> idsToSkip(final TagQuery query, final SyncStore syncStore) {
+    return ListUtils
+        .union(
+          Arrays.asList(query.getSkippedIds().split("\\s*,\\s*")),
+          syncStore.getLastSyncedIds(query.getName())
+        )
+        .stream()
+        .filter(StringUtils::isNotEmpty)
+        .collect(Collectors.toList());
   }
 }

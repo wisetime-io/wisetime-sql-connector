@@ -64,8 +64,8 @@ class SqlConnectorTagUpdateTest {
   @Test
   void performTagUpdate_fails_non_unique_query_names() {
     when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(
-        new TagQuery("name", "", ""),
-        new TagQuery("name", "", "")
+        new TagQuery("name", "", "", ""),
+        new TagQuery("name", "", "", "")
     ));
     assertThrows(IllegalArgumentException.class, () -> connector.performTagUpdate());
   }
@@ -80,9 +80,9 @@ class SqlConnectorTagUpdateTest {
   @Test
   void performTagUpdate_no_tags_to_sync() {
     when(mockTagQueryProvider.getQueries())
-        .thenReturn(ImmutableList.of(new TagQuery("one", "SELECT 1", "")));
+        .thenReturn(ImmutableList.of(new TagQuery("one", "SELECT 1", "", "")));
     when(mockSyncStore.getSyncMarker("one", "")).thenReturn("");
-    when(mockSyncStore.getLastSyncedReferences("one")).thenReturn(ImmutableList.of());
+    when(mockSyncStore.getLastSyncedIds("one")).thenReturn(ImmutableList.of());
     when(mockDatabase.getTagsToSync(eq("SELECT 1"), eq(""), anyList())).thenReturn(new LinkedList<>());
 
     connector.performTagUpdate();
@@ -96,13 +96,13 @@ class SqlConnectorTagUpdateTest {
   void performTagUpdate_sync_tags() {
     when(mockTagQueryProvider.getQueries())
         .thenReturn(ImmutableList.of(
-            new TagQuery("one", "SELECT 1", "1"),
-            new TagQuery("two", "SELECT 2", "2")
+            new TagQuery("one", "SELECT 1", "1", "skipped1"),
+            new TagQuery("two", "SELECT 2", "2", "")
         ));
     when(mockSyncStore.getSyncMarker(eq("one"), eq("1"))).thenReturn("10");
     when(mockSyncStore.getSyncMarker(eq("two"), eq("2"))).thenReturn("20");
-    when(mockSyncStore.getLastSyncedReferences(eq("one"))).thenReturn(ImmutableList.of("ref1"));
-    when(mockSyncStore.getLastSyncedReferences(eq("two"))).thenReturn(ImmutableList.of("ref2"));
+    when(mockSyncStore.getLastSyncedIds(eq("one"))).thenReturn(ImmutableList.of("synced1"));
+    when(mockSyncStore.getLastSyncedIds(eq("two"))).thenReturn(ImmutableList.of("synced2"));
 
     // Two tags for query one
     final TagSyncRecord query1Record1 = randomTagSyncRecord(fixedTime());
@@ -115,11 +115,11 @@ class SqlConnectorTagUpdateTest {
     final LinkedList<TagSyncRecord> query2Results = new LinkedList<>();
     query2Results.add(query2Record);
 
-    when(mockDatabase.getTagsToSync("SELECT 1", "10", ImmutableList.of("ref1")))
+    when(mockDatabase.getTagsToSync(eq("SELECT 1"), eq("10"), eq(ImmutableList.of("skipped1", "synced1"))))
         .thenReturn(query1Results)
         .thenReturn(new LinkedList<>());
 
-    when(mockDatabase.getTagsToSync("SELECT 2", "20", ImmutableList.of("ref2")))
+    when(mockDatabase.getTagsToSync(eq("SELECT 2"), eq("20"), eq(ImmutableList.of("synced2"))))
         .thenReturn(query2Results)
         .thenReturn(new LinkedList<>());
 

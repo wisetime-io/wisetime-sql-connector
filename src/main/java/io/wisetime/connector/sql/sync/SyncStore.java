@@ -29,7 +29,7 @@ public class SyncStore {
   }
 
   /**
-   * Persist the latest sync marker as well as the references at that marker.
+   * Persist the latest sync marker as well as the ids at that marker.
    * The TagSyncRecords provided must be sorted by sync marker in lexicographically descending order.
    */
   public void markSyncPosition(final String namespace, final LinkedList<TagSyncRecord> tagSyncRecordsInAscMarkerOrder) {
@@ -40,10 +40,10 @@ public class SyncStore {
       final String latestMarker = latestSynced.get(0).getSyncMarker();
       connectorStore.putString(getMarkerKey(namespace), latestMarker);
 
-      final String syncedReferences = latestSynced.stream()
-          .map(TagSyncRecord::getReference)
+      final String syncedIds = latestSynced.stream()
+          .map(TagSyncRecord::getId)
           .collect(Collectors.joining(","));
-      connectorStore.putString(getReferencesKey(namespace), syncedReferences);
+      connectorStore.putString(getLastSyncedIdsKey(namespace), syncedIds);
     }
   }
 
@@ -51,8 +51,8 @@ public class SyncStore {
     return connectorStore.getString(getMarkerKey(namespace)).orElse(defaultSyncMarker);
   }
 
-  public List<String> getLastSyncedReferences(final String namespace) {
-    return connectorStore.getString(getReferencesKey(namespace))
+  public List<String> getLastSyncedIds(final String namespace) {
+    return connectorStore.getString(getLastSyncedIdsKey(namespace))
         .map(refs -> refs.split(","))
         .map(Arrays::asList)
         .orElse(ImmutableList.of());
@@ -86,7 +86,7 @@ public class SyncStore {
     return namespace + "_sync_marker";
   }
 
-  private String getReferencesKey(final String namespace) {
-    return namespace + "_last_synced_references";
+  private String getLastSyncedIdsKey(final String namespace) {
+    return namespace + "_last_synced_ids";
   }
 }

@@ -22,7 +22,7 @@ public class RandomEntities {
 
   public static TagSyncRecord randomTagSyncRecord() {
     final TagSyncRecord tagSyncRecord = new TagSyncRecord();
-    tagSyncRecord.setReference(faker.numerify("#####"));
+    tagSyncRecord.setId(faker.numerify("#####"));
     tagSyncRecord.setTagName(faker.bothify("??######??").toUpperCase());
     tagSyncRecord.setAdditionalKeyword(tagSyncRecord.getTagName());
     tagSyncRecord.setTagDescription(faker.lorem().characters(12, 35));

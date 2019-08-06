@@ -45,11 +45,11 @@ class SyncStoreTest {
 
     syncStore.markSyncPosition("cases", tagSyncRecords);
     verify(mockConnectorStore).putString("cases_sync_marker", tagSyncRecord.getSyncMarker());
-    verify(mockConnectorStore).putString("cases_last_synced_references", tagSyncRecord.getReference());
+    verify(mockConnectorStore).putString("cases_last_synced_ids", tagSyncRecord.getId());
 
     syncStore.markSyncPosition("projects", tagSyncRecords);
     verify(mockConnectorStore).putString("projects_sync_marker", tagSyncRecord.getSyncMarker());
-    verify(mockConnectorStore).putString("projects_last_synced_references", tagSyncRecord.getReference());
+    verify(mockConnectorStore).putString("projects_last_synced_ids", tagSyncRecord.getId());
   }
 
   @Test
@@ -79,10 +79,10 @@ class SyncStoreTest {
     // Verify that the persisted sync marker is the most recent time
     verify(mockConnectorStore, times(1)).putString("cases_sync_marker", fixedTime());
 
-    // Verify that the persisted references are the two most recent with the same sync marker
-    final String persistedReferences = tagSyncRecords.get(2).getReference() + "," + tagSyncRecords.get(1).getReference();
+    // Verify that the persisted ids are the two most recent with the same sync marker
+    final String persistedIds = tagSyncRecords.get(2).getId() + "," + tagSyncRecords.get(1).getId();
     verify(mockConnectorStore, times(1))
-        .putString("cases_last_synced_references", persistedReferences);
+        .putString("cases_last_synced_ids", persistedIds);
   }
 
   @Test
@@ -105,10 +105,10 @@ class SyncStoreTest {
   }
 
   @Test
-  void getLastSyncedReferences() {
-    when(mockConnectorStore.getString("cases_last_synced_references"))
+  void getLastSyncedIds() {
+    when(mockConnectorStore.getString("cases_last_synced_ids"))
         .thenReturn(Optional.of("1,2"));
-    assertThat(syncStore.getLastSyncedReferences("cases"))
+    assertThat(syncStore.getLastSyncedIds("cases"))
         .as("Pass on sync marker from the store")
         .isEqualTo(ImmutableList.of("1", "2"));
   }

@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
@@ -114,6 +115,7 @@ public class TagQueryProvider {
       final Yaml yaml = new Yaml(new Constructor(TagQuery.class));
       final List<TagQuery> queries = StreamSupport.stream(yaml.loadAll(contents).spliterator(), false)
           .map(query -> (TagQuery) query)
+          .map(this::validateQuery)
           .collect(Collectors.toList());
 
       // Fail early to give the operator a tight feedback loop when configuring the connector
@@ -124,5 +126,12 @@ public class TagQueryProvider {
       log.error("Failed to read tag SQL configuration file at {}", path);
       return ImmutableList.of();
     }
+  }
+
+  private TagQuery validateQuery(final TagQuery query) {
+    Preconditions.checkArgument(
+      StringUtils.isNoneEmpty(query.getName(), query.getInitialSyncMarker(), query.getSkippedIds(), query.getSql())
+    );
+    return query;
   }
 }
