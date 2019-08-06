@@ -19,7 +19,7 @@ import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 import com.google.common.collect.ImmutableList;
 import io.wisetime.connector.datastore.ConnectorStore;
-import java.util.List;
+import java.util.LinkedList;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,28 +40,29 @@ class SyncStoreTest {
   @Test
   void namespaces_are_independent() {
     final TagSyncRecord tagSyncRecord = randomTagSyncRecord();
+    final LinkedList<TagSyncRecord> tagSyncRecords = new LinkedList<>();
+    tagSyncRecords.add(tagSyncRecord);
 
-    syncStore.markSyncPosition("cases", ImmutableList.of(tagSyncRecord));
+    syncStore.markSyncPosition("cases", tagSyncRecords);
     verify(mockConnectorStore).putString("cases_sync_marker", tagSyncRecord.getSyncMarker());
     verify(mockConnectorStore).putString("cases_last_synced_references", tagSyncRecord.getReference());
 
-    syncStore.markSyncPosition("projects", ImmutableList.of(tagSyncRecord));
+    syncStore.markSyncPosition("projects", tagSyncRecords);
     verify(mockConnectorStore).putString("projects_sync_marker", tagSyncRecord.getSyncMarker());
     verify(mockConnectorStore).putString("projects_last_synced_references", tagSyncRecord.getReference());
   }
 
   @Test
   void markSyncPosition_nothing_to_persist() {
-    syncStore.markSyncPosition("cases", ImmutableList.of());
+    syncStore.markSyncPosition("cases", new LinkedList<>());
     verify(mockConnectorStore, never()).putString(anyString(), anyString());
   }
 
   @Test
-  void markSyncPosition_fail_sync_tags_not_sorted_with_most_recent_first() {
-    final List<TagSyncRecord> tagSyncRecords = ImmutableList.of(
-        randomTagSyncRecord(fixedTimeMinusMinutes(2)),
-        randomTagSyncRecord(fixedTimeMinusMinutes(1))
-    );
+  void markSyncPosition_fail_sync_tags_not_sorted_in_asc_order() {
+    final LinkedList<TagSyncRecord> tagSyncRecords = new LinkedList<>();
+    tagSyncRecords.add(randomTagSyncRecord(fixedTime()));
+    tagSyncRecords.add(randomTagSyncRecord(fixedTimeMinusMinutes(1)));
     assertThrows(IllegalArgumentException.class, () ->
         syncStore.markSyncPosition("cases", tagSyncRecords)
     );
@@ -69,18 +70,17 @@ class SyncStoreTest {
 
   @Test
   void markSyncPosition() {
-    final List<TagSyncRecord> tagSyncRecords = ImmutableList.of(
-        randomTagSyncRecord(fixedTime()),
-        randomTagSyncRecord(fixedTime()),
-        randomTagSyncRecord(fixedTimeMinusMinutes(10))
-    );
+    final LinkedList<TagSyncRecord> tagSyncRecords = new LinkedList<>();
+    tagSyncRecords.add(randomTagSyncRecord(fixedTimeMinusMinutes(10)));
+    tagSyncRecords.add(randomTagSyncRecord(fixedTime()));
+    tagSyncRecords.add(randomTagSyncRecord(fixedTime()));
     syncStore.markSyncPosition("cases", tagSyncRecords);
 
     // Verify that the persisted sync marker is the most recent time
     verify(mockConnectorStore, times(1)).putString("cases_sync_marker", fixedTime());
 
     // Verify that the persisted references are the two most recent with the same sync marker
-    final String persistedReferences = tagSyncRecords.get(0).getReference() + "," + tagSyncRecords.get(1).getReference();
+    final String persistedReferences = tagSyncRecords.get(2).getReference() + "," + tagSyncRecords.get(1).getReference();
     verify(mockConnectorStore, times(1))
         .putString("cases_last_synced_references", persistedReferences);
   }

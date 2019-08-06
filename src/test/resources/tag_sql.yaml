@@ -7,7 +7,7 @@ sql: >
   [IRN] AS [additional_keyword],
   [TITLE] AS [tag_description],
   [DATE_UPDATED] AS [sync_marker]
-  FROM [dbo].[CASES]
+  FROM [dbo].[TEST_CASES]
   WHERE [DATE_UPDATED] >= :previous_sync_marker
   AND [IRN] NOT IN (:previous_sync_references)
   ORDER BY [DATE_UPDATED] ASC;
@@ -22,7 +22,7 @@ sql: >
   CONCAT('FID', [PRJ_ID]) AS [additional_keyword],
   [DESCRIPTION] AS [tag_description],
   [PRJ_ID] AS [sync_marker]
-  FROM [dbo].[PROJECTS]
+  FROM [dbo].[TEST_PROJECTS]
   WHERE [PRJ_ID] >= :previous_sync_marker
   AND [PRJ_ID] NOT IN (:previous_sync_references)
   ORDER BY [PRJ_ID] ASC;

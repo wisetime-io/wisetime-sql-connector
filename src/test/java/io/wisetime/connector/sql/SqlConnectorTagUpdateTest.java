@@ -29,6 +29,7 @@ import io.wisetime.connector.sql.sync.ConnectApi;
 import io.wisetime.connector.sql.sync.ConnectedDatabase;
 import io.wisetime.connector.sql.sync.SyncStore;
 import io.wisetime.connector.sql.sync.TagSyncRecord;
+import java.util.LinkedList;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -82,8 +83,7 @@ class SqlConnectorTagUpdateTest {
         .thenReturn(ImmutableList.of(new TagQuery("one", "SELECT 1", "")));
     when(mockSyncStore.getSyncMarker("one", "")).thenReturn("");
     when(mockSyncStore.getLastSyncedReferences("one")).thenReturn(ImmutableList.of());
-    when(mockDatabase.getTagsToSync(eq("SELECT 1"), eq(""), anyList()))
-        .thenReturn(ImmutableList.of());
+    when(mockDatabase.getTagsToSync(eq("SELECT 1"), eq(""), anyList())).thenReturn(new LinkedList<>());
 
     connector.performTagUpdate();
 
@@ -107,16 +107,21 @@ class SqlConnectorTagUpdateTest {
     // Two tags for query one
     final TagSyncRecord query1Record1 = randomTagSyncRecord(fixedTime());
     final TagSyncRecord query1Record2 = randomTagSyncRecord(fixedTimeMinusMinutes(1));
+    final LinkedList<TagSyncRecord> query1Results = new LinkedList<>();
+    query1Results.add(query1Record1);
+    query1Results.add(query1Record2);
     // One tag for query two
     final TagSyncRecord query2Record = randomTagSyncRecord();
+    final LinkedList<TagSyncRecord> query2Results = new LinkedList<>();
+    query2Results.add(query2Record);
 
     when(mockDatabase.getTagsToSync("SELECT 1", "10", ImmutableList.of("ref1")))
-        .thenReturn(ImmutableList.of(query1Record1, query1Record2))
-        .thenReturn(ImmutableList.of());
+        .thenReturn(query1Results)
+        .thenReturn(new LinkedList<>());
 
     when(mockDatabase.getTagsToSync("SELECT 2", "20", ImmutableList.of("ref2")))
-        .thenReturn(ImmutableList.of(query2Record))
-        .thenReturn(ImmutableList.of());
+        .thenReturn(query2Results)
+        .thenReturn(new LinkedList<>());
 
     connector.performTagUpdate();
 
@@ -147,7 +152,7 @@ class SqlConnectorTagUpdateTest {
 
     // Verify sync store was called to remember sync position
     ArgumentCaptor<String> namespaceCaptor = ArgumentCaptor.forClass(String.class);
-    ArgumentCaptor<List<TagSyncRecord>> syncRecordsCaptor = ArgumentCaptor.forClass(List.class);
+    ArgumentCaptor<LinkedList<TagSyncRecord>> syncRecordsCaptor = ArgumentCaptor.forClass(LinkedList.class);
     verify(mockSyncStore, times(2))
         .markSyncPosition(namespaceCaptor.capture(), syncRecordsCaptor.capture());
 
@@ -159,7 +164,7 @@ class SqlConnectorTagUpdateTest {
         .as("One position sync per namespace")
         .isEqualTo("two");
 
-    final List<List<TagSyncRecord>> syncRecordsArguments = syncRecordsCaptor.getAllValues();
+    final List<LinkedList<TagSyncRecord>> syncRecordsArguments = syncRecordsCaptor.getAllValues();
 
     assertThat(syncRecordsArguments.get(0).size())
         .as("First query returns two records")

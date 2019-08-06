@@ -9,6 +9,8 @@ import com.google.common.collect.ImmutableList;
 import io.wisetime.connector.datastore.ConnectorStore;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -30,9 +32,9 @@ public class SyncStore {
    * Persist the latest sync marker as well as the references at that marker.
    * The TagSyncRecords provided must be sorted by sync marker in lexicographically descending order.
    */
-  public void markSyncPosition(final String namespace, final Iterable<TagSyncRecord> tagSyncRecordsInDescMarkerOrder) {
+  public void markSyncPosition(final String namespace, final LinkedList<TagSyncRecord> tagSyncRecordsInAscMarkerOrder) {
     final List<TagSyncRecord> latestSynced =
-        extractMostRecentTagSyncRecordsWithSameMarker(tagSyncRecordsInDescMarkerOrder);
+        extractMostRecentTagSyncRecordsWithSameMarker(tagSyncRecordsInAscMarkerOrder.descendingIterator());
 
     if (!latestSynced.isEmpty()) {
       final String latestMarker = latestSynced.get(0).getSyncMarker();
@@ -57,12 +59,13 @@ public class SyncStore {
   }
 
   private List<TagSyncRecord> extractMostRecentTagSyncRecordsWithSameMarker(
-      final Iterable<TagSyncRecord> sortedTagSyncRecords) {
+      final Iterator<TagSyncRecord> tagSyncRecordsDescending) {
 
     Optional<String> lastSyncMarker = Optional.empty();
     List<TagSyncRecord> mostRecentSameMarker = new ArrayList<>();
 
-    for (TagSyncRecord tagSyncRecord : sortedTagSyncRecords) {
+    while (tagSyncRecordsDescending.hasNext()) {
+      final TagSyncRecord tagSyncRecord = tagSyncRecordsDescending.next();
       if (!lastSyncMarker.isPresent()) {
         lastSyncMarker = Optional.of(tagSyncRecord.getSyncMarker());
       }

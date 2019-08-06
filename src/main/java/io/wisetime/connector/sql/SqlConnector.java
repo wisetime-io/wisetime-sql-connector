@@ -19,7 +19,7 @@ import io.wisetime.connector.sql.sync.ConnectedDatabase;
 import io.wisetime.connector.sql.sync.SyncStore;
 import io.wisetime.connector.sql.sync.TagSyncRecord;
 import io.wisetime.generated.connect.TimeGroup;
-import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import spark.Request;
@@ -61,7 +61,7 @@ public class SqlConnector implements WiseTimeConnector {
         .forEachOrdered(query -> {
           final String marker = syncStore.getSyncMarker(query.getName(), query.getInitialSyncMarker());
           final List<String> lastSyncedReferences = syncStore.getLastSyncedReferences(query.getName());
-          Collection<TagSyncRecord> tagSyncRecords;
+          LinkedList<TagSyncRecord> tagSyncRecords;
 
           while ((tagSyncRecords = database.getTagsToSync(query.getSql(), marker, lastSyncedReferences)).size() > 0) {
             connectApi.upsertWiseTimeTags(tagSyncRecords);
