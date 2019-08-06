@@ -68,16 +68,16 @@ class ConnectedDatabaseTest {
   @Test
   void getTagsToSync() {
     final List<TagSyncRecord> tagSyncRecords = database.getTagsToSync(
-        "SELECT TOP 500 " +
-        "[IRN] as [id], " +
-        "[IRN] AS [tag_name], " +
-        "[IRN] AS [additional_keyword], " +
-        "[TITLE] AS [tag_description], " +
-        "[DATE_UPDATED] AS [sync_marker] " +
-        "FROM [dbo].[TEST_CASES] " +
-        "WHERE [DATE_UPDATED] >= :previous_sync_marker " +
-        "AND [IRN] NOT IN (:skipped_ids) " +
-        "ORDER BY [DATE_UPDATED] ASC;",
+        "SELECT TOP 500 "
+            + "[IRN] as [id], "
+            + "[IRN] AS [tag_name], "
+            + "[IRN] AS [additional_keyword], "
+            + "[TITLE] AS [tag_description], "
+            + "[DATE_UPDATED] AS [sync_marker] "
+            + "FROM [dbo].[TEST_CASES] "
+            + "WHERE [DATE_UPDATED] >= :previous_sync_marker "
+            + "AND [IRN] NOT IN (:skipped_ids) "
+            + "ORDER BY [DATE_UPDATED] ASC;",
 
         "2019-07-21",
         ImmutableList.of("P0436021")

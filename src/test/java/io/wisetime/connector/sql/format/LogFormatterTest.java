@@ -52,7 +52,7 @@ class LogFormatterTest {
         randomTagSyncRecord(),
         last
       ))
-    ).isEqualTo("Synced 6 tag|keyword pairs " + first.getTagName() + "|" + first.getAdditionalKeyword() +
-        ", ... , " + last.getTagName() + "|" + last.getAdditionalKeyword());
+    ).isEqualTo("Synced 6 tag|keyword pairs " + first.getTagName() + "|" + first.getAdditionalKeyword()
+        + ", ... , " + last.getTagName() + "|" + last.getAdditionalKeyword());
   }
 }
