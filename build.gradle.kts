@@ -183,6 +183,7 @@ publishing {
     }
     publications {
         register<MavenPublication>("mavenJava") {
+            groupId = "io.wisetime"
             artifactId = "wisetime-sql-connector"
             // version is set via plugin
             from(components["java"])
