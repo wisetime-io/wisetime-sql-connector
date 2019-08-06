@@ -15,9 +15,11 @@ import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -37,7 +39,7 @@ import org.yaml.snakeyaml.constructor.Constructor;
 @Slf4j
 public class TagQueryProvider {
 
-  private CompletableFuture<Void> fileWatch;
+  private final CompletableFuture<Void> fileWatch;
   private List<TagQuery> tagQueries;
 
   public TagQueryProvider(final Path tagSqlPath) {
@@ -60,8 +62,12 @@ public class TagQueryProvider {
 
   // Blocking, only meant for use in tests
   @VisibleForTesting
-  List<TagQuery> waitForQueryChange(final List<TagQuery> awaitedResult) throws InterruptedException {
+  List<TagQuery> waitForQueryChange(final List<TagQuery> awaitedResult, Duration timeout) throws InterruptedException {
+    long stopTime = System.currentTimeMillis() + timeout.toMillis();
     while (!tagQueries.equals(awaitedResult)) {
+      if (System.currentTimeMillis() > stopTime) {
+        throw new RuntimeException("Timeout");
+      }
       Thread.sleep(50);
     }
     return tagQueries;
@@ -103,7 +109,7 @@ public class TagQueryProvider {
       } catch (IOException | InterruptedException e) {
         throw new RuntimeException("Autoload failed for Tag SQL configuration file", e);
       }
-    });
+    }, Executors.newSingleThreadExecutor());
   }
 
   private List<TagQuery> parseTagSqlFile(final Path path) {

@@ -34,8 +34,8 @@ import spark.Request;
 @Slf4j
 public class SqlConnector implements WiseTimeConnector {
 
-  private ConnectedDatabase database;
-  private TagQueryProvider tagQueryProvider;
+  private final ConnectedDatabase database;
+  private final TagQueryProvider tagQueryProvider;
   private SyncStore syncStore;
   private ConnectApi connectApi;
 
@@ -61,8 +61,8 @@ public class SqlConnector implements WiseTimeConnector {
     // Important to ensure that we maintain correct sync for each query
     Preconditions.checkArgument(hasUniqueQueryNames(tagQueries), "Tag SQL query names must be unique");
 
-    tagQueries.stream()
-        .forEachOrdered(query -> {
+    tagQueries
+        .forEach(query -> {
           final String marker = syncStore.getSyncMarker(query.getName(), query.getInitialSyncMarker());
           final List<String> idsToSkip = idsToSkip(query, syncStore);
 

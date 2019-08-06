@@ -23,7 +23,7 @@ import org.codejargon.fluentjdbc.api.query.Query;
  */
 public class ConnectedDatabase {
 
-  private HikariDataSource dataSource;
+  private final HikariDataSource dataSource;
   private final FluentJdbc fluentJdbc;
 
   public ConnectedDatabase(final HikariDataSource dataSource) {

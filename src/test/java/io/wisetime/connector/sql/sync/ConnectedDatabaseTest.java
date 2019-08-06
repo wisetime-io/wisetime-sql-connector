@@ -46,8 +46,9 @@ class ConnectedDatabaseTest {
 
     database = new ConnectedDatabase(dataSource);
 
-    final Flyway flyway = new Flyway();
-    flyway.setDataSource(dataSource);
+    final Flyway flyway = Flyway.configure()
+        .dataSource(dataSource)
+        .load();
     flyway.migrate();
   }
 

@@ -22,8 +22,8 @@ import java.util.stream.Collectors;
  */
 public class ConnectApi {
 
-  private ApiClient apiClient;
-  private String tagUpsertPath;
+  private final ApiClient apiClient;
+  private final String tagUpsertPath;
 
   public ConnectApi(final ApiClient apiClient) {
     this.apiClient = apiClient;
