@@ -59,6 +59,13 @@ class ConnectedDatabaseTest {
   }
 
   @Test
+  void isAvailable() {
+    assertThat(database.isAvailable())
+        .as("Should be able to query the connected database")
+        .isTrue();
+  }
+
+  @Test
   void getTagsToSync() {
     final List<TagSyncRecord> tagSyncRecords = database.getTagsToSync(
         "SELECT TOP 500 " +
