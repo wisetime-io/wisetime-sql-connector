@@ -9,9 +9,9 @@ plugins {
     idea
     jacoco
     java
-    id("com.google.cloud.tools.jib") version "1.1.2"
-    id("io.freefair.lombok") version "3.8.1"
-    id("io.wisetime.versionChecker").version("0.4.4")
+    id("com.google.cloud.tools.jib") version "1.4.0"
+    id("io.freefair.lombok") version "3.8.4"
+    id("io.wisetime.versionChecker").version("0.5.3")
     id("fr.brouillard.oss.gradle.jgitver").version("0.9.1")
     id("com.github.ben-manes.versions").version("0.21.0")
 }
@@ -30,8 +30,8 @@ repositories {
 
 dependencies {
     implementation("io.wisetime:wisetime-connector:2.2.2")
-    implementation("org.apache.commons:commons-configuration2:2.4")
-    implementation("com.google.guava:guava:27.1-jre")
+    implementation("org.apache.commons:commons-configuration2:2.5")
+    implementation("com.google.guava:guava:28.0-jre")
 
     implementation("ch.qos.logback:logback-classic:1.2.3")
     implementation("ch.qos.logback:logback-core:1.2.3")
@@ -40,23 +40,23 @@ dependencies {
     implementation("org.codejargon:fluentjdbc:1.8.3")
     implementation("com.zaxxer:HikariCP:3.3.1")
     // Add more databases as we need to support them
-    implementation("com.microsoft.sqlserver:mssql-jdbc:7.2.2.jre8")
+    implementation("com.microsoft.sqlserver:mssql-jdbc:7.4.1.jre8")
 
     compileOnly("org.projectlombok:lombok:1.18.8")
     annotationProcessor("org.projectlombok:lombok:1.18.8")
 
-    implementation("org.yaml:snakeyaml:1.23")
+    implementation("org.yaml:snakeyaml:1.24")
 
-    val junitVersion = "5.5.0"
+    val junitVersion = "5.5.1"
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
     testRuntime("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
 
-    testImplementation("io.wisetime:wisetime-test-support:2.3.4")
-    testImplementation("org.flywaydb:flyway-core:5.1.1")
-    testImplementation("com.github.javafaker:javafaker:0.18")
-    testImplementation("org.mockito:mockito-core:2.27.0")
-    testImplementation("org.assertj:assertj-core:3.12.2")
+    testImplementation("io.wisetime:wisetime-test-support:2.3.5")
+    testImplementation("org.flywaydb:flyway-core:5.2.4")
+    testImplementation("com.github.javafaker:javafaker:1.0.0")
+    testImplementation("org.mockito:mockito-core:3.0.0")
+    testImplementation("org.assertj:assertj-core:3.13.2")
 }
 
 java.sourceCompatibility = JavaVersion.VERSION_1_8
