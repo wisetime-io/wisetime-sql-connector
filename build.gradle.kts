@@ -9,6 +9,7 @@ plugins {
     idea
     jacoco
     java
+    `maven-publish`
     id("com.google.cloud.tools.jib") version "1.4.0"
     id("io.freefair.lombok") version "3.8.4"
     id("io.wisetime.versionChecker").version("0.5.3")
@@ -169,5 +170,22 @@ tasks {
 
         finalizedBy(jacocoTestReport)
     }
+}
 
+publishing {
+    repositories {
+        maven {
+            url = uri("s3://artifacts.wisetime.com/mvn2/releases")
+            authentication {
+                register<AwsImAuthentication>("awsIm")
+            }
+        }
+    }
+    publications {
+        register<MavenPublication>("mavenJava") {
+            artifactId = "wisetime-sql-connector"
+            // version is set via plugin
+            from(components["java"])
+        }
+    }
 }
