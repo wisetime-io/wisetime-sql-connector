@@ -1,6 +1,6 @@
 
 ext {
-    jcLineMin = 0.99
+    jcLineMin = 0.94
     jcClassMin = 0.99
 
     jacocoExcludes = [
