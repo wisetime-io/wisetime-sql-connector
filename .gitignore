@@ -4,4 +4,5 @@
 build/
 out/
 src/gen/
+**/*.iml
 **/.DS_Store
