@@ -4,6 +4,7 @@
 
 package io.wisetime.connector.sql.sync;
 
+import static io.wisetime.connector.sql.RandomEntities.createTagQuery;
 import static io.wisetime.connector.sql.RandomEntities.fixedTime;
 import static io.wisetime.connector.sql.RandomEntities.fixedTimeMinusMinutes;
 import static io.wisetime.connector.sql.RandomEntities.randomTagSyncRecord;
@@ -59,14 +60,6 @@ class SyncStoreTest {
         tagSyncRecord.getId());
   }
 
-  private TagQuery createTagQuery(String name) {
-    TagQuery tagQuery = new TagQuery();
-    tagQuery.setName(name);
-    tagQuery.setSql("sql");
-    tagQuery.setInitialSyncMarker("default");
-    return tagQuery;
-  }
-
   @Test
   void markSyncPosition_nothing_to_persist() {
     syncStore.markSyncPosition(createTagQuery("cases"), new LinkedList<>());
@@ -106,9 +99,10 @@ class SyncStoreTest {
   void getSyncMarker_default() {
     when(mockConnectorStore.getString("cases_sync_marker"))
         .thenReturn(Optional.empty());
-    assertThat(syncStore.getSyncMarker(createTagQuery("cases")))
+    TagQuery cases = createTagQuery("cases");
+    assertThat(syncStore.getSyncMarker(cases))
         .as("Pass on sync marker from the store")
-        .isEqualTo("default");
+        .isEqualTo(cases.getInitialSyncMarker());
   }
 
   @Test

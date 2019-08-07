@@ -5,6 +5,7 @@
 package io.wisetime.connector.sql;
 
 import com.github.javafaker.Faker;
+import io.wisetime.connector.sql.queries.TagQuery;
 import io.wisetime.connector.sql.sync.TagSyncRecord;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -43,4 +44,17 @@ public class RandomEntities {
   public static String fixedTimeMinusMinutes(final int minusMinutes) {
     return DateTimeFormatter.ISO_INSTANT.format(fixedInstant.minus(minusMinutes, ChronoUnit.MINUTES));
   }
+
+  public static TagQuery createTagQuery(String name) {
+    return createTagQuery(name, "marker");
+  }
+
+  public static TagQuery createTagQuery(String name, String syncMarker) {
+    TagQuery tagQuery = new TagQuery();
+    tagQuery.setName(name);
+    tagQuery.setSql("sql");
+    tagQuery.setInitialSyncMarker(syncMarker);
+    return tagQuery;
+  }
+
 }

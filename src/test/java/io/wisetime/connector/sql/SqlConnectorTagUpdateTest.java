@@ -4,6 +4,7 @@
 
 package io.wisetime.connector.sql;
 
+import static io.wisetime.connector.sql.RandomEntities.createTagQuery;
 import static io.wisetime.connector.sql.RandomEntities.fixedTime;
 import static io.wisetime.connector.sql.RandomEntities.fixedTimeMinusMinutes;
 import static io.wisetime.connector.sql.RandomEntities.randomTagSyncRecord;
@@ -92,13 +93,6 @@ class SqlConnectorTagUpdateTest {
     // Verify that no tags were synced
     verify(mockConnectorStore, never()).putString(anyString(), anyString());
     verifyZeroInteractions(mockApiClient);
-  }
-
-  private TagQuery createTagQuery(String name, String syncMarker) {
-    TagQuery tagQuery = new TagQuery();
-    tagQuery.setName(name);
-    tagQuery.setInitialSyncMarker(syncMarker);
-    return tagQuery;
   }
 
   @Test
