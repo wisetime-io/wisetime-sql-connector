@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -64,6 +65,18 @@ class TagQueryProviderIntegrationTest {
   }
 
   @Test
+  void getQueries_fail_empty_required_field() throws Exception {
+    final Path path = Files.createTempFile("tag_query_test_query_names", ".yaml");
+    Files.write(path, ImmutableList.of(
+        "name: cases",
+        "initialSyncMarker: ",
+        "skippedIds: 0",
+        "sql: SELECT 1"
+    ));
+    assertThrows(IllegalArgumentException.class, () -> new TagQueryProvider(path));
+  }
+
+  @Test
   void getQueries_fail_missing_required_fields() throws Exception {
     final Path path = Files.createTempFile("tag_query_test_query_names", ".yaml");
     Files.write(path, ImmutableList.of("name: cases"));
@@ -79,16 +92,17 @@ class TagQueryProviderIntegrationTest {
   void getQueries_file_watch() throws Exception {
     final Path path = Files.createTempFile("tag_query_test_deletes", ".yaml");
     final TagQueryProvider tagQueryProvider = new TagQueryProvider(path);
+    final Duration timeout = Duration.ofSeconds(10);
 
     // Verify file update
     Files.write(path, ImmutableList.of("name: cases", "sql: SELECT 'cases'", "initialSyncMarker: 0", "skippedIds: 0"));
     tagQueryProvider.waitForQueryChange(ImmutableList.of(
         new TagQuery("cases", "SELECT 'cases'", "0", "0")
-    ));
+    ), timeout);
 
     // Verify file deletion
     Files.delete(path);
-    tagQueryProvider.waitForQueryChange(ImmutableList.of());
+    tagQueryProvider.waitForQueryChange(ImmutableList.of(), timeout);
 
     // Verify file creation
     Files.createFile(path);
@@ -96,6 +110,6 @@ class TagQueryProviderIntegrationTest {
         "skippedIds: 0"));
     tagQueryProvider.waitForQueryChange(ImmutableList.of(
         new TagQuery("keywords", "SELECT 'keywords'", "1", "0")
-    ));
+    ), timeout);
   }
 }

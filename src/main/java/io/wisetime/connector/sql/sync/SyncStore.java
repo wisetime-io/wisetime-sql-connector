@@ -16,7 +16,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * A store to remember the lastest synced tags at the same sync marker.
+ * A store to remember the latest synced tags at the same sync marker.
  *
  * @author shane.xie
  */
@@ -70,10 +70,10 @@ public class SyncStore {
         lastSyncMarker = Optional.of(tagSyncRecord.getSyncMarker());
       }
       Preconditions.checkArgument(
-          lastSyncMarker.isPresent() && tagSyncRecord.getSyncMarker().compareTo(lastSyncMarker.get()) <= 0,
+          tagSyncRecord.getSyncMarker().compareTo(lastSyncMarker.get()) <= 0,
           "TagSyncRecords must be sorted with lexicographically larger (most recent) marker first"
       );
-      if (lastSyncMarker.isPresent() && lastSyncMarker.get().equals(tagSyncRecord.getSyncMarker())) {
+      if (lastSyncMarker.get().equals(tagSyncRecord.getSyncMarker())) {
         mostRecentSameMarker.add(tagSyncRecord);
       } else {
         break;

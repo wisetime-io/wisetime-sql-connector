@@ -82,6 +82,7 @@ public class ConnectorLauncher {
     );
     hikariConfig.setConnectionTimeout(TimeUnit.MINUTES.toMillis(1));
     hikariConfig.setMaximumPoolSize(10);
+    hikariConfig.setReadOnly(true);
 
     return new HikariDataSource(hikariConfig);
   }
