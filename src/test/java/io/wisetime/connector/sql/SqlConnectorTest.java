@@ -21,6 +21,7 @@ import io.wisetime.connector.sql.queries.TagQuery;
 import io.wisetime.connector.sql.queries.TagQueryProvider;
 import io.wisetime.connector.sql.sync.ConnectedDatabase;
 import io.wisetime.generated.connect.TimeGroup;
+import java.util.Collections;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -71,12 +72,12 @@ class SqlConnectorTest {
     assertThat(connector.isConnectorHealthy()).isFalse();
 
     when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(
-        new TagQuery("name", "sql", "0", "0")));
+        new TagQuery("name", "sql", "0", Collections.singletonList("0"))));
     when(mockDatabase.isAvailable()).thenReturn(false);
     assertThat(connector.isConnectorHealthy()).isFalse();
 
     when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(
-        new TagQuery("name", "sql", "0", "0")));
+        new TagQuery("name", "sql", "0", Collections.singletonList("0"))));
     when(mockDatabase.isAvailable()).thenReturn(true);
     assertThat(connector.isConnectorHealthy()).isTrue();
   }

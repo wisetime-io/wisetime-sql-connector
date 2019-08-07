@@ -74,9 +74,9 @@ The `TAG_SQL` must select the relevant information as `id`, `tag_name`, `keyword
 | tag_name | Used as the tag name when creating a tag for the record |
 | additional_keyword | Used as the keyword to **add** to the tag during upsert. Previous keywords are not removed if the tag already exists. |
 | tag_description | Used as the tag description when creating the tag. This description will be searchable in the WiseTime Console UI. If empty, will not overwrite an existing description when upserting tag. |
-| sync_marker | Used as the sync position marker so that the connector remembers which records it has already synced |
+| sync_marker | Used as the sync position marker so that the connector remembers which records it has already synced. Should be comparable. |
 
-#### Placeholde Parameters
+#### Placeholder Parameters
 
 The SQL queries are parametised and the following placeholder parameters are required. They must be provided verbatim in each query.
 

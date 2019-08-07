@@ -30,7 +30,7 @@ public class ConnectApi {
 
     tagUpsertPath = RuntimeConfig.getString(SqlConnectorConfigKey.TAG_UPSERT_PATH)
         .orElseThrow(() -> new RuntimeException("Missing required TAG_UPSERT_PATH configuration"));
-    Preconditions.checkArgument(tagUpsertPath.startsWith("/"));
+    Preconditions.checkArgument(tagUpsertPath.startsWith("/"), "tag path should start with /");
   }
 
   public void upsertWiseTimeTags(Collection<TagSyncRecord> tagSyncRecords) {

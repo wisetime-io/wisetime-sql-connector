@@ -1,6 +1,8 @@
 name: cases
 initialSyncMarker: 2001-01-01T00:00:00
-skippedIds: P01003789, P1025477
+skippedIds:
+  - P01003789
+  - P1025477
 sql: >
   SELECT TOP 500
   [IRN] as [id],
@@ -16,7 +18,8 @@ sql: >
 ---
 name: keywords
 initialSyncMarker: 0
-skippedIds: 0
+skippedIds:
+  - 0
 sql: >
   SELECT TOP 500
   [PRJ_ID] AS [id],
@@ -32,6 +35,7 @@ sql: >
 ---
 name: missing-placeholders
 initialSyncMarker: 0
-skippedIds: 0
+skippedIds:
+  - 0
 sql: >
   SELECT 'missing required fields and parameter placeholders';

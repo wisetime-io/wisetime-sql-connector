@@ -23,6 +23,8 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -63,16 +65,21 @@ public class SqlConnector implements WiseTimeConnector {
 
     tagQueries
         .forEach(query -> {
-          final String marker = syncStore.getSyncMarker(query.getName(), query.getInitialSyncMarker());
+          final String marker = syncStore.getSyncMarker(query);
           final List<String> idsToSkip = idsToSkip(query, syncStore);
 
           LinkedList<TagSyncRecord> tagSyncRecords;
-          while ((tagSyncRecords = database.getTagsToSync(query.getSql(), marker, idsToSkip)).size() > 0) {
+          while (!hasNewQueries(tagQueries)
+              && (tagSyncRecords = database.getTagsToSync(query.getSql(), marker, idsToSkip)).size() > 0) {
             connectApi.upsertWiseTimeTags(tagSyncRecords);
-            syncStore.markSyncPosition(query.getName(), tagSyncRecords);
+            syncStore.markSyncPosition(query, tagSyncRecords);
             log.info(format(tagSyncRecords));
           }
         });
+  }
+
+  private boolean hasNewQueries(List<TagQuery> tagQueries) {
+    return !tagQueries.equals(tagQueryProvider.getQueries());
   }
 
   @Override
@@ -102,12 +109,7 @@ public class SqlConnector implements WiseTimeConnector {
   }
 
   private List<String> idsToSkip(final TagQuery query, final SyncStore syncStore) {
-    return ListUtils
-        .union(
-          Arrays.asList(query.getSkippedIds().split("\\s*,\\s*")),
-          syncStore.getLastSyncedIds(query.getName())
-        )
-        .stream()
+    return Stream.concat(query.getSkippedIds().stream(), syncStore.getLastSyncedIds(query).stream())
         .filter(StringUtils::isNotEmpty)
         .collect(Collectors.toList());
   }

@@ -5,15 +5,21 @@
 package io.wisetime.connector.sql.sync;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
 
 /**
  * @author shane.xie
  */
 @Data
+@NoArgsConstructor
 public class TagSyncRecord {
-  String id;
-  String tagName;
-  String additionalKeyword;
-  String tagDescription;
-  String syncMarker;
+  @NonNull
+  private String id;
+  @NonNull
+  private String tagName;
+  private String additionalKeyword;
+  private String tagDescription;
+  @NonNull
+  private String syncMarker;
 }
