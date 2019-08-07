@@ -19,6 +19,7 @@ import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 import com.google.common.collect.ImmutableList;
 import io.wisetime.connector.datastore.ConnectorStore;
+import io.wisetime.connector.sql.queries.TagQuery;
 import java.util.LinkedList;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,18 +44,32 @@ class SyncStoreTest {
     final LinkedList<TagSyncRecord> tagSyncRecords = new LinkedList<>();
     tagSyncRecords.add(tagSyncRecord);
 
-    syncStore.markSyncPosition("cases", tagSyncRecords);
-    verify(mockConnectorStore).putString("cases_sync_marker", tagSyncRecord.getSyncMarker());
-    verify(mockConnectorStore).putString("cases_last_synced_ids", tagSyncRecord.getId());
+    TagQuery cases = createTagQuery("cases");
+    syncStore.markSyncPosition(cases, tagSyncRecords);
+    verify(mockConnectorStore).putString(
+        cases.getName() + "_" + cases.getSql().hashCode() + "_sync_marker", tagSyncRecord.getSyncMarker());
+    verify(mockConnectorStore).putString(cases.getName() + "_" + cases.getSql().hashCode() + "_last_synced_ids",
+        tagSyncRecord.getId());
 
-    syncStore.markSyncPosition("projects", tagSyncRecords);
-    verify(mockConnectorStore).putString("projects_sync_marker", tagSyncRecord.getSyncMarker());
-    verify(mockConnectorStore).putString("projects_last_synced_ids", tagSyncRecord.getId());
+    TagQuery projects = createTagQuery("projects");
+    syncStore.markSyncPosition(projects, tagSyncRecords);
+    verify(mockConnectorStore).putString(projects.getName() + "_" + projects.getSql().hashCode() + "_sync_marker",
+        tagSyncRecord.getSyncMarker());
+    verify(mockConnectorStore).putString(projects.getName() + "_" + projects.getSql().hashCode() + "_last_synced_ids",
+        tagSyncRecord.getId());
+  }
+
+  private TagQuery createTagQuery(String name) {
+    TagQuery tagQuery = new TagQuery();
+    tagQuery.setName(name);
+    tagQuery.setSql("sql");
+    tagQuery.setInitialSyncMarker("default");
+    return tagQuery;
   }
 
   @Test
   void markSyncPosition_nothing_to_persist() {
-    syncStore.markSyncPosition("cases", new LinkedList<>());
+    syncStore.markSyncPosition(createTagQuery("cases"), new LinkedList<>());
     verify(mockConnectorStore, never()).putString(anyString(), anyString());
   }
 
@@ -64,7 +79,7 @@ class SyncStoreTest {
     tagSyncRecords.add(randomTagSyncRecord(fixedTime()));
     tagSyncRecords.add(randomTagSyncRecord(fixedTimeMinusMinutes(1)));
     assertThrows(IllegalArgumentException.class, () ->
-        syncStore.markSyncPosition("cases", tagSyncRecords)
+        syncStore.markSyncPosition(createTagQuery("cases"), tagSyncRecords)
     );
   }
 
@@ -74,22 +89,24 @@ class SyncStoreTest {
     tagSyncRecords.add(randomTagSyncRecord(fixedTimeMinusMinutes(10)));
     tagSyncRecords.add(randomTagSyncRecord(fixedTime()));
     tagSyncRecords.add(randomTagSyncRecord(fixedTime()));
-    syncStore.markSyncPosition("cases", tagSyncRecords);
+    TagQuery tagQuery = createTagQuery("cases");
+    syncStore.markSyncPosition(tagQuery, tagSyncRecords);
 
     // Verify that the persisted sync marker is the most recent time
-    verify(mockConnectorStore, times(1)).putString("cases_sync_marker", fixedTime());
+    verify(mockConnectorStore, times(1)).putString(
+        tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_sync_marker", fixedTime());
 
     // Verify that the persisted ids are the two most recent with the same sync marker
-    final String persistedIds = tagSyncRecords.get(2).getId() + "," + tagSyncRecords.get(1).getId();
+    final String persistedIds = tagSyncRecords.get(2).getId() + "@@@" + tagSyncRecords.get(1).getId();
     verify(mockConnectorStore, times(1))
-        .putString("cases_last_synced_ids", persistedIds);
+        .putString(tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_last_synced_ids", persistedIds);
   }
 
   @Test
   void getSyncMarker_default() {
     when(mockConnectorStore.getString("cases_sync_marker"))
         .thenReturn(Optional.empty());
-    assertThat(syncStore.getSyncMarker("cases", "default"))
+    assertThat(syncStore.getSyncMarker(createTagQuery("cases")))
         .as("Pass on sync marker from the store")
         .isEqualTo("default");
   }
@@ -97,18 +114,18 @@ class SyncStoreTest {
   @Test
   void getSyncMarker_from_store() {
     final String syncMarker = fixedTime();
-    when(mockConnectorStore.getString("cases_sync_marker"))
+    when(mockConnectorStore.getString(anyString()))
         .thenReturn(Optional.of(syncMarker));
-    assertThat(syncStore.getSyncMarker("cases", ""))
+    assertThat(syncStore.getSyncMarker(createTagQuery("cases")))
         .as("Pass on sync marker from the store")
         .isEqualTo(syncMarker);
   }
 
   @Test
   void getLastSyncedIds() {
-    when(mockConnectorStore.getString("cases_last_synced_ids"))
-        .thenReturn(Optional.of("1,2"));
-    assertThat(syncStore.getLastSyncedIds("cases"))
+    when(mockConnectorStore.getString(anyString()))
+        .thenReturn(Optional.of("1@@@2"));
+    assertThat(syncStore.getLastSyncedIds(createTagQuery("cases")))
         .as("Pass on sync marker from the store")
         .isEqualTo(ImmutableList.of("1", "2"));
   }

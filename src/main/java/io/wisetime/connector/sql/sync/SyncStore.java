@@ -7,6 +7,7 @@ package io.wisetime.connector.sql.sync;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.wisetime.connector.datastore.ConnectorStore;
+import io.wisetime.connector.sql.queries.TagQuery;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -22,6 +23,8 @@ import java.util.stream.Collectors;
  */
 public class SyncStore {
 
+  private static final String DELIMITER = "@@@";
+
   private ConnectorStore connectorStore;
 
   public SyncStore(final ConnectorStore connectorStore) {
@@ -32,28 +35,28 @@ public class SyncStore {
    * Persist the latest sync marker as well as the ids at that marker.
    * The TagSyncRecords provided must be sorted by sync marker in lexicographically ascending order.
    */
-  public void markSyncPosition(final String namespace, final LinkedList<TagSyncRecord> tagSyncRecordsInAscMarkerOrder) {
+  public void markSyncPosition(final TagQuery tagQuery, final LinkedList<TagSyncRecord> tagSyncRecordsInAscMarkerOrder) {
     final List<TagSyncRecord> latestSynced =
         extractMostRecentTagSyncRecordsWithSameMarker(tagSyncRecordsInAscMarkerOrder.descendingIterator());
 
     if (!latestSynced.isEmpty()) {
       final String latestMarker = latestSynced.get(0).getSyncMarker();
-      connectorStore.putString(getMarkerKey(namespace), latestMarker);
+      connectorStore.putString(getMarkerKey(tagQuery), latestMarker);
 
       final String syncedIds = latestSynced.stream()
           .map(TagSyncRecord::getId)
-          .collect(Collectors.joining(","));
-      connectorStore.putString(getLastSyncedIdsKey(namespace), syncedIds);
+          .collect(Collectors.joining(DELIMITER));
+      connectorStore.putString(getLastSyncedIdsKey(tagQuery), syncedIds);
     }
   }
 
-  public String getSyncMarker(final String namespace, final String defaultSyncMarker) {
-    return connectorStore.getString(getMarkerKey(namespace)).orElse(defaultSyncMarker);
+  public String getSyncMarker(final TagQuery tagQuery) {
+    return connectorStore.getString(getMarkerKey(tagQuery)).orElse(tagQuery.getInitialSyncMarker());
   }
 
-  public List<String> getLastSyncedIds(final String namespace) {
-    return connectorStore.getString(getLastSyncedIdsKey(namespace))
-        .map(refs -> refs.split(","))
+  public List<String> getLastSyncedIds(final TagQuery tagQuery) {
+    return connectorStore.getString(getLastSyncedIdsKey(tagQuery))
+        .map(refs -> refs.split(DELIMITER))
         .map(Arrays::asList)
         .orElse(ImmutableList.of());
   }
@@ -82,11 +85,11 @@ public class SyncStore {
     return mostRecentSameMarker;
   }
 
-  private String getMarkerKey(final String namespace) {
-    return namespace + "_sync_marker";
+  private String getMarkerKey(final TagQuery tagQuery) {
+    return tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_sync_marker";
   }
 
-  private String getLastSyncedIdsKey(final String namespace) {
-    return namespace + "_last_synced_ids";
+  private String getLastSyncedIdsKey(final TagQuery tagQuery) {
+    return tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_last_synced_ids";
   }
 }

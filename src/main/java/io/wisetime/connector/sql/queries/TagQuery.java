@@ -4,6 +4,7 @@
 
 package io.wisetime.connector.sql.queries;
 
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,10 +16,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TagQuery {
-  String name;
-  String sql;
-  String initialSyncMarker;
+  private String name;
+  private String sql;
+  private String initialSyncMarker;
 
   // Comma separated list of IDs to skip
-  String skippedIds;
+  private List<String> skippedIds;
 }

@@ -27,14 +27,8 @@ public class LogFormatter {
   }
 
   private static String ellipsize(final List<String> items) {
-    if (items.size() == 0) {
-      return "";
-    }
-    if (items.size() == 1) {
-      return items.get(0);
-    }
     if (items.size() < 6) {
-      return items.stream().collect(Collectors.joining(", "));
+      return String.join(", ", items);
     }
     return items.get(0) + ", ... , " + items.get(items.size() - 1);
   }

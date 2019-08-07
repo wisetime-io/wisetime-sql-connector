@@ -67,7 +67,7 @@ class ConnectedDatabaseTest {
   }
 
   @Test
-  void getTagsToSync() {
+  void getTagsToSync_testCase() {
     final List<TagSyncRecord> tagSyncRecords = database.getTagsToSync(
         "SELECT TOP 500 "
             + "[IRN] as [id], "
@@ -90,6 +90,36 @@ class ConnectedDatabaseTest {
     result.setAdditionalKeyword("P0100973");
     result.setId("P0100973");
     result.setSyncMarker("2019-08-06 00:00:00.0");
+
+    assertThat(tagSyncRecords)
+        .as("Query should return one record")
+        .containsExactly(result);
+  }
+
+  @Test
+  void getTagsToSync_testProjects() {
+    final List<TagSyncRecord> tagSyncRecords = database.getTagsToSync(
+        "SELECT TOP 500"
+            + "  [PRJ_ID] AS [id],"
+            + "  [IRN] AS [tag_name],"
+            + "  CONCAT('FID', [PRJ_ID]) AS [additional_keyword],"
+            + "  [DESCRIPTION] AS [tag_description],"
+            + "  [PRJ_ID] AS [sync_marker]"
+            + "  FROM [dbo].[TEST_PROJECTS]"
+            + "  WHERE [PRJ_ID] >= :previous_sync_marker"
+            + "  AND [PRJ_ID] NOT IN (:skipped_ids)"
+            + "  ORDER BY [PRJ_ID] ASC;",
+
+        "80001",
+        ImmutableList.of("80001")
+    );
+
+    final TagSyncRecord result = new TagSyncRecord();
+    result.setTagName("P0070709");
+    result.setTagDescription("Response");
+    result.setAdditionalKeyword("FID80002");
+    result.setId("80002");
+    result.setSyncMarker("80002");
 
     assertThat(tagSyncRecords)
         .as("Query should return one record")

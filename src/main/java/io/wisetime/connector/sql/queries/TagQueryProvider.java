@@ -99,7 +99,7 @@ public class TagQueryProvider {
                   break;
 
                 default:
-                  log.error("Unexpected file watch event");
+                  log.error("Unexpected file watch event: {}", event.kind());
               }
             }
           }
@@ -135,9 +135,13 @@ public class TagQueryProvider {
   }
 
   private TagQuery enforceValid(final TagQuery query) {
-    Preconditions.checkArgument(
-      StringUtils.isNoneEmpty(query.getName(), query.getInitialSyncMarker(), query.getSkippedIds(), query.getSql())
-    );
+    Preconditions.checkArgument(StringUtils.isNotEmpty(query.getName()), "query name is required");
+    Preconditions.checkArgument(StringUtils.isNotEmpty(query.getInitialSyncMarker()),
+        "initial marker of query %s can't be empty", query.getName());
+    Preconditions.checkArgument(StringUtils.isNotEmpty(query.getSql()),
+        "sql is required for query %s", query.getName());
+    Preconditions.checkArgument(!query.getSkippedIds().isEmpty(),
+        "skipped ids required for query %s", query.getName());
     return query;
   }
 }
