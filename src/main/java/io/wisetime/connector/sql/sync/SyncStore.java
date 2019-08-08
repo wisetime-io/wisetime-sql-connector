@@ -15,12 +15,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * A store to remember the latest synced tags at the same sync marker.
  *
  * @author shane.xie
  */
+@Slf4j
 public class SyncStore {
 
   private static final String DELIMITER = "@@@";
@@ -47,6 +49,7 @@ public class SyncStore {
           .map(TagSyncRecord::getId)
           .collect(Collectors.joining(DELIMITER));
       connectorStore.putString(getLastSyncedIdsKey(tagQuery), syncedIds);
+      log.info("Last synced IDs: {}", syncedIds);
     }
   }
 
