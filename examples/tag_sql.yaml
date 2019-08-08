@@ -1,0 +1,15 @@
+name: inprotech
+initialSyncMarker: 1979-01-01T00:00:00
+skippedIds:
+  - -9999999999
+sql: >
+  SELECT TOP 500
+  [CASEID] as [id],
+  [IRN] AS [tag_name],
+  [IRN] AS [additional_keyword],
+  [TITLE] AS [tag_description],
+  [DATE_UPDATED] AS [sync_marker]
+  FROM [dbo].[vwWiseTimeCases]
+  WHERE [DATE_UPDATED] >= :previous_sync_marker
+  AND [CASEID] NOT IN (:skipped_ids)
+  ORDER BY [DATE_UPDATED] ASC;

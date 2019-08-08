@@ -1,0 +1,60 @@
+# Copyright (c) 2019 Practice Insight Pty Ltd. All rights reserved.
+#
+# Docker Compose manifest for running WiseTime SQL Connector.
+#
+# To start the WiseTime Connector, run the following command in the same directory as
+# this docker-compose.yaml file:
+#
+#   docker-compose -p wisetime-sql-connector up -d
+#
+# To stop the WiseTime Connector, run the following command in the same directory:
+#
+#   docker-compose down
+#
+# This docker-compose.yaml file creates a local volume for persistence. To list the
+# volume:
+#
+#   docker volume ls
+#
+version: "3"
+services:
+  wisetime-sql-connector:
+    labels:
+      description: WiseTime SQL Connector
+    image: wisetime/wisetime-sql-connector:latest
+    restart: always
+
+      # uncomment the ports: definition if the connector should work in webhook mode.
+      # ports:
+      #   - "8080:8080"
+
+    environment:
+      API_KEY: YOUR_WISETIME_CONNECT_API_KEY
+
+      # Set loglevel if other than default - INFO - required
+      # LOGLEVEL: DEBUG
+
+      TIMEZONE: Australia/Perth
+
+      TAG_UPSERT_PATH: /Connector/  # Change this to something meaningful, e.g. the name of the connected system
+      TAG_SQL_FILE: /etc/wisetime-sql-connector/tag_sql.yaml
+
+      JDBC_URL: "jdbc:sqlserver://HOST:PORT;databaseName=DATABASE_NAME;ssl=request;useCursors=true"
+      JDBC_USER: USERNAME
+      JDBC_PASSWORD: PASSWORD
+
+      # AWS CloudWatch logging
+      AWS_ACCESS_KEY_ID: YOUR_AWS_ACCESS_KEY
+      AWS_SECRET_ACCESS_KEY: YOUR_AWS_SECRET_ACCESS_KEY
+      AWS_REGION: ap-southeast-1
+
+      # Local cache for keeping track of cases and projects that have been synced
+      DATA_DIR: /var/wisetime-sql-connector/data/
+
+    volumes:
+      - data:/var/wisetime-sql-connector/data/
+      # Read tag_sql.yaml from same directory as this docker-compose.yaml file
+      - $PWD:/etc/wisetime-sql-connector/
+volumes:
+  data:
+    driver: local
