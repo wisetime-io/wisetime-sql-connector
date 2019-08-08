@@ -4,7 +4,7 @@
 
 package io.wisetime.connector.sql;
 
-import static io.wisetime.connector.sql.RandomEntities.createTagQuery;
+import static io.wisetime.connector.sql.RandomEntities.randomTagQuery;
 import static io.wisetime.connector.sql.RandomEntities.fixedTime;
 import static io.wisetime.connector.sql.RandomEntities.fixedTimeMinusMinutes;
 import static io.wisetime.connector.sql.RandomEntities.randomTagSyncRecord;
@@ -84,8 +84,8 @@ class SqlConnectorTagUpdateTest {
     when(mockTagQueryProvider.getQueries())
         .thenReturn(ImmutableList.of(new TagQuery("one", "SELECT 1", "",
             Collections.singletonList("0"))));
-    when(mockSyncStore.getSyncMarker(createTagQuery("one", ""))).thenReturn("");
-    when(mockSyncStore.getLastSyncedIds(createTagQuery("one", ""))).thenReturn(ImmutableList.of());
+    when(mockSyncStore.getSyncMarker(randomTagQuery("one", ""))).thenReturn("");
+    when(mockSyncStore.getLastSyncedIds(randomTagQuery("one", ""))).thenReturn(ImmutableList.of());
     when(mockDatabase.getTagsToSync(eq("SELECT 1"), eq(""), anyList())).thenReturn(new LinkedList<>());
 
     connector.performTagUpdate();

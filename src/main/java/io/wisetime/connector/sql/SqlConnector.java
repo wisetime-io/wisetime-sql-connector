@@ -19,14 +19,11 @@ import io.wisetime.connector.sql.sync.ConnectedDatabase;
 import io.wisetime.connector.sql.sync.SyncStore;
 import io.wisetime.connector.sql.sync.TagSyncRecord;
 import io.wisetime.generated.connect.TimeGroup;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import spark.Request;
 
@@ -69,17 +66,13 @@ public class SqlConnector implements WiseTimeConnector {
           final List<String> idsToSkip = idsToSkip(query, syncStore);
 
           LinkedList<TagSyncRecord> tagSyncRecords;
-          while (!hasNewQueries(tagQueries)
+          while (!hasUpdatedQueries(tagQueries)
               && (tagSyncRecords = database.getTagsToSync(query.getSql(), marker, idsToSkip)).size() > 0) {
             connectApi.upsertWiseTimeTags(tagSyncRecords);
             syncStore.markSyncPosition(query, tagSyncRecords);
             log.info(format(tagSyncRecords));
           }
         });
-  }
-
-  private boolean hasNewQueries(List<TagQuery> tagQueries) {
-    return !tagQueries.equals(tagQueryProvider.getQueries());
   }
 
   @Override
@@ -112,5 +105,9 @@ public class SqlConnector implements WiseTimeConnector {
     return Stream.concat(query.getSkippedIds().stream(), syncStore.getLastSyncedIds(query).stream())
         .filter(StringUtils::isNotEmpty)
         .collect(Collectors.toList());
+  }
+
+  private boolean hasUpdatedQueries(List<TagQuery> tagQueries) {
+    return !tagQueries.equals(tagQueryProvider.getQueries());
   }
 }

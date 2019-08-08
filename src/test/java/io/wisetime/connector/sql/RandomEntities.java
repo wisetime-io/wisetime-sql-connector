@@ -10,6 +10,7 @@ import io.wisetime.connector.sql.sync.TagSyncRecord;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 
 /**
  * Generate random entities for tests.
@@ -45,16 +46,16 @@ public class RandomEntities {
     return DateTimeFormatter.ISO_INSTANT.format(fixedInstant.minus(minusMinutes, ChronoUnit.MINUTES));
   }
 
-  public static TagQuery createTagQuery(String name) {
-    return createTagQuery(name, "marker");
+  public static TagQuery randomTagQuery(String name) {
+    return randomTagQuery(name, faker.bothify("??####"));
   }
 
-  public static TagQuery createTagQuery(String name, String syncMarker) {
+  public static TagQuery randomTagQuery(String name, String syncMarker) {
     TagQuery tagQuery = new TagQuery();
     tagQuery.setName(name);
-    tagQuery.setSql("sql");
+    tagQuery.setSql("SELECT '" + faker.lorem().sentence() + "'");
     tagQuery.setInitialSyncMarker(syncMarker);
+    tagQuery.setSkippedIds(Collections.emptyList());
     return tagQuery;
   }
-
 }

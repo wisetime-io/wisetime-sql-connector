@@ -4,7 +4,7 @@
 
 package io.wisetime.connector.sql.sync;
 
-import static io.wisetime.connector.sql.RandomEntities.createTagQuery;
+import static io.wisetime.connector.sql.RandomEntities.randomTagQuery;
 import static io.wisetime.connector.sql.RandomEntities.fixedTime;
 import static io.wisetime.connector.sql.RandomEntities.fixedTimeMinusMinutes;
 import static io.wisetime.connector.sql.RandomEntities.randomTagSyncRecord;
@@ -20,6 +20,7 @@ import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 import com.google.common.collect.ImmutableList;
 import io.wisetime.connector.datastore.ConnectorStore;
+import io.wisetime.connector.sql.RandomEntities;
 import io.wisetime.connector.sql.queries.TagQuery;
 import java.util.LinkedList;
 import java.util.Optional;
@@ -45,14 +46,14 @@ class SyncStoreTest {
     final LinkedList<TagSyncRecord> tagSyncRecords = new LinkedList<>();
     tagSyncRecords.add(tagSyncRecord);
 
-    TagQuery cases = createTagQuery("cases");
+    TagQuery cases = RandomEntities.randomTagQuery("cases");
     syncStore.markSyncPosition(cases, tagSyncRecords);
     verify(mockConnectorStore).putString(
         cases.getName() + "_" + cases.getSql().hashCode() + "_sync_marker", tagSyncRecord.getSyncMarker());
     verify(mockConnectorStore).putString(cases.getName() + "_" + cases.getSql().hashCode() + "_last_synced_ids",
         tagSyncRecord.getId());
 
-    TagQuery projects = createTagQuery("projects");
+    TagQuery projects = RandomEntities.randomTagQuery("projects");
     syncStore.markSyncPosition(projects, tagSyncRecords);
     verify(mockConnectorStore).putString(projects.getName() + "_" + projects.getSql().hashCode() + "_sync_marker",
         tagSyncRecord.getSyncMarker());
@@ -62,7 +63,7 @@ class SyncStoreTest {
 
   @Test
   void markSyncPosition_nothing_to_persist() {
-    syncStore.markSyncPosition(createTagQuery("cases"), new LinkedList<>());
+    syncStore.markSyncPosition(RandomEntities.randomTagQuery("cases"), new LinkedList<>());
     verify(mockConnectorStore, never()).putString(anyString(), anyString());
   }
 
@@ -72,7 +73,7 @@ class SyncStoreTest {
     tagSyncRecords.add(randomTagSyncRecord(fixedTime()));
     tagSyncRecords.add(randomTagSyncRecord(fixedTimeMinusMinutes(1)));
     assertThrows(IllegalArgumentException.class, () ->
-        syncStore.markSyncPosition(createTagQuery("cases"), tagSyncRecords)
+        syncStore.markSyncPosition(RandomEntities.randomTagQuery("cases"), tagSyncRecords)
     );
   }
 
@@ -82,7 +83,7 @@ class SyncStoreTest {
     tagSyncRecords.add(randomTagSyncRecord(fixedTimeMinusMinutes(10)));
     tagSyncRecords.add(randomTagSyncRecord(fixedTime()));
     tagSyncRecords.add(randomTagSyncRecord(fixedTime()));
-    TagQuery tagQuery = createTagQuery("cases");
+    TagQuery tagQuery = RandomEntities.randomTagQuery("cases");
     syncStore.markSyncPosition(tagQuery, tagSyncRecords);
 
     // Verify that the persisted sync marker is the most recent time
@@ -99,7 +100,7 @@ class SyncStoreTest {
   void getSyncMarker_default() {
     when(mockConnectorStore.getString("cases_sync_marker"))
         .thenReturn(Optional.empty());
-    TagQuery cases = createTagQuery("cases");
+    TagQuery cases = RandomEntities.randomTagQuery("cases");
     assertThat(syncStore.getSyncMarker(cases))
         .as("Pass on sync marker from the store")
         .isEqualTo(cases.getInitialSyncMarker());
@@ -110,7 +111,7 @@ class SyncStoreTest {
     final String syncMarker = fixedTime();
     when(mockConnectorStore.getString(anyString()))
         .thenReturn(Optional.of(syncMarker));
-    assertThat(syncStore.getSyncMarker(createTagQuery("cases")))
+    assertThat(syncStore.getSyncMarker(RandomEntities.randomTagQuery("cases")))
         .as("Pass on sync marker from the store")
         .isEqualTo(syncMarker);
   }
@@ -119,7 +120,7 @@ class SyncStoreTest {
   void getLastSyncedIds() {
     when(mockConnectorStore.getString(anyString()))
         .thenReturn(Optional.of("1@@@2"));
-    assertThat(syncStore.getLastSyncedIds(createTagQuery("cases")))
+    assertThat(syncStore.getLastSyncedIds(RandomEntities.randomTagQuery("cases")))
         .as("Pass on sync marker from the store")
         .isEqualTo(ImmutableList.of("1", "2"));
   }
