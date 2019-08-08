@@ -107,7 +107,7 @@ public class SqlConnector implements WiseTimeConnector {
         .collect(Collectors.toList());
   }
 
-  private boolean hasUpdatedQueries(List<TagQuery> tagQueries) {
+  private boolean hasUpdatedQueries(final List<TagQuery> tagQueries) {
     return !tagQueries.equals(tagQueryProvider.getQueries());
   }
 }

@@ -48,7 +48,7 @@ public class TagQueryProvider {
   }
 
   public List<TagQuery> getQueries() {
-    return tagQueries;
+    return ImmutableList.copyOf(tagQueries);
   }
 
   public void stopWatching() {
