@@ -94,12 +94,11 @@ public class TagQueryProvider {
                   break;
 
                 case "ENTRY_DELETE":
-                  log.error("The tag SQL configuration file {} was deleted", path);
                   tagQueries = ImmutableList.of();
                   break;
 
                 default:
-                  log.error("Unexpected file watch event: {}", event.kind());
+                  log.warn("Unexpected file watch event: {}", event.kind());
               }
             }
           }
