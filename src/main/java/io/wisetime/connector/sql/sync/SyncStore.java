@@ -4,6 +4,8 @@
 
 package io.wisetime.connector.sql.sync;
 
+import static io.wisetime.connector.sql.format.LogFormatter.ellipsize;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.wisetime.connector.datastore.ConnectorStore;
@@ -49,7 +51,9 @@ public class SyncStore {
           .map(TagSyncRecord::getId)
           .collect(Collectors.joining(DELIMITER));
       connectorStore.putString(getLastSyncedIdsKey(tagQuery), syncedIds);
-      log.info("Last synced IDs ({}): {}", latestSynced.size(), syncedIds.replace(DELIMITER, ", "));
+
+      log.info("Last synced IDs at same marker ({}): {}", latestSynced.size(),
+          ellipsize(latestSynced.stream().map(TagSyncRecord::getId).collect(Collectors.toList())));
     }
   }
 

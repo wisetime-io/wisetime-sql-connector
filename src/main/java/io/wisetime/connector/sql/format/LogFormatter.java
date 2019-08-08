@@ -26,7 +26,7 @@ public class LogFormatter {
     ).trim();
   }
 
-  private static String ellipsize(final List<String> items) {
+  public static String ellipsize(final List<String> items) {
     if (items.size() < 6) {
       return String.join(", ", items);
     }
