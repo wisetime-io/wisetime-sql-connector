@@ -19,7 +19,5 @@ public class TagQuery {
   private String name;
   private String sql;
   private String initialSyncMarker;
-
-  // Comma separated list of IDs to skip
   private List<String> skippedIds;
 }
