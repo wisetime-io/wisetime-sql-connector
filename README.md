@@ -6,7 +6,7 @@ In order to use the WiseTime Inprotech Connector, you will need a [WiseTime Conn
 
 ## Database Permissions Requirements
 
-The database user that the connector uses (see below JDBC_USER variable) requires read access to the datables that the SQL attempts to read from.
+The database user that the connector uses (see below JDBC_USER variable) requires read access to the tables that the SQL attempts to read from.
 
 ## Configuration
 
