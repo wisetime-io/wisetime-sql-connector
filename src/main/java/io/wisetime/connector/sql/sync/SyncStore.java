@@ -49,7 +49,7 @@ public class SyncStore {
           .map(TagSyncRecord::getId)
           .collect(Collectors.joining(DELIMITER));
       connectorStore.putString(getLastSyncedIdsKey(tagQuery), syncedIds);
-      log.info("Last synced IDs: {}", syncedIds);
+      log.info("Last synced IDs ({}): {}", latestSynced.size(), syncedIds.replace(DELIMITER, ", "));
     }
   }
 
