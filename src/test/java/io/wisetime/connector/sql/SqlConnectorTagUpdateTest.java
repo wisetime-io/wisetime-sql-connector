@@ -4,12 +4,14 @@
 
 package io.wisetime.connector.sql;
 
-import static io.wisetime.connector.sql.RandomEntities.randomTagQuery;
 import static io.wisetime.connector.sql.RandomEntities.fixedTime;
 import static io.wisetime.connector.sql.RandomEntities.fixedTimeMinusMinutes;
+import static io.wisetime.connector.sql.RandomEntities.randomTagQuery;
 import static io.wisetime.connector.sql.RandomEntities.randomTagSyncRecord;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -96,11 +98,10 @@ class SqlConnectorTagUpdateTest {
   }
 
   @Test
-  void performTagUpdate_sync_tags() {
+  void performTagUpdate_sync_tags_multiple_queries() {
     TagQuery first = new TagQuery("one", "SELECT 1", "1", Collections.singletonList("skipped1"));
     TagQuery second = new TagQuery("two", "SELECT 2", "2", Collections.singletonList(""));
-    when(mockTagQueryProvider.getQueries())
-        .thenReturn(ImmutableList.of(first, second));
+    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(first, second));
     String markerForFirst = "10";
     when(mockSyncStore.getSyncMarker(first)).thenReturn(markerForFirst);
     String markerForSecond = "20";
@@ -189,5 +190,33 @@ class SqlConnectorTagUpdateTest {
     assertThat(syncRecordsArguments.get(1).get(0).getTagName())
         .as("Record matches query result")
         .isEqualTo(query2Record.getTagName());
+  }
+
+  @Test
+  void performTagUpdate_sync_tags_multiple_runs() {
+    TagQuery query = new TagQuery("cases", "SELECT 1", "1", Collections.singletonList("skip"));
+    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(query));
+    when(mockSyncStore.getSyncMarker(query))
+        .thenReturn("10")
+        .thenReturn("20");
+    when(mockSyncStore.getLastSyncedIds(query))
+        .thenReturn(ImmutableList.of())
+        .thenReturn(ImmutableList.of("synced"));
+
+    final LinkedList<TagSyncRecord> firstResults = new LinkedList<>();
+    firstResults.add(randomTagSyncRecord());
+    final LinkedList<TagSyncRecord> secondResults = new LinkedList<>();
+    secondResults.add(randomTagSyncRecord());
+
+    when(mockDatabase.getTagsToSync(query.getSql(), "10", ImmutableList.of("skip")))
+        .thenReturn(firstResults)
+        .thenReturn(new LinkedList<>());
+    when(mockDatabase.getTagsToSync(query.getSql(), "20", ImmutableList.of("skip", "synced")))
+        .thenReturn(secondResults)
+        .thenReturn(new LinkedList<>());
+
+    connector.performTagUpdate();
+    verify(mockConnectApi, times(2)).upsertWiseTimeTags(anyCollection());
+    verify(mockSyncStore, times(2)).markSyncPosition(any(), any());
   }
 }

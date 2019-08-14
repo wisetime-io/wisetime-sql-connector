@@ -62,12 +62,8 @@ public class SqlConnector implements WiseTimeConnector {
 
     tagQueries
         .forEach(query -> {
-          final String marker = syncStore.getSyncMarker(query);
-          final List<String> idsToSkip = idsToSkip(query, syncStore);
-
           LinkedList<TagSyncRecord> tagSyncRecords;
-          while (!hasUpdatedQueries(tagQueries)
-              && (tagSyncRecords = database.getTagsToSync(query.getSql(), marker, idsToSkip)).size() > 0) {
+          while (!hasUpdatedQueries(tagQueries) && (tagSyncRecords = getUnsyncedRecords(query, syncStore)).size() > 0) {
             connectApi.upsertWiseTimeTags(tagSyncRecords);
             syncStore.markSyncPosition(query, tagSyncRecords);
             log.info(format(tagSyncRecords));
@@ -101,10 +97,15 @@ public class SqlConnector implements WiseTimeConnector {
     this.connectApi = connectApi;
   }
 
-  private List<String> idsToSkip(final TagQuery query, final SyncStore syncStore) {
-    return Stream.concat(query.getSkippedIds().stream(), syncStore.getLastSyncedIds(query).stream())
+  private LinkedList<TagSyncRecord> getUnsyncedRecords(final TagQuery query, final SyncStore syncStore) {
+    final String syncMarker = syncStore.getSyncMarker(query);
+
+    final List<String> idsToSkip = Stream
+        .concat(query.getSkippedIds().stream(), syncStore.getLastSyncedIds(query).stream())
         .filter(StringUtils::isNotEmpty)
         .collect(Collectors.toList());
+
+    return database.getTagsToSync(query.getSql(), syncMarker, idsToSkip);
   }
 
   private boolean hasUpdatedQueries(final List<TagQuery> tagQueries) {

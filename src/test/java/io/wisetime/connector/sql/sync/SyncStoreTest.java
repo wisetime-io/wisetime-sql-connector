@@ -66,7 +66,29 @@ class SyncStoreTest {
   }
 
   @Test
-  void markSyncPosition() {
+  void markSyncPosition_numeric_marker() {
+    final LinkedList<TagSyncRecord> tagSyncRecords = new LinkedList<>();
+    tagSyncRecords.add(randomTagSyncRecord("-1"));
+    tagSyncRecords.add(randomTagSyncRecord("0"));
+    tagSyncRecords.add(randomTagSyncRecord("1"));
+    tagSyncRecords.add(randomTagSyncRecord("2"));
+    TagQuery tagQuery = RandomEntities.randomTagQuery("cases");
+    syncStore.markSyncPosition(tagQuery, tagSyncRecords);
+
+    // Verify that the persisted sync marker is the last ID
+    verify(mockConnectorStore, times(1)).putString(
+        tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_sync_marker", "2");
+
+    // Verify that the persisted ID is the one with the largest marker value
+    verify(mockConnectorStore, times(1))
+        .putString(
+            tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_last_synced_ids",
+            tagSyncRecords.get(3).getId()
+        );
+  }
+
+  @Test
+  void markSyncPosition_datetime_marker() {
     final LinkedList<TagSyncRecord> tagSyncRecords = new LinkedList<>();
     tagSyncRecords.add(randomTagSyncRecord(fixedTimeMinusMinutes(10)));
     tagSyncRecords.add(randomTagSyncRecord(fixedTime()));
