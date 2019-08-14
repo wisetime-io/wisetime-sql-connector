@@ -4,12 +4,10 @@
 
 package io.wisetime.connector.sql.sync;
 
-import static io.wisetime.connector.sql.RandomEntities.randomTagQuery;
 import static io.wisetime.connector.sql.RandomEntities.fixedTime;
 import static io.wisetime.connector.sql.RandomEntities.fixedTimeMinusMinutes;
 import static io.wisetime.connector.sql.RandomEntities.randomTagSyncRecord;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -65,16 +63,6 @@ class SyncStoreTest {
   void markSyncPosition_nothing_to_persist() {
     syncStore.markSyncPosition(RandomEntities.randomTagQuery("cases"), new LinkedList<>());
     verify(mockConnectorStore, never()).putString(anyString(), anyString());
-  }
-
-  @Test
-  void markSyncPosition_fail_sync_tags_not_sorted_in_asc_order() {
-    final LinkedList<TagSyncRecord> tagSyncRecords = new LinkedList<>();
-    tagSyncRecords.add(randomTagSyncRecord(fixedTime()));
-    tagSyncRecords.add(randomTagSyncRecord(fixedTimeMinusMinutes(1)));
-    assertThrows(IllegalArgumentException.class, () ->
-        syncStore.markSyncPosition(RandomEntities.randomTagQuery("cases"), tagSyncRecords)
-    );
   }
 
   @Test

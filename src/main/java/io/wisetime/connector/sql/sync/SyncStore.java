@@ -6,7 +6,6 @@ package io.wisetime.connector.sql.sync;
 
 import static io.wisetime.connector.sql.format.LogFormatter.ellipsize;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.wisetime.connector.datastore.ConnectorStore;
 import io.wisetime.connector.sql.queries.TagQuery;
@@ -37,7 +36,7 @@ public class SyncStore {
 
   /**
    * Persist the latest sync marker as well as the ids at that marker.
-   * The TagSyncRecords provided must be sorted by sync marker in lexicographically ascending order.
+   * The TagSyncRecords provided must be sorted by sync marker in ascending order.
    */
   public void markSyncPosition(final TagQuery tagQuery, final LinkedList<TagSyncRecord> tagSyncRecordsInAscMarkerOrder) {
     final List<TagSyncRecord> latestSynced =
@@ -79,10 +78,6 @@ public class SyncStore {
       if (!lastSyncMarker.isPresent()) {
         lastSyncMarker = Optional.of(tagSyncRecord.getSyncMarker());
       }
-      Preconditions.checkArgument(
-          tagSyncRecord.getSyncMarker().compareTo(lastSyncMarker.get()) <= 0,
-          "TagSyncRecords must be sorted with lexicographically larger (most recent) marker first"
-      );
       if (lastSyncMarker.get().equals(tagSyncRecord.getSyncMarker())) {
         mostRecentSameMarker.add(tagSyncRecord);
       } else {
