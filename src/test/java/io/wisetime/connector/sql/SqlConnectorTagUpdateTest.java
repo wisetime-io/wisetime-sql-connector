@@ -62,7 +62,7 @@ class SqlConnectorTagUpdateTest {
 
   @AfterEach
   void tearDown() {
-    reset(mockDatabase, mockTagQueryProvider, mockApiClient, mockConnectorStore, mockSyncStore);
+    reset(mockDatabase, mockTagQueryProvider, mockApiClient, mockConnectorStore, mockSyncStore, mockConnectApi);
   }
 
   @Test
