@@ -30,8 +30,6 @@ services:
       # Set loglevel if other than default - INFO - required
       # LOGLEVEL: DEBUG
 
-      TIMEZONE: Australia/Perth
-
       TAG_UPSERT_PATH: /Connector/  # Change this to something meaningful, e.g. the name of the connected system
       TAG_SQL_FILE: /etc/wisetime-sql-connector/tag_sql.yaml
 
