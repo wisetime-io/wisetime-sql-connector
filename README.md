@@ -28,7 +28,9 @@ The yaml configuration file expects one or more SQL queries to be provided, each
 ```yaml
 name: cases
 initialSyncMarker: 2001-01-01T00:00:00
-skippedIds: P01003789, P1025477
+skippedIds:
+  - P01003789
+  - P1025477
 sql: >
   SELECT TOP 500
   [IRN] as [id],
