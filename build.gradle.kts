@@ -30,7 +30,7 @@ repositories {
 }
 
 dependencies {
-    implementation("io.wisetime:wisetime-connector:2.2.2")
+    implementation("io.wisetime:wisetime-connector:2.2.2-2")
     implementation("org.apache.commons:commons-configuration2:2.5")
     implementation("com.google.guava:guava:28.0-jre")
 
@@ -53,7 +53,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
     testRuntime("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
 
-    testImplementation("io.wisetime:wisetime-test-support:2.3.5")
+    testImplementation("io.wisetime:wisetime-test-support:2.3.9")
     testImplementation("org.flywaydb:flyway-core:5.2.4")
     testImplementation("com.github.javafaker:javafaker:1.0.0")
     testImplementation("org.mockito:mockito-core:3.0.0")
