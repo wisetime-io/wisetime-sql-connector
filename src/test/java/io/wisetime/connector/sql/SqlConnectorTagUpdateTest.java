@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.eventbus.EventBus;
 import io.wisetime.connector.api_client.ApiClient;
 import io.wisetime.connector.datastore.ConnectorStore;
 import io.wisetime.connector.sql.queries.TagQuery;
@@ -32,6 +33,7 @@ import io.wisetime.connector.sql.sync.ConnectApi;
 import io.wisetime.connector.sql.sync.ConnectedDatabase;
 import io.wisetime.connector.sql.sync.SyncStore;
 import io.wisetime.connector.sql.sync.TagSyncRecord;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -52,12 +54,16 @@ class SqlConnectorTagUpdateTest {
   private static SyncStore mockSyncStore = mock(SyncStore.class);
   private static ConnectApi mockConnectApi = mock(ConnectApi.class);
   private static SqlConnector connector;
+  private static SqlConnector mockConnector = mock(SqlConnector.class);
+  private static EventBus eventBus = new EventBus();
 
   @BeforeAll
   static void setUp() {
     connector = new SqlConnector(mockDatabase, mockTagQueryProvider);
     connector.setSyncStore(mockSyncStore);
     connector.setConnectApi(mockConnectApi);
+
+    eventBus.register(mockConnector);
   }
 
   @AfterEach
@@ -218,5 +224,15 @@ class SqlConnectorTagUpdateTest {
     connector.performTagUpdate();
     verify(mockConnectApi, times(2)).upsertWiseTimeTags(anyCollection());
     verify(mockSyncStore, times(2)).markSyncPosition(any(), any());
+  }
+
+  @Test
+  void performTagUpdate_send_event() {
+    List<TagQuery> tagQueries = Arrays.asList(
+        new TagQuery("cases", "SELECT 1", "1", Collections.singletonList("skip")),
+        new TagQuery("cases", "SELECT 1", "1", Collections.singletonList("skip")));
+    eventBus.post(tagQueries);
+
+    verify(mockConnector).receiveTagQueriesChange(any());
   }
 }

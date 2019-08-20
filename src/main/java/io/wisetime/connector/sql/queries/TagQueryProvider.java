@@ -7,6 +7,7 @@ package io.wisetime.connector.sql.queries;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.eventbus.EventBus;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -40,11 +41,13 @@ import org.yaml.snakeyaml.constructor.Constructor;
 public class TagQueryProvider {
 
   private final CompletableFuture<Void> fileWatch;
+  private final EventBus eventBus;
   private List<TagQuery> tagQueries;
 
-  public TagQueryProvider(final Path tagSqlPath) {
+  public TagQueryProvider(final Path tagSqlPath, EventBus eventBus) {
     tagQueries = parseTagSqlFile(tagSqlPath);
     fileWatch = startWatchingFile(tagSqlPath);
+    this.eventBus = eventBus;
   }
 
   public List<TagQuery> getQueries() {
@@ -91,6 +94,7 @@ public class TagQueryProvider {
                 case "ENTRY_CREATE":
                 case "ENTRY_MODIFY":
                   tagQueries = parseTagSqlFile(path);
+                  eventBus.post(tagQueries);
                   break;
 
                 case "ENTRY_DELETE":

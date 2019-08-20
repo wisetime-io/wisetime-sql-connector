@@ -4,6 +4,7 @@
 
 package io.wisetime.connector.sql;
 
+import com.google.common.eventbus.EventBus;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import io.wisetime.connector.ConnectorController;
@@ -22,7 +23,10 @@ import java.util.concurrent.TimeUnit;
  */
 public class ConnectorLauncher {
 
+  private static EventBus eventBus;
+
   public static void main(final String... args) throws Exception {
+    eventBus = new EventBus();
     ConnectorController connectorController = buildConnectorController();
     connectorController.start();
   }
@@ -34,10 +38,11 @@ public class ConnectorLauncher {
         RuntimeConfig.getString(SqlConnectorConfigKey.TAG_SQL_FILE)
             .orElseThrow(() -> new RuntimeException("Missing TAG_SQL_FILE configuration"))
     );
-    final TagQueryProvider tagQueryProvider = new TagQueryProvider(tagSqlPath);
-
+    final TagQueryProvider tagQueryProvider = new TagQueryProvider(tagSqlPath, eventBus);
+    SqlConnector sqlConnector = new SqlConnector(database, tagQueryProvider);
+    eventBus.register(sqlConnector);
     return ConnectorController.newBuilder()
-        .withWiseTimeConnector(new SqlConnector(database, tagQueryProvider))
+        .withWiseTimeConnector(sqlConnector)
         // This connector does not process posted time
         .useTagsOnly()
         .build();

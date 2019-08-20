@@ -8,6 +8,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.eventbus.EventBus;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -24,7 +25,7 @@ class TagQueryProviderIntegrationTest {
 
   @Test
   void getQueries_empty_if_file_not_found() {
-    final TagQueryProvider tagQueryProvider = new TagQueryProvider(Paths.get("does_not_exist"));
+    final TagQueryProvider tagQueryProvider = new TagQueryProvider(Paths.get("does_not_exist"), new EventBus());
     assertThat(tagQueryProvider.getQueries())
         .as("There is nothing to parse")
         .isEmpty();
@@ -33,7 +34,7 @@ class TagQueryProviderIntegrationTest {
   @Test
   void getQueries_correctly_parsed() {
     final String fileLocation = getClass().getClassLoader().getResource("tag_sql.yaml").getPath();
-    final TagQueryProvider tagQueryProvider = new TagQueryProvider(Paths.get(fileLocation));
+    final TagQueryProvider tagQueryProvider = new TagQueryProvider(Paths.get(fileLocation), new EventBus());
     final List tagQueries = tagQueryProvider.getQueries();
 
     assertThat(tagQueries.size())
@@ -63,7 +64,7 @@ class TagQueryProviderIntegrationTest {
         "skippedIds: [0]",
         "sql: SELECT 1"
     ));
-    assertThrows(IllegalArgumentException.class, () -> new TagQueryProvider(path));
+    assertThrows(IllegalArgumentException.class, () -> new TagQueryProvider(path, new EventBus()));
   }
 
   @Test
@@ -75,14 +76,14 @@ class TagQueryProviderIntegrationTest {
         "skippedIds: [0]",
         "sql: SELECT 1"
     ));
-    assertThrows(IllegalArgumentException.class, () -> new TagQueryProvider(path));
+    assertThrows(IllegalArgumentException.class, () -> new TagQueryProvider(path, new EventBus()));
   }
 
   @Test
   void getQueries_fail_missing_required_fields() throws Exception {
     final Path path = Files.createTempFile("tag_query_test_query_names", ".yaml");
     Files.write(path, ImmutableList.of("name: cases"));
-    assertThrows(IllegalArgumentException.class, () -> new TagQueryProvider(path));
+    assertThrows(IllegalArgumentException.class, () -> new TagQueryProvider(path, new EventBus()));
   }
 
   /**
@@ -93,7 +94,7 @@ class TagQueryProviderIntegrationTest {
   @Disabled("This is VERY slow. Run manually.")
   void getQueries_file_watch() throws Exception {
     final Path path = Files.createTempFile("tag_query_test_deletes", ".yaml");
-    final TagQueryProvider tagQueryProvider = new TagQueryProvider(path);
+    final TagQueryProvider tagQueryProvider = new TagQueryProvider(path, new EventBus());
     final Duration timeout = Duration.ofSeconds(10);
 
     // Verify file update
