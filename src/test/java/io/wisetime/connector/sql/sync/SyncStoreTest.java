@@ -84,7 +84,7 @@ class SyncStoreTest {
         .putString(
             tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_last_synced_ids",
             tagSyncRecords.get(3).getId()
-        );
+      );
   }
 
   @Test
