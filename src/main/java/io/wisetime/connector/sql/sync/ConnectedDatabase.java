@@ -11,6 +11,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.codejargon.fluentjdbc.api.FluentJdbc;
 import org.codejargon.fluentjdbc.api.FluentJdbcBuilder;
 import org.codejargon.fluentjdbc.api.mapper.Mappers;
@@ -50,11 +52,18 @@ public class ConnectedDatabase {
     );
 
     final LinkedList<TagSyncRecord> results = new LinkedList<>();
-    query()
+    List<String> idsToSkip = new LinkedList<>(skippedIds);
+    List<TagSyncRecord> batchRecords;
+    while ((batchRecords = query()
         .select(sql)
         .namedParam("previous_sync_marker", syncMarker)
-        .namedParam("skipped_ids", skippedIds)
-        .iterateResult(resultSet -> results.add(toTagSyncRecord(resultSet)));
+        .namedParam("skipped_ids", idsToSkip)
+        .listResult(ConnectedDatabase::toTagSyncRecord)).size() > 0) {
+      results.addAll(batchRecords);
+      idsToSkip.addAll(
+          batchRecords.stream().map(record -> record.getId()).collect(Collectors.toList())
+      );
+    }
     return results;
   }
 
@@ -67,7 +76,7 @@ public class ConnectedDatabase {
     return fluentJdbc.query();
   }
 
-  private TagSyncRecord toTagSyncRecord(final ResultSet resultSet) throws SQLException {
+  private static TagSyncRecord toTagSyncRecord(final ResultSet resultSet) throws SQLException {
     final TagSyncRecord tagSyncRecord = new TagSyncRecord();
     tagSyncRecord.setId(resultSet.getString("id"));
     tagSyncRecord.setTagName(resultSet.getString("tag_name"));
