@@ -24,6 +24,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import lombok.Generated;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import spark.Request;
@@ -92,6 +93,7 @@ public class SqlConnector implements WiseTimeConnector {
   }
 
   @Subscribe
+  @Generated //remove code block from jacoco check
   public void receiveTagQueriesChange(List<TagQuery> tagQueries) {
     performTagUpdate(tagQueries);
   }
