@@ -22,6 +22,7 @@ import io.wisetime.connector.sql.sync.TagSyncRecord;
 import io.wisetime.generated.connect.TimeGroup;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.Generated;
@@ -39,6 +40,7 @@ public class SqlConnector implements WiseTimeConnector {
   private final TagQueryProvider tagQueryProvider;
   private SyncStore syncStore;
   private ConnectApi connectApi;
+  private AtomicBoolean isPerformingUpdate = new AtomicBoolean();
 
   public SqlConnector(final ConnectedDatabase connectedDatabase, final TagQueryProvider tagQueryProvider) {
     database = connectedDatabase;
@@ -59,21 +61,46 @@ public class SqlConnector implements WiseTimeConnector {
   private void performTagUpdate(List<TagQuery> tagQueries) {
     if (tagQueries.isEmpty()) {
       log.warn("No tag SQL queries configured. Skipping tag sync.");
+      isPerformingUpdate.set(false);
       return;
     }
-
     // Important to ensure that we maintain correct sync for each query
     Preconditions.checkArgument(hasUniqueQueryNames(tagQueries), "Tag SQL query names must be unique");
-
-    tagQueries
-        .forEach(query -> {
-          LinkedList<TagSyncRecord> tagSyncRecords;
-          while (!hasUpdatedQueries(tagQueries) && (tagSyncRecords = getUnsyncedRecords(query, syncStore)).size() > 0) {
+    // locks to prevent concurrent access from scheduled update and event on script change
+    if (isPerformingUpdate.compareAndSet(false, true)) {
+      for (TagQuery query : tagQueries) {
+        LinkedList<TagSyncRecord> tagSyncRecords;
+        List<String> idsToSkip = getIdsToSkip(query);
+        String syncMarker = syncStore.getSyncMarker(query);
+        while (!hasUpdatedQueries(tagQueries)) { // run until queries change, must have break or endless loop
+          tagSyncRecords = database.getTagsToSync(query.getSql(), syncMarker, idsToSkip); //get batch
+          if (tagSyncRecords.size() > 0) {
             connectApi.upsertWiseTimeTags(tagSyncRecords);
             syncStore.markSyncPosition(query, tagSyncRecords);
+            idsToSkip.addAll(//add ids to exclude from next batch
+                tagSyncRecords.stream().map(TagSyncRecord::getId).collect(Collectors.toList())
+            );
             log.info(format(tagSyncRecords));
+          } else {
+            // if syncMarker is not latest update and reset exclusion ids
+            if (!syncMarker.equals(syncStore.getSyncMarker(query))) {
+              syncMarker = syncStore.getSyncMarker(query);
+              idsToSkip = getIdsToSkip(query);
+            } else {
+              break; //latest syncMarker and no more ids to exclude i.e all updated. break loop
+            }
           }
-        });
+        }
+      }
+      isPerformingUpdate.set(false); // unlock
+    }
+  }
+
+  private List<String> getIdsToSkip(TagQuery query) {
+    return Stream
+        .concat(query.getSkippedIds().stream(), syncStore.getLastSyncedIds(query).stream())
+        .filter(StringUtils::isNotEmpty)
+        .collect(Collectors.toList());
   }
 
   @Override
@@ -106,17 +133,6 @@ public class SqlConnector implements WiseTimeConnector {
   @VisibleForTesting
   void setConnectApi(final ConnectApi connectApi) {
     this.connectApi = connectApi;
-  }
-
-  private LinkedList<TagSyncRecord> getUnsyncedRecords(final TagQuery query, final SyncStore syncStore) {
-    final String syncMarker = syncStore.getSyncMarker(query);
-
-    final List<String> idsToSkip = Stream
-        .concat(query.getSkippedIds().stream(), syncStore.getLastSyncedIds(query).stream())
-        .filter(StringUtils::isNotEmpty)
-        .collect(Collectors.toList());
-
-    return database.getTagsToSync(query.getSql(), syncMarker, idsToSkip);
   }
 
   private boolean hasUpdatedQueries(final List<TagQuery> tagQueries) {
