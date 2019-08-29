@@ -8,8 +8,8 @@ import static io.wisetime.connector.sql.RandomEntities.fixedTime;
 import static io.wisetime.connector.sql.RandomEntities.fixedTimeMinusMinutes;
 import static io.wisetime.connector.sql.RandomEntities.randomTagSyncRecord;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -109,8 +109,40 @@ class SyncStoreTest {
 
   @Test
   void markSyncPosition_current_batch_has_same_marker_as_previous() {
-    // TODO(DG): Verify that the current synced IDs are appended to previous list
-    fail("Please implement this test");
+    TagQuery tagQuery = RandomEntities.randomTagQuery("cases");
+
+    final LinkedList<TagSyncRecord> tagSyncRecordsBatch1 = new LinkedList<>();
+    tagSyncRecordsBatch1.add(randomTagSyncRecord(fixedTimeMinusMinutes(10)));
+    tagSyncRecordsBatch1.add(randomTagSyncRecord(fixedTime()));
+    tagSyncRecordsBatch1.add(randomTagSyncRecord(fixedTime()));
+    syncStore.markSyncPosition(tagQuery, tagSyncRecordsBatch1);
+
+    when(
+        mockConnectorStore.getString(
+            tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_sync_marker")
+    ).thenReturn(Optional.of(fixedTime()));
+
+    when(
+        mockConnectorStore.getString(
+            tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_last_synced_ids")
+    ).thenReturn(
+        Optional.of(
+            tagSyncRecordsBatch1.get(2).getId() + "@@@" + tagSyncRecordsBatch1.get(1).getId())
+    );
+
+    final LinkedList<TagSyncRecord> tagSyncRecordsBatch2 = new LinkedList<>();
+    tagSyncRecordsBatch2.add(randomTagSyncRecord(fixedTime()));
+    tagSyncRecordsBatch2.add(randomTagSyncRecord(fixedTime()));
+    syncStore.markSyncPosition(tagQuery, tagSyncRecordsBatch2);
+
+    final String persistedIds = tagSyncRecordsBatch1.get(2).getId()
+        + "@@@" + tagSyncRecordsBatch1.get(1).getId()
+        + "@@@" + tagSyncRecordsBatch2.get(1).getId()
+        + "@@@" + tagSyncRecordsBatch2.get(0).getId();
+
+    //Verify that the current synced IDs are appended to previous list
+    verify(mockConnectorStore, times(1))
+        .putString(tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_last_synced_ids", persistedIds);
   }
 
   @Test

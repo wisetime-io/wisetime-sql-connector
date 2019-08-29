@@ -89,11 +89,10 @@ class SqlConnectorTagUpdateTest {
 
   @Test
   void performTagUpdate_no_tags_to_sync() {
-    TagQuery query = new TagQuery("one", "SELECT 1", "",
-        Collections.singletonList("0"));
     when(mockTagQueryProvider.getQueries())
-        .thenReturn(ImmutableList.of(query));
-    when(mockSyncStore.getSyncMarker(query)).thenReturn("").thenReturn("");
+        .thenReturn(ImmutableList.of(new TagQuery("one", "SELECT 1", "",
+            Collections.singletonList("0"))));
+    when(mockSyncStore.getSyncMarker(randomTagQuery("one", ""))).thenReturn("");
     when(mockSyncStore.getLastSyncedIds(randomTagQuery("one", ""))).thenReturn(ImmutableList.of());
     when(mockDatabase.getTagsToSync(eq("SELECT 1"), eq(""), anyList())).thenReturn(new LinkedList<>());
 
@@ -225,141 +224,6 @@ class SqlConnectorTagUpdateTest {
     connector.performTagUpdate();
     verify(mockConnectApi, times(2)).upsertWiseTimeTags(anyCollection());
     verify(mockSyncStore, times(2)).markSyncPosition(any(), any());
-  }
-
-  @Test
-  void performTagUpdate_sync_tags_multiple_runs_batch_with_sync_marker() {
-    TagQuery query = new TagQuery("cases", "SELECT 1", "1", Collections.singletonList("skip"));
-    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(query));
-    when(mockSyncStore.getSyncMarker(query))
-        .thenReturn("10")
-        .thenReturn("20");
-
-    //use case 6 entries, 2X 3 with same sync and batch = 2
-    final LinkedList<TagSyncRecord> firstResultsOnlyFirstSync = new LinkedList<>();
-    firstResultsOnlyFirstSync.add(randomTagSyncRecord("10"));
-    firstResultsOnlyFirstSync.add(randomTagSyncRecord("10"));
-    final LinkedList<TagSyncRecord> firstResultsMixedSync = new LinkedList<>();
-    firstResultsMixedSync.add(randomTagSyncRecord("10"));
-    firstResultsMixedSync.add(randomTagSyncRecord("20"));
-
-    final LinkedList<TagSyncRecord> firstResultsSecondSync = new LinkedList<>();
-    firstResultsSecondSync.add(randomTagSyncRecord("20"));
-    firstResultsSecondSync.add(randomTagSyncRecord("20"));
-
-    when(mockDatabase.getTagsToSync(eq(query.getSql()), eq("10"), any()))
-        .thenReturn(firstResultsOnlyFirstSync) //return first 2
-        .thenReturn(firstResultsMixedSync) //return second 2 but, diff sync
-        .thenReturn(new LinkedList<>()); //no more with first sync
-    when(mockDatabase.getTagsToSync(eq(query.getSql()), eq("20"), any()))
-        .thenReturn(firstResultsSecondSync) //return first two
-        .thenReturn(new LinkedList<>()); // no more with second sync
-
-    connector.performTagUpdate();
-    verify(mockConnectApi, times(3)).upsertWiseTimeTags(anyCollection());
-    verify(mockSyncStore, times(3)).markSyncPosition(any(), any());
-  }
-
-  @Test
-  void performTagUpdate_sync_tags_multiple_runs_batch_with_one_sync_marker_never_lattes() {
-    TagQuery query = new TagQuery("cases", "SELECT 1", "1", Collections.singletonList("skip"));
-    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(query));
-    when(mockSyncStore.getSyncMarker(query))
-        .thenReturn("10")
-        .thenReturn("20");
-
-    //use case 7 entries, 2X 4 with same sync and batch = 3
-    final LinkedList<TagSyncRecord> firstResultsOnlyFirstSync = new LinkedList<>();
-    firstResultsOnlyFirstSync.add(randomTagSyncRecord("10"));
-    firstResultsOnlyFirstSync.add(randomTagSyncRecord("10"));
-    firstResultsOnlyFirstSync.add(randomTagSyncRecord("10"));
-    final LinkedList<TagSyncRecord> firstResultsMixedSync = new LinkedList<>();
-    firstResultsMixedSync.add(randomTagSyncRecord("10"));
-    firstResultsMixedSync.add(randomTagSyncRecord("15"));
-    firstResultsMixedSync.add(randomTagSyncRecord("20"));
-
-    final LinkedList<TagSyncRecord> firstResultsSecondSync = new LinkedList<>();
-    firstResultsSecondSync.add(randomTagSyncRecord("20"));
-    firstResultsSecondSync.add(randomTagSyncRecord("20"));
-    firstResultsSecondSync.add(randomTagSyncRecord("20"));
-
-    when(mockDatabase.getTagsToSync(eq(query.getSql()), eq("10"), any()))
-        .thenReturn(firstResultsOnlyFirstSync) //return first 3
-        .thenReturn(firstResultsMixedSync) //return second 3 but, diff sync
-        .thenReturn(new LinkedList<>()); //no more with first sync
-    when(mockDatabase.getTagsToSync(eq(query.getSql()), eq("20"), any()))
-        .thenReturn(firstResultsSecondSync) //return first 3
-        .thenReturn(new LinkedList<>()); // no more with second sync
-
-    connector.performTagUpdate();
-    verify(mockConnectApi, times(3)).upsertWiseTimeTags(anyCollection());
-    verify(mockSyncStore, times(3)).markSyncPosition(any(), any());
-  }
-
-  @Test
-  void performTagUpdate_sync_tags_multiple_runs_batch_with_sync_marker_edge_1() {
-    TagQuery query = new TagQuery("cases", "SELECT 1", "1", Collections.singletonList("skip"));
-    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(query));
-    when(mockSyncStore.getSyncMarker(query))
-        .thenReturn("10")
-        .thenReturn("20");
-
-    //use case 6 entries, 2X 3 with same sync and batch = 2
-    final LinkedList<TagSyncRecord> firstResultsOnlyFirstSync = new LinkedList<>();
-    firstResultsOnlyFirstSync.add(randomTagSyncRecord("10"));
-    firstResultsOnlyFirstSync.add(randomTagSyncRecord("10"));
-    final LinkedList<TagSyncRecord> firstResultsMixedSync = new LinkedList<>();
-    firstResultsMixedSync.add(randomTagSyncRecord("10"));
-    firstResultsMixedSync.add(randomTagSyncRecord("15"));
-
-    final LinkedList<TagSyncRecord> firstResultsSecondSync = new LinkedList<>();
-    firstResultsSecondSync.add(randomTagSyncRecord("20"));
-    firstResultsSecondSync.add(randomTagSyncRecord("20"));
-
-    when(mockDatabase.getTagsToSync(eq(query.getSql()), eq("10"), any()))
-        .thenReturn(firstResultsOnlyFirstSync) //return first 2
-        .thenReturn(firstResultsMixedSync) //return second 2 but, diff sync
-        .thenReturn(new LinkedList<>()); //no more with first sync
-    when(mockDatabase.getTagsToSync(eq(query.getSql()), eq("20"), any()))
-        .thenReturn(firstResultsSecondSync) //return first two
-        .thenReturn(new LinkedList<>()); // no more with second sync
-
-    connector.performTagUpdate();
-    verify(mockConnectApi, times(3)).upsertWiseTimeTags(anyCollection());
-    verify(mockSyncStore, times(3)).markSyncPosition(any(), any());
-  }
-
-  @Test
-  void performTagUpdate_sync_tags_multiple_runs_batch_with_sync_marker_edge_2() {
-    TagQuery query = new TagQuery("cases", "SELECT 1", "1", Collections.singletonList("skip"));
-    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(query));
-    when(mockSyncStore.getSyncMarker(query))
-        .thenReturn("10")
-        .thenReturn("20");
-
-    //use case 6 entries, 2X 3 with same sync and batch = 2
-    final LinkedList<TagSyncRecord> firstResultsOnlyFirstSync = new LinkedList<>();
-    firstResultsOnlyFirstSync.add(randomTagSyncRecord("10"));
-    firstResultsOnlyFirstSync.add(randomTagSyncRecord("10"));
-    final LinkedList<TagSyncRecord> firstResultsSameSync = new LinkedList<>();
-    firstResultsSameSync.add(randomTagSyncRecord("10"));
-    firstResultsSameSync.add(randomTagSyncRecord("10"));
-
-    final LinkedList<TagSyncRecord> firstResultsMixedSecondSync = new LinkedList<>();
-    firstResultsMixedSecondSync.add(randomTagSyncRecord("15"));
-    firstResultsMixedSecondSync.add(randomTagSyncRecord("20"));
-
-    when(mockDatabase.getTagsToSync(eq(query.getSql()), eq("10"), any()))
-        .thenReturn(firstResultsOnlyFirstSync) //return first 2
-        .thenReturn(firstResultsSameSync) //return second 2
-        .thenReturn(new LinkedList<>()); //no more with first sync
-    when(mockDatabase.getTagsToSync(eq(query.getSql()), eq("20"), any()))
-        .thenReturn(firstResultsMixedSecondSync) //return first two, diff sync
-        .thenReturn(new LinkedList<>()); // no more with second sync
-
-    connector.performTagUpdate();
-    verify(mockConnectApi, times(3)).upsertWiseTimeTags(anyCollection());
-    verify(mockSyncStore, times(3)).markSyncPosition(any(), any());
   }
 
   @Test
