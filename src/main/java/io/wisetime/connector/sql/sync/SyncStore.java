@@ -16,7 +16,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * A store to remember the latest synced tags at the same sync marker.
@@ -39,20 +41,27 @@ public class SyncStore {
    * The TagSyncRecords provided must be sorted by sync marker in ascending order.
    */
   public void markSyncPosition(final TagQuery tagQuery, final LinkedList<TagSyncRecord> tagSyncRecordsInAscMarkerOrder) {
-    final List<TagSyncRecord> latestSynced =
+    final List<TagSyncRecord> currentSyncBatch =
         extractMostRecentTagSyncRecordsWithSameMarker(tagSyncRecordsInAscMarkerOrder.descendingIterator());
 
-    if (!latestSynced.isEmpty()) {
-      final String latestMarker = latestSynced.get(0).getSyncMarker();
+    if (!currentSyncBatch.isEmpty()) {
+      final String previousMarker = getSyncMarker(tagQuery);
+      final String latestMarker = currentSyncBatch.get(0).getSyncMarker();
       connectorStore.putString(getMarkerKey(tagQuery), latestMarker);
 
-      final String syncedIds = latestSynced.stream()
-          .map(TagSyncRecord::getId)
-          .collect(Collectors.joining(DELIMITER));
-      connectorStore.putString(getLastSyncedIdsKey(tagQuery), syncedIds);
+      final Stream<String> previousSyncedIds = getLastSyncedIds(tagQuery).stream();
+      final Stream<String> latestSyncedIds = currentSyncBatch.stream().map(TagSyncRecord::getId);
+      List<String> syncedIdsAtSameMarker;
 
-      log.info("Last synced IDs at same marker ({}): {}", latestSynced.size(),
-          ellipsize(latestSynced.stream().map(TagSyncRecord::getId).collect(Collectors.toList())));
+      if (latestMarker.equals(previousMarker)) {
+        syncedIdsAtSameMarker = Stream.concat(previousSyncedIds, latestSyncedIds).collect(Collectors.toList());
+      } else {
+        syncedIdsAtSameMarker = latestSyncedIds.collect(Collectors.toList());
+      }
+      connectorStore.putString(getLastSyncedIdsKey(tagQuery), StringUtils.join(syncedIdsAtSameMarker, DELIMITER));
+
+      log.info("Last synced IDs at same marker ({}): {}", syncedIdsAtSameMarker.size(),
+          ellipsize(syncedIdsAtSameMarker));
     }
   }
 

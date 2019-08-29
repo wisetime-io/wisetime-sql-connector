@@ -369,6 +369,6 @@ class SqlConnectorTagUpdateTest {
         new TagQuery("cases", "SELECT 1", "1", Collections.singletonList("skip")));
     eventBus.post(tagQueries);
 
-    verify(mockConnector).receiveTagQueriesChange(any());
+    verify(mockConnector).onTagQueriesChanged(any());
   }
 }
