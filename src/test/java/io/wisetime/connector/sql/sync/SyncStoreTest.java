@@ -116,18 +116,11 @@ class SyncStoreTest {
     tagSyncRecordsBatch1.add(randomTagSyncRecord(fixedTime()));
     syncStore.markSyncPosition(tagQuery, tagSyncRecordsBatch1);
 
-    when(
-        mockConnectorStore.getString(
-            tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_sync_marker")
-    ).thenReturn(Optional.of(fixedTime()));
+    when(mockConnectorStore.getString(tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_sync_marker"))
+        .thenReturn(Optional.of(fixedTime()));
 
-    when(
-        mockConnectorStore.getString(
-            tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_last_synced_ids")
-    ).thenReturn(
-        Optional.of(
-            tagSyncRecordsBatch1.get(2).getId() + "@@@" + tagSyncRecordsBatch1.get(1).getId())
-    );
+    when(mockConnectorStore.getString(tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_last_synced_ids"))
+        .thenReturn(Optional.of(tagSyncRecordsBatch1.get(2).getId() + "@@@" + tagSyncRecordsBatch1.get(1).getId()));
 
     final LinkedList<TagSyncRecord> tagSyncRecordsBatch2 = new LinkedList<>();
     tagSyncRecordsBatch2.add(randomTagSyncRecord(fixedTime()));

@@ -110,7 +110,7 @@ public class TagQueryProvider {
         }
 
       } catch (IOException | InterruptedException e) {
-        throw new RuntimeException("Autoload failed for Tag SQL configuration file", e);
+        throw new RuntimeException("Autoload failed for tag SQL configuration file", e);
       }
     }, Executors.newSingleThreadExecutor());
   }
@@ -138,13 +138,14 @@ public class TagQueryProvider {
   }
 
   private TagQuery enforceValid(final TagQuery query) {
-    Preconditions.checkArgument(StringUtils.isNotEmpty(query.getName()), "query name is required");
+    Preconditions.checkArgument(StringUtils.isNotEmpty(query.getName()), "Tag SQL query name is required");
     Preconditions.checkArgument(StringUtils.isNotEmpty(query.getInitialSyncMarker()),
-        "initial marker of query %s can't be empty", query.getName());
+        "Initial sync marker for tag SQL query %s can't be empty", query.getName());
     Preconditions.checkArgument(StringUtils.isNotEmpty(query.getSql()),
-        "sql is required for query %s", query.getName());
+        "SQL is required for tag SQL query %s", query.getName());
     Preconditions.checkArgument(!query.getSkippedIds().isEmpty(),
-        "skipped ids required for query %s", query.getName());
+        "Skipped ID list is required for tag SQL query %s. Use a sentinel value if none apply.",
+        query.getName());
     return query;
   }
 }
