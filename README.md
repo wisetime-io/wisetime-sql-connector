@@ -91,6 +91,14 @@ For `cases` in the above example, because the `DATE_UPDATED` column is a DateTim
 
 For the `keywords` query in the above example, if the `sync_marker` field is an auto incremented integer field, then we can simply use `>` as the comparison operator. In this case, the clause `AND [PRJ_ID] NOT IN (:skipped_ids)` is redundant. However, we must still use the placeholder because the connector expects it when it generates the query.
 
+#### Tag SQL Configuration Hot Reloading
+
+The connector will detect changes to the tag SQL configuration file and automatically use the updated configuration. Sync state is reset and sync restarted if any of the following fields have changed for a configured query:
+
+* initialSyncMarker
+* skippedIds
+* sql
+
 ### Optional Configuration Parameters
 
 The following configuration parameters are optional.

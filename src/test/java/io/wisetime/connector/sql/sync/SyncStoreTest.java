@@ -21,6 +21,7 @@ import io.wisetime.connector.datastore.ConnectorStore;
 import io.wisetime.connector.sql.RandomEntities;
 import io.wisetime.connector.sql.queries.TagQuery;
 import java.util.LinkedList;
+import java.util.Objects;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,17 +47,13 @@ class SyncStoreTest {
 
     TagQuery cases = RandomEntities.randomTagQuery("cases");
     syncStore.markSyncPosition(cases, tagSyncRecords);
-    verify(mockConnectorStore).putString(
-        cases.getName() + "_" + cases.getSql().hashCode() + "_sync_marker", tagSyncRecord.getSyncMarker());
-    verify(mockConnectorStore).putString(cases.getName() + "_" + cases.getSql().hashCode() + "_last_synced_ids",
-        tagSyncRecord.getId());
+    verify(mockConnectorStore).putString(tagQueryHash(cases) + "_sync_marker", tagSyncRecord.getSyncMarker());
+    verify(mockConnectorStore).putString(tagQueryHash(cases) + "_last_synced_ids", tagSyncRecord.getId());
 
     TagQuery projects = RandomEntities.randomTagQuery("projects");
     syncStore.markSyncPosition(projects, tagSyncRecords);
-    verify(mockConnectorStore).putString(projects.getName() + "_" + projects.getSql().hashCode() + "_sync_marker",
-        tagSyncRecord.getSyncMarker());
-    verify(mockConnectorStore).putString(projects.getName() + "_" + projects.getSql().hashCode() + "_last_synced_ids",
-        tagSyncRecord.getId());
+    verify(mockConnectorStore).putString(tagQueryHash(projects) + "_sync_marker", tagSyncRecord.getSyncMarker());
+    verify(mockConnectorStore).putString(tagQueryHash(projects) + "_last_synced_ids", tagSyncRecord.getId());
   }
 
   @Test
@@ -76,15 +73,12 @@ class SyncStoreTest {
     syncStore.markSyncPosition(tagQuery, tagSyncRecords);
 
     // Verify that the persisted sync marker is the last ID
-    verify(mockConnectorStore, times(1)).putString(
-        tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_sync_marker", "2");
+    verify(mockConnectorStore, times(1))
+        .putString(tagQueryHash(tagQuery) + "_sync_marker", "2");
 
     // Verify that the persisted ID is the one with the largest marker value
     verify(mockConnectorStore, times(1))
-        .putString(
-            tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_last_synced_ids",
-            tagSyncRecords.get(3).getId()
-      );
+        .putString(tagQueryHash(tagQuery) + "_last_synced_ids", tagSyncRecords.get(3).getId());
   }
 
   @Test
@@ -97,13 +91,13 @@ class SyncStoreTest {
     syncStore.markSyncPosition(tagQuery, tagSyncRecords);
 
     // Verify that the persisted sync marker is the most recent time
-    verify(mockConnectorStore, times(1)).putString(
-        tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_sync_marker", fixedTime());
+    verify(mockConnectorStore, times(1))
+        .putString(tagQueryHash(tagQuery) + "_sync_marker", fixedTime());
 
     // Verify that the persisted ids are the two most recent with the same sync marker
     final String persistedIds = tagSyncRecords.get(2).getId() + "@@@" + tagSyncRecords.get(1).getId();
     verify(mockConnectorStore, times(1))
-        .putString(tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_last_synced_ids", persistedIds);
+        .putString(tagQueryHash(tagQuery) + "_last_synced_ids", persistedIds);
   }
 
   @Test
@@ -116,10 +110,10 @@ class SyncStoreTest {
     tagSyncRecordsBatch1.add(randomTagSyncRecord(fixedTime()));
     syncStore.markSyncPosition(tagQuery, tagSyncRecordsBatch1);
 
-    when(mockConnectorStore.getString(tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_sync_marker"))
+    when(mockConnectorStore.getString(tagQueryHash(tagQuery) + "_sync_marker"))
         .thenReturn(Optional.of(fixedTime()));
 
-    when(mockConnectorStore.getString(tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_last_synced_ids"))
+    when(mockConnectorStore.getString(tagQueryHash(tagQuery) + "_last_synced_ids"))
         .thenReturn(Optional.of(tagSyncRecordsBatch1.get(2).getId() + "@@@" + tagSyncRecordsBatch1.get(1).getId()));
 
     final LinkedList<TagSyncRecord> tagSyncRecordsBatch2 = new LinkedList<>();
@@ -134,7 +128,7 @@ class SyncStoreTest {
 
     // Verify that the current synced IDs are appended to previous list
     verify(mockConnectorStore, times(1))
-        .putString(tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_last_synced_ids", persistedIds);
+        .putString(tagQueryHash(tagQuery) + "_last_synced_ids", persistedIds);
   }
 
   @Test
@@ -164,5 +158,13 @@ class SyncStoreTest {
     assertThat(syncStore.getLastSyncedIds(RandomEntities.randomTagQuery("cases")))
         .as("Pass on sync marker from the store")
         .isEqualTo(ImmutableList.of("1", "2"));
+  }
+
+  /**
+   * Mirrored implementation in test ensures that tag query hash generation isn't changed without proper
+   * warning/consideration.
+   */
+  private int tagQueryHash(final TagQuery tagQuery) {
+    return Objects.hash(tagQuery.getSql(), tagQuery.getInitialSyncMarker(), tagQuery.getSkippedIds());
   }
 }
