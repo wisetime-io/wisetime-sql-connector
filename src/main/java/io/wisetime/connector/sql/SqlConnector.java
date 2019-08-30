@@ -54,6 +54,11 @@ public class SqlConnector implements WiseTimeConnector {
   }
 
   @Override
+  public String getConnectorType() {
+    return "wisetime-sql-connector";
+  }
+
+  @Override
   public void performTagUpdate() {
     performTagUpdate(tagQueryProvider.getQueries());
   }
