@@ -139,7 +139,7 @@ class SyncStoreTest {
         + "@@@" + tagSyncRecordsBatch2.get(1).getId()
         + "@@@" + tagSyncRecordsBatch2.get(0).getId();
 
-    //Verify that the current synced IDs are appended to previous list
+    // Verify that the current synced IDs are appended to previous list
     verify(mockConnectorStore, times(1))
         .putString(tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_last_synced_ids", persistedIds);
   }
