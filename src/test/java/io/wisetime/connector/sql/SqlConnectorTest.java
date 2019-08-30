@@ -55,6 +55,11 @@ class SqlConnectorTest {
   }
 
   @Test
+  void connectorType_is_unchanged() {
+    assertThat(connector.getConnectorType()).isEqualTo("wisetime-sql-connector");
+  }
+
+  @Test
   void postTime_is_unsupported() {
     assertThrows(UnsupportedOperationException.class, () ->
         connector.postTime(mock(Request.class), mock(TimeGroup.class))
