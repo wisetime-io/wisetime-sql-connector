@@ -9,6 +9,7 @@ import static io.wisetime.connector.sql.queries.TagQueryProvider.hasUniqueQueryN
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.eventbus.Subscribe;
 import io.wisetime.connector.ConnectorModule;
 import io.wisetime.connector.WiseTimeConnector;
 import io.wisetime.connector.api_client.PostResult;
@@ -21,8 +22,10 @@ import io.wisetime.connector.sql.sync.TagSyncRecord;
 import io.wisetime.generated.connect.TimeGroup;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import lombok.Generated;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import spark.Request;
@@ -37,6 +40,7 @@ public class SqlConnector implements WiseTimeConnector {
   private final TagQueryProvider tagQueryProvider;
   private SyncStore syncStore;
   private ConnectApi connectApi;
+  private AtomicBoolean isPerformingUpdate = new AtomicBoolean();
 
   public SqlConnector(final ConnectedDatabase connectedDatabase, final TagQueryProvider tagQueryProvider) {
     database = connectedDatabase;
@@ -51,24 +55,34 @@ public class SqlConnector implements WiseTimeConnector {
 
   @Override
   public void performTagUpdate() {
-    final List<TagQuery> tagQueries = tagQueryProvider.getQueries();
+    performTagUpdate(tagQueryProvider.getQueries());
+  }
+
+  private void performTagUpdate(List<TagQuery> tagQueries) {
     if (tagQueries.isEmpty()) {
       log.warn("No tag SQL queries configured. Skipping tag sync.");
+      isPerformingUpdate.set(false);
       return;
     }
 
     // Important to ensure that we maintain correct sync for each query
     Preconditions.checkArgument(hasUniqueQueryNames(tagQueries), "Tag SQL query names must be unique");
 
-    tagQueries
-        .forEach(query -> {
-          LinkedList<TagSyncRecord> tagSyncRecords;
-          while (!hasUpdatedQueries(tagQueries) && (tagSyncRecords = getUnsyncedRecords(query, syncStore)).size() > 0) {
-            connectApi.upsertWiseTimeTags(tagSyncRecords);
-            syncStore.markSyncPosition(query, tagSyncRecords);
-            log.info(format(tagSyncRecords));
-          }
-        });
+    // Prevent possible concurrent runs triggered by scheduled update and on query change event
+    if (isPerformingUpdate.compareAndSet(false, true)) {
+      tagQueries
+          .forEach(query -> {
+            LinkedList<TagSyncRecord> tagSyncRecords;
+            while (!hasUpdatedQueries(tagQueries) &&
+                (tagSyncRecords = getUnsyncedRecords(query, syncStore)).size() > 0) {
+              connectApi.upsertWiseTimeTags(tagSyncRecords);
+              syncStore.markSyncPosition(query, tagSyncRecords);
+              log.info(format(tagSyncRecords));
+            }
+          });
+
+      isPerformingUpdate.set(false);
+    }
   }
 
   @Override
@@ -85,6 +99,12 @@ public class SqlConnector implements WiseTimeConnector {
   public void shutdown() {
     database.close();
     tagQueryProvider.stopWatching();
+  }
+
+  @Subscribe
+  @Generated
+  public void onTagQueriesChanged(List<TagQuery> tagQueries) {
+    performTagUpdate(tagQueries);
   }
 
   @VisibleForTesting

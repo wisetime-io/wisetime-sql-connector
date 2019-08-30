@@ -35,8 +35,9 @@ class LogFormatterTest {
     final TagSyncRecord record2 = randomTagSyncRecord();
 
     assertThat(format(ImmutableList.of(record1, record2)))
-        .isEqualTo("Synced 2 tag|keyword pairs " + record1.getTagName() + "|" + record1.getAdditionalKeyword() +
-            ", " + record2.getTagName() + "|" + record2.getAdditionalKeyword());
+        .isEqualTo("Synced 2 tag|keyword pairs " + record1.getTagName() + "|"
+            + record1.getAdditionalKeyword()
+            + ", " + record2.getTagName() + "|" + record2.getAdditionalKeyword());
   }
 
   @Test
