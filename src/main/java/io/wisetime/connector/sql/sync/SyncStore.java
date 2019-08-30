@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -47,7 +48,7 @@ public class SyncStore {
     if (!currentSyncBatch.isEmpty()) {
       final String previousMarker = getSyncMarker(tagQuery);
       final String latestMarker = currentSyncBatch.get(0).getSyncMarker();
-      connectorStore.putString(getMarkerKey(tagQuery), latestMarker);
+      connectorStore.putString(markerKey(tagQuery), latestMarker);
 
       final Stream<String> previousSyncedIds = getLastSyncedIds(tagQuery).stream();
       final Stream<String> latestSyncedIds = currentSyncBatch.stream().map(TagSyncRecord::getId);
@@ -58,7 +59,7 @@ public class SyncStore {
       } else {
         syncedIdsAtSameMarker = latestSyncedIds.collect(Collectors.toList());
       }
-      connectorStore.putString(getLastSyncedIdsKey(tagQuery), StringUtils.join(syncedIdsAtSameMarker, DELIMITER));
+      connectorStore.putString(lastSyncedIdsKey(tagQuery), StringUtils.join(syncedIdsAtSameMarker, DELIMITER));
 
       log.info("Last synced IDs at same marker ({}): {}", syncedIdsAtSameMarker.size(),
           ellipsize(syncedIdsAtSameMarker));
@@ -66,11 +67,11 @@ public class SyncStore {
   }
 
   public String getSyncMarker(final TagQuery tagQuery) {
-    return connectorStore.getString(getMarkerKey(tagQuery)).orElse(tagQuery.getInitialSyncMarker());
+    return connectorStore.getString(markerKey(tagQuery)).orElse(tagQuery.getInitialSyncMarker());
   }
 
   public List<String> getLastSyncedIds(final TagQuery tagQuery) {
-    return connectorStore.getString(getLastSyncedIdsKey(tagQuery))
+    return connectorStore.getString(lastSyncedIdsKey(tagQuery))
         .map(refs -> refs.split(DELIMITER))
         .map(Arrays::asList)
         .orElse(ImmutableList.of());
@@ -96,11 +97,20 @@ public class SyncStore {
     return mostRecentSameMarker;
   }
 
-  private String getMarkerKey(final TagQuery tagQuery) {
-    return tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_sync_marker";
+  private String markerKey(final TagQuery tagQuery) {
+    return tagQueryHash(tagQuery) + "_sync_marker";
   }
 
-  private String getLastSyncedIdsKey(final TagQuery tagQuery) {
-    return tagQuery.getName() + "_" + tagQuery.getSql().hashCode() + "_last_synced_ids";
+  private String lastSyncedIdsKey(final TagQuery tagQuery) {
+    return tagQueryHash(tagQuery) + "_last_synced_ids";
+  }
+
+  /**
+   * Sync state is reset if the query SQL, initial sync marker or skipped IDs fields are changed.
+   * The hash implementation shouldn't be changed without careful consideration because it will cause
+   * tag updates to run all over again from the initial sync marker when connectors are updated.
+   */
+  private int tagQueryHash(final TagQuery tagQuery) {
+    return Objects.hash(tagQuery.getSql(), tagQuery.getInitialSyncMarker(), tagQuery.getSkippedIds());
   }
 }
