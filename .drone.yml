@@ -118,6 +118,31 @@ trigger:
     - tag
 
 ---
+kind: pipeline
+name: mirror-to-github
+depends_on:
+  - test-and-publish
+
+steps:
+  - name: github-push
+    image: quay.io/wt-build-support/alpine-git-bash
+    pull: true
+    environment:
+      GITHUB_SSH_KEY_B64:
+        from_secret: github-ssh-key-b64
+    commands:
+      - ./mirror.sh
+    when:
+      ref:
+        - refs/heads/master
+        - refs/tags/*
+
+trigger:
+  event:
+    - push
+    - tag
+
+---
 kind: secret
 name: aws-publish-id
 get:
@@ -130,6 +155,13 @@ name: aws-publish-secret
 get:
   path: drone/publish/s3
   name: aws-publish-secret
+
+---
+kind: secret
+name: github-ssh-key-b64
+get:
+  path: drone/publish/github/sql
+  name: gh-sql-key-b64
 
 ---
 kind: secret
