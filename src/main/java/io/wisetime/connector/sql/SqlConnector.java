@@ -77,12 +77,16 @@ public class SqlConnector implements WiseTimeConnector {
     if (isPerformingUpdate.compareAndSet(false, true)) {
       tagQueries
           .forEach(query -> {
-            LinkedList<TagSyncRecord> tagSyncRecords;
-            while (!hasUpdatedQueries(tagQueries) &&
-                (tagSyncRecords = getUnsyncedRecords(query, syncStore)).size() > 0) {
-              connectApi.upsertWiseTimeTags(tagSyncRecords);
-              syncStore.markSyncPosition(query, tagSyncRecords);
-              log.info(format(tagSyncRecords));
+            try {
+              LinkedList<TagSyncRecord> tagSyncRecords;
+              while (!hasUpdatedQueries(tagQueries) &&
+                  (tagSyncRecords = getUnsyncedRecords(query, syncStore)).size() > 0) {
+                connectApi.upsertWiseTimeTags(tagSyncRecords);
+                syncStore.markSyncPosition(query, tagSyncRecords);
+                log.info(format(tagSyncRecords));
+              }
+            } finally {
+              isPerformingUpdate.set(false);
             }
           });
 

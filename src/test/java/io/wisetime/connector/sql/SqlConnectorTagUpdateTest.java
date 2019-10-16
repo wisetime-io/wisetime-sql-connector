@@ -6,7 +6,6 @@ package io.wisetime.connector.sql;
 
 import static io.wisetime.connector.sql.RandomEntities.fixedTime;
 import static io.wisetime.connector.sql.RandomEntities.fixedTimeMinusMinutes;
-import static io.wisetime.connector.sql.RandomEntities.randomTagQuery;
 import static io.wisetime.connector.sql.RandomEntities.randomTagSyncRecord;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -92,8 +91,8 @@ class SqlConnectorTagUpdateTest {
     when(mockTagQueryProvider.getQueries())
         .thenReturn(ImmutableList.of(new TagQuery("one", "SELECT 1", "",
             Collections.singletonList("0"))));
-    when(mockSyncStore.getSyncMarker(randomTagQuery("one", ""))).thenReturn("");
-    when(mockSyncStore.getLastSyncedIds(randomTagQuery("one", ""))).thenReturn(ImmutableList.of());
+    when(mockSyncStore.getSyncMarker(any(TagQuery.class))).thenReturn("");
+    when(mockSyncStore.getLastSyncedIds(any(TagQuery.class))).thenReturn(ImmutableList.of());
     when(mockDatabase.getTagsToSync(eq("SELECT 1"), eq(""), anyList())).thenReturn(new LinkedList<>());
 
     connector.performTagUpdate();
@@ -101,6 +100,29 @@ class SqlConnectorTagUpdateTest {
     // Verify that no tags were synced
     verify(mockConnectorStore, never()).putString(anyString(), anyString());
     verifyZeroInteractions(mockApiClient);
+  }
+
+  @Test
+  void performTagUpdate_exception_does_not_prevent_next_run() {
+    when(mockTagQueryProvider.getQueries())
+        .thenReturn(ImmutableList.of(new TagQuery("one", "SELECT 1", "",
+            Collections.singletonList("0"))));
+
+    when(mockSyncStore.getSyncMarker(any(TagQuery.class)))
+        .thenThrow(new RuntimeException("First call throws"))
+        .thenReturn("");
+
+    when(mockSyncStore.getLastSyncedIds(any(TagQuery.class))).thenReturn(ImmutableList.of());
+
+    final LinkedList<TagSyncRecord> tagSyncRecords = new LinkedList<>();
+    tagSyncRecords.add(randomTagSyncRecord());
+    when(mockDatabase.getTagsToSync(eq("SELECT 1"), eq(""), anyList()))
+        .thenReturn(tagSyncRecords)
+        .thenReturn(new LinkedList<>());
+
+    assertThrows(RuntimeException.class, () -> connector.performTagUpdate());
+    connector.performTagUpdate();
+    verify(mockDatabase, times(2)).getTagsToSync(anyString(), anyString(), anyList());
   }
 
   @Test
