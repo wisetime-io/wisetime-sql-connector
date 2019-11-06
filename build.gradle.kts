@@ -53,7 +53,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
     testRuntime("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
 
-    testImplementation("io.wisetime:wisetime-test-support:2.3.9")
+    testImplementation("io.wisetime:wisetime-test-support:2.3.12")
     testImplementation("org.flywaydb:flyway-core:5.2.4")
     testImplementation("com.github.javafaker:javafaker:1.0.0")
     testImplementation("org.mockito:mockito-core:3.0.0")
