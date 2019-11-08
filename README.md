@@ -32,7 +32,7 @@ skippedIds:
   - P01003789
   - P1025477
 sql: >
-  SELECT TOP 500
+  SELECT TOP 100
   [IRN] as [id],
   [IRN] AS [tag_name],
   [IRN] AS [additional_keyword],
@@ -48,7 +48,7 @@ name: keywords
 initialSyncMarker: 0
 skippedIds: 0
 sql: >
-  SELECT TOP 500
+  SELECT TOP 100
   [PRJ_ID] AS [id],
   [IRN] AS [tag_name],
   CONCAT('FID', [PRJ_ID]) AS [additional_keyword],
