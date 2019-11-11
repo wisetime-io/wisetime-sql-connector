@@ -3,7 +3,7 @@ initialSyncMarker: 1979-01-01T00:00:00
 skippedIds:
   - -9999999999
 sql: >
-  SELECT TOP 500
+  SELECT TOP 100
   [CASEID] as [id],
   [IRN] AS [tag_name],
   [IRN] AS [additional_keyword],

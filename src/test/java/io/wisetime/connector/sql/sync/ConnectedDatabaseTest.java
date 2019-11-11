@@ -4,20 +4,23 @@
 
 package io.wisetime.connector.sql.sync;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import io.wisetime.test_docker.ContainerRuntimeSpec;
-import io.wisetime.test_docker.DockerLauncher;
-import io.wisetime.test_docker.containers.SqlServer;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableList;
+
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import io.wisetime.test_docker.ContainerRuntimeSpec;
+import io.wisetime.test_docker.DockerLauncher;
+import io.wisetime.test_docker.containers.SqlServer;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author shane.xie
@@ -69,7 +72,7 @@ class ConnectedDatabaseTest {
   @Test
   void getTagsToSync_testCase() {
     final List<TagSyncRecord> tagSyncRecords = database.getTagsToSync(
-        "SELECT TOP 500 "
+        "SELECT TOP 50 "
             + "[IRN] as [id], "
             + "[IRN] AS [tag_name], "
             + "[IRN] AS [additional_keyword], "
@@ -99,7 +102,7 @@ class ConnectedDatabaseTest {
   @Test
   void getTagsToSync_testProjects() {
     final List<TagSyncRecord> tagSyncRecords = database.getTagsToSync(
-        "SELECT TOP 500"
+        "SELECT TOP 50"
             + "  [PRJ_ID] AS [id],"
             + "  [IRN] AS [tag_name],"
             + "  CONCAT('FID', [PRJ_ID]) AS [additional_keyword],"

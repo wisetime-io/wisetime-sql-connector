@@ -4,6 +4,19 @@
 
 package io.wisetime.connector.sql.sync;
 
+import com.google.common.collect.ImmutableList;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.LinkedList;
+import java.util.Objects;
+import java.util.Optional;
+
+import io.wisetime.connector.datastore.ConnectorStore;
+import io.wisetime.connector.sql.RandomEntities;
+import io.wisetime.connector.sql.queries.TagQuery;
+
 import static io.wisetime.connector.sql.RandomEntities.fixedTime;
 import static io.wisetime.connector.sql.RandomEntities.fixedTimeMinusMinutes;
 import static io.wisetime.connector.sql.RandomEntities.randomTagSyncRecord;
@@ -16,23 +29,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
 
-import com.google.common.collect.ImmutableList;
-import io.wisetime.connector.datastore.ConnectorStore;
-import io.wisetime.connector.sql.RandomEntities;
-import io.wisetime.connector.sql.queries.TagQuery;
-import java.util.LinkedList;
-import java.util.Objects;
-import java.util.Optional;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 /**
  * @author shane.xie
  */
 class SyncStoreTest {
 
   private static ConnectorStore mockConnectorStore = mock(ConnectorStore.class);
-  private static SyncStore syncStore = new SyncStore(mockConnectorStore);
 
   @BeforeEach
   void setUp() {
@@ -40,7 +42,8 @@ class SyncStoreTest {
   }
 
   @Test
-  void namespaces_are_independent() {
+  void tag_queries_are_independent() {
+    final SyncStore syncStore = new SyncStore(mockConnectorStore);
     final TagSyncRecord tagSyncRecord = randomTagSyncRecord();
     final LinkedList<TagSyncRecord> tagSyncRecords = new LinkedList<>();
     tagSyncRecords.add(tagSyncRecord);
@@ -57,7 +60,65 @@ class SyncStoreTest {
   }
 
   @Test
+  void default_key_space_is_empty_string() {
+    final String defaultKeySpace = "";
+    final SyncStore storeWithDefaultKeySpace = new SyncStore(mockConnectorStore);
+
+    final TagSyncRecord tagSyncRecord = randomTagSyncRecord();
+    final LinkedList<TagSyncRecord> tagSyncRecords = new LinkedList<>();
+    tagSyncRecords.add(tagSyncRecord);
+
+    TagQuery cases = RandomEntities.randomTagQuery("cases");
+    storeWithDefaultKeySpace.markSyncPosition(cases, tagSyncRecords);
+
+    // The default key space should not be changed without due consideration for backwards compatibility
+    verify(mockConnectorStore)
+        .putString(defaultKeySpace + tagQueryHash(cases) + "_sync_marker", tagSyncRecord.getSyncMarker());
+    verify(mockConnectorStore)
+        .putString(defaultKeySpace + tagQueryHash(cases) + "_last_synced_ids", tagSyncRecord.getId());
+  }
+
+  @Test
+  void key_spaces_are_independent() {
+    TagQuery query = RandomEntities.randomTagQuery("cases");
+    final TagSyncRecord tagSyncRecord = randomTagSyncRecord();
+    final LinkedList<TagSyncRecord> tagSyncRecords = new LinkedList<>();
+    tagSyncRecords.add(tagSyncRecord);
+
+    // Store 1, same query
+    final SyncStore syncStore1 = new SyncStore(mockConnectorStore, "1");
+
+    syncStore1.markSyncPosition(query, tagSyncRecords);
+    verify(mockConnectorStore)
+        .putString("1" + tagQueryHash(query) + "_sync_marker", tagSyncRecord.getSyncMarker());
+
+    reset(mockConnectorStore);
+    syncStore1.getSyncMarker(query);
+    verify(mockConnectorStore).getString("1" + tagQueryHash(query) + "_sync_marker");
+
+    reset(mockConnectorStore);
+    syncStore1.getLastSyncedIds(query);
+    verify(mockConnectorStore).getString("1" + tagQueryHash(query) + "_last_synced_ids");
+
+    // Store 2, same query
+    final SyncStore syncStore2 = new SyncStore(mockConnectorStore, "2");
+
+    syncStore2.markSyncPosition(query, tagSyncRecords);
+    verify(mockConnectorStore)
+        .putString("2" + tagQueryHash(query) + "_sync_marker", tagSyncRecord.getSyncMarker());
+
+    reset(mockConnectorStore);
+    syncStore2.getSyncMarker(query);
+    verify(mockConnectorStore).getString("2" + tagQueryHash(query) + "_sync_marker");
+
+    reset(mockConnectorStore);
+    syncStore2.getLastSyncedIds(query);
+    verify(mockConnectorStore).getString("2" + tagQueryHash(query) + "_last_synced_ids");
+  }
+
+  @Test
   void markSyncPosition_nothing_to_persist() {
+    final SyncStore syncStore = new SyncStore(mockConnectorStore);
     syncStore.markSyncPosition(RandomEntities.randomTagQuery("cases"), new LinkedList<>());
     verify(mockConnectorStore, never()).putString(anyString(), anyString());
   }
@@ -70,6 +131,8 @@ class SyncStoreTest {
     tagSyncRecords.add(randomTagSyncRecord("1"));
     tagSyncRecords.add(randomTagSyncRecord("2"));
     TagQuery tagQuery = RandomEntities.randomTagQuery("cases");
+
+    final SyncStore syncStore = new SyncStore(mockConnectorStore);
     syncStore.markSyncPosition(tagQuery, tagSyncRecords);
 
     // Verify that the persisted sync marker is the last ID
@@ -88,6 +151,8 @@ class SyncStoreTest {
     tagSyncRecords.add(randomTagSyncRecord(fixedTime()));
     tagSyncRecords.add(randomTagSyncRecord(fixedTime()));
     TagQuery tagQuery = RandomEntities.randomTagQuery("cases");
+
+    final SyncStore syncStore = new SyncStore(mockConnectorStore);
     syncStore.markSyncPosition(tagQuery, tagSyncRecords);
 
     // Verify that the persisted sync marker is the most recent time
@@ -102,6 +167,7 @@ class SyncStoreTest {
 
   @Test
   void markSyncPosition_current_batch_has_same_marker_as_previous() {
+    final SyncStore syncStore = new SyncStore(mockConnectorStore);
     TagQuery tagQuery = RandomEntities.randomTagQuery("cases");
 
     final LinkedList<TagSyncRecord> tagSyncRecordsBatch1 = new LinkedList<>();
@@ -133,6 +199,7 @@ class SyncStoreTest {
 
   @Test
   void getSyncMarker_default() {
+    final SyncStore syncStore = new SyncStore(mockConnectorStore);
     when(mockConnectorStore.getString("cases_sync_marker"))
         .thenReturn(Optional.empty());
     TagQuery cases = RandomEntities.randomTagQuery("cases");
@@ -143,6 +210,7 @@ class SyncStoreTest {
 
   @Test
   void getSyncMarker_from_store() {
+    final SyncStore syncStore = new SyncStore(mockConnectorStore);
     final String syncMarker = fixedTime();
     when(mockConnectorStore.getString(anyString()))
         .thenReturn(Optional.of(syncMarker));
@@ -153,6 +221,7 @@ class SyncStoreTest {
 
   @Test
   void getLastSyncedIds() {
+    final SyncStore syncStore = new SyncStore(mockConnectorStore);
     when(mockConnectorStore.getString(anyString()))
         .thenReturn(Optional.of("1@@@2"));
     assertThat(syncStore.getLastSyncedIds(RandomEntities.randomTagQuery("cases")))

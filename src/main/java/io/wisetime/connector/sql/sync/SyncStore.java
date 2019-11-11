@@ -4,11 +4,10 @@
 
 package io.wisetime.connector.sql.sync;
 
-import static io.wisetime.connector.sql.format.LogFormatter.ellipsize;
-
 import com.google.common.collect.ImmutableList;
-import io.wisetime.connector.datastore.ConnectorStore;
-import io.wisetime.connector.sql.queries.TagQuery;
+
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -18,11 +17,19 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import io.wisetime.connector.datastore.ConnectorStore;
+import io.wisetime.connector.sql.queries.TagQuery;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
+
+import static io.wisetime.connector.sql.format.LogFormatter.ellipsize;
 
 /**
  * A store to remember the latest synced tags at the same sync marker.
+ *
+ * Can be configured with a key space. SyncStores with different configured key spaces effectively
+ * behave like separate stores even if they share the same underlying ConnectorStore. They store
+ * their state in their own separate key spaces.
  *
  * @author shane.xie
  */
@@ -32,9 +39,28 @@ public class SyncStore {
   private static final String DELIMITER = "@@@";
 
   private ConnectorStore connectorStore;
+  private String keySpace;
 
+  /**
+   * Create a SyncStore with default key space.
+   *
+   * @param connectorStore
+   */
   public SyncStore(final ConnectorStore connectorStore) {
+    // Do not change the default key space value. Doing so will cause existing stores that have
+    // the default configuration to lose state.
+    this(connectorStore, "");
+  }
+
+  /**
+   * Create a SyncStore, providing a custom key space.
+   *
+   * @param connectorStore
+   * @param keySpace
+   */
+  public SyncStore(final ConnectorStore connectorStore, final String keySpace) {
     this.connectorStore = connectorStore;
+    this.keySpace = keySpace;
   }
 
   /**
@@ -98,11 +124,11 @@ public class SyncStore {
   }
 
   private String markerKey(final TagQuery tagQuery) {
-    return tagQueryHash(tagQuery) + "_sync_marker";
+    return keySpace + tagQueryHash(tagQuery) + "_sync_marker";
   }
 
   private String lastSyncedIdsKey(final TagQuery tagQuery) {
-    return tagQueryHash(tagQuery) + "_last_synced_ids";
+    return keySpace + tagQueryHash(tagQuery) + "_last_synced_ids";
   }
 
   /**
