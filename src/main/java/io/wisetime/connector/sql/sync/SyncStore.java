@@ -13,7 +13,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -37,9 +36,8 @@ import static io.wisetime.connector.sql.format.LogFormatter.ellipsize;
 public class SyncStore {
 
   private static final String DELIMITER = "@@@";
-
-  private ConnectorStore connectorStore;
-  private String keySpace;
+  private final ConnectorStore connectorStore;
+  private final String keySpace;
 
   /**
    * Create a SyncStore with default key space.
@@ -124,19 +122,10 @@ public class SyncStore {
   }
 
   private String markerKey(final TagQuery tagQuery) {
-    return keySpace + tagQueryHash(tagQuery) + "_sync_marker";
+    return keySpace + tagQuery.hashCode() + "_sync_marker";
   }
 
   private String lastSyncedIdsKey(final TagQuery tagQuery) {
-    return keySpace + tagQueryHash(tagQuery) + "_last_synced_ids";
-  }
-
-  /**
-   * Sync state is reset if the query SQL, initial sync marker or skipped IDs fields are changed.
-   * The hash implementation shouldn't be changed without careful consideration because it will cause
-   * tag updates to run all over again from the initial sync marker when connectors are updated.
-   */
-  private int tagQueryHash(final TagQuery tagQuery) {
-    return Objects.hash(tagQuery.getSql(), tagQuery.getInitialSyncMarker(), tagQuery.getSkippedIds());
+    return keySpace + tagQuery.hashCode() + "_last_synced_ids";
   }
 }
