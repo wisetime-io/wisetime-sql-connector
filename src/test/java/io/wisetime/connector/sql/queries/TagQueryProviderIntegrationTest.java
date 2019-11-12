@@ -4,19 +4,21 @@
 
 package io.wisetime.connector.sql.queries;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.eventbus.EventBus;
+
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author shane.xie
@@ -51,15 +53,15 @@ class TagQueryProviderIntegrationTest {
   }
 
   @Test
-  void getQueries_fail_non_unique_query_names() throws Exception {
-    final Path path = Files.createTempFile("tag_query_test_query_names", ".yaml");
+  void getQueries_fail_non_unique_queries() throws Exception {
+    final Path path = Files.createTempFile("tag_query_test_distinct_queries", ".yaml");
     Files.write(path, ImmutableList.of(
         "name: cases",
         "initialSyncMarker: 0",
         "skippedIds: [0]",
         "sql: SELECT 1",
         "---",
-        "name: cases",
+        "name: projects",
         "initialSyncMarker: 0",
         "skippedIds: [0]",
         "sql: SELECT 1"
