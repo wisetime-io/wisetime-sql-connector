@@ -4,12 +4,18 @@
 
 package io.wisetime.connector.sql;
 
-import static io.wisetime.connector.sql.format.LogFormatter.format;
-import static io.wisetime.connector.sql.queries.TagQueryProvider.hasUniqueQueryNames;
-
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.eventbus.Subscribe;
+
+import org.apache.commons.lang3.StringUtils;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import io.wisetime.connector.ConnectorModule;
 import io.wisetime.connector.WiseTimeConnector;
 import io.wisetime.connector.api_client.PostResult;
@@ -20,15 +26,11 @@ import io.wisetime.connector.sql.sync.ConnectedDatabase;
 import io.wisetime.connector.sql.sync.SyncStore;
 import io.wisetime.connector.sql.sync.TagSyncRecord;
 import io.wisetime.generated.connect.TimeGroup;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lombok.Generated;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import spark.Request;
+
+import static io.wisetime.connector.sql.format.LogFormatter.format;
 
 /**
  * @author shane.xie
@@ -38,7 +40,10 @@ public class SqlConnector implements WiseTimeConnector {
 
   private final ConnectedDatabase database;
   private final TagQueryProvider tagQueryProvider;
-  private SyncStore syncStore;
+
+  private SyncStore drainSyncStore;
+  private SyncStore refreshSyncStore;
+
   private ConnectApi connectApi;
   private AtomicBoolean isPerformingUpdate = new AtomicBoolean();
 
@@ -49,7 +54,8 @@ public class SqlConnector implements WiseTimeConnector {
 
   @Override
   public void init(ConnectorModule connectorModule) {
-    syncStore = new SyncStore(connectorModule.getConnectorStore());
+    drainSyncStore = new SyncStore(connectorModule.getConnectorStore());
+    refreshSyncStore = new SyncStore(connectorModule.getConnectorStore(), "refresh");
     connectApi = new ConnectApi(connectorModule.getApiClient());
   }
 
@@ -70,26 +76,23 @@ public class SqlConnector implements WiseTimeConnector {
       return;
     }
 
-    // Important to ensure that we maintain correct sync for each query
-    Preconditions.checkArgument(hasUniqueQueryNames(tagQueries), "Tag SQL query names must be unique");
-
-    // Prevent possible concurrent runs triggered by scheduled update and on query change event
+    // Prevent possible concurrent runs of scheduled update and on query changed event
     if (isPerformingUpdate.compareAndSet(false, true)) {
-      tagQueries
-          .forEach(query -> {
-            try {
-              LinkedList<TagSyncRecord> tagSyncRecords;
-              while (!hasUpdatedQueries(tagQueries) &&
-                  (tagSyncRecords = getUnsyncedRecords(query, syncStore)).size() > 0) {
-                connectApi.upsertWiseTimeTags(tagSyncRecords);
-                syncStore.markSyncPosition(query, tagSyncRecords);
-                log.info(format(tagSyncRecords));
-              }
-            } finally {
-              isPerformingUpdate.set(false);
-            }
-          });
+      tagQueries.forEach(query -> {
+        try {
+          final Supplier<Boolean> allowSync = () -> !hasUpdatedQueries(tagQueries);
 
+          // Drain everything
+          syncAllNewRecords(query, allowSync);
+
+          // By only resyncing one batch per scheduled performTagUpdate call, we implement a
+          // slow resync mechanism that is separate from the main drain-everything mechanism.
+          refreshOneBatch(query, allowSync);
+
+        } finally {
+          isPerformingUpdate.set(false);
+        }
+      });
       isPerformingUpdate.set(false);
     }
   }
@@ -117,8 +120,34 @@ public class SqlConnector implements WiseTimeConnector {
   }
 
   @VisibleForTesting
-  void setSyncStore(final SyncStore syncStore) {
-    this.syncStore = syncStore;
+  void syncAllNewRecords(final TagQuery tagQuery, final Supplier<Boolean> allowSync) {
+    LinkedList<TagSyncRecord> newTagSyncRecords;
+    while (allowSync.get() && (newTagSyncRecords = getUnsyncedRecords(tagQuery, drainSyncStore)).size() > 0) {
+      connectApi.upsertWiseTimeTags(newTagSyncRecords);
+      drainSyncStore.markSyncPosition(tagQuery, newTagSyncRecords);
+      log.info("New tag detection: " + format(newTagSyncRecords));
+    }
+  }
+
+  @VisibleForTesting
+  void refreshOneBatch(final TagQuery tagQuery, final Supplier<Boolean> allowSync) {
+    if (!allowSync.get()) {
+      return;
+    }
+    final LinkedList<TagSyncRecord> refreshTagSyncRecords = getUnsyncedRecords(tagQuery, refreshSyncStore);
+    connectApi.upsertWiseTimeTags(refreshTagSyncRecords);
+    refreshSyncStore.markSyncPosition(tagQuery, refreshTagSyncRecords);
+    log.info("Existing tag refresh: " + format(refreshTagSyncRecords));
+  }
+
+  @VisibleForTesting
+  void setDrainSyncStore(final SyncStore syncStore) {
+    this.drainSyncStore = syncStore;
+  }
+
+  @VisibleForTesting
+  void setRefreshSyncStore(final SyncStore syncStore) {
+    this.refreshSyncStore = syncStore;
   }
 
   @VisibleForTesting
