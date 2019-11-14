@@ -8,6 +8,11 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.eventbus.EventBus;
+
+import org.apache.commons.lang3.StringUtils;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
+
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -18,16 +23,14 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.time.Duration;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
 
 /**
  * Reads tag queries from the provided file path.
@@ -42,38 +45,33 @@ public class TagQueryProvider {
 
   private final CompletableFuture<Void> fileWatch;
   private final EventBus eventBus;
-  private List<TagQuery> tagQueries;
+  private AtomicReference<List<TagQuery>> tagQueries;
 
   public TagQueryProvider(final Path tagSqlPath, EventBus eventBus) {
-    tagQueries = parseTagSqlFile(tagSqlPath);
+    tagQueries = new AtomicReference<>(parseTagSqlFile(tagSqlPath));
     fileWatch = startWatchingFile(tagSqlPath);
     this.eventBus = eventBus;
   }
 
-  public List<TagQuery> getQueries() {
-    return ImmutableList.copyOf(tagQueries);
+  public List<TagQuery> getTagQueries() {
+    return tagQueries.get();
   }
 
   public void stopWatching() {
     fileWatch.cancel(true);
   }
 
-  public static boolean hasUniqueQueryNames(final List<TagQuery> tagQueries) {
-    final Set<String> uniqueQueryNames = tagQueries.stream().map(TagQuery::getName).collect(Collectors.toSet());
-    return tagQueries.size() == uniqueQueryNames.size();
-  }
-
   // Blocking, only meant for use in tests
   @VisibleForTesting
   List<TagQuery> waitForQueryChange(final List<TagQuery> awaitedResult, Duration timeout) throws InterruptedException {
     long stopTime = System.currentTimeMillis() + timeout.toMillis();
-    while (!tagQueries.equals(awaitedResult)) {
+    while (!tagQueries.get().equals(awaitedResult)) {
       if (System.currentTimeMillis() > stopTime) {
         throw new RuntimeException("Timeout");
       }
       Thread.sleep(50);
     }
-    return tagQueries;
+    return tagQueries.get();
   }
 
   private CompletableFuture<Void> startWatchingFile(final Path path) {
@@ -93,12 +91,12 @@ public class TagQueryProvider {
               switch (event.kind().name()) {
                 case "ENTRY_CREATE":
                 case "ENTRY_MODIFY":
-                  tagQueries = parseTagSqlFile(path);
-                  eventBus.post(tagQueries);
+                  tagQueries.set(parseTagSqlFile(path));
+                  eventBus.post(tagQueries.get());
                   break;
 
                 case "ENTRY_DELETE":
-                  tagQueries = ImmutableList.of();
+                  tagQueries.set(ImmutableList.of());
                   break;
 
                 default:
@@ -122,13 +120,13 @@ public class TagQueryProvider {
       lines.close();
 
       final Yaml yaml = new Yaml(new Constructor(TagQuery.class));
-      final List<TagQuery> queries = StreamSupport.stream(yaml.loadAll(contents).spliterator(), false)
+      final ImmutableList<TagQuery> queries = StreamSupport.stream(yaml.loadAll(contents).spliterator(), false)
           .map(query -> (TagQuery) query)
-          .map(this::enforceValid)
-          .collect(Collectors.toList());
+          .map(TagQueryProvider::enforceValid)
+          .collect(ImmutableList.toImmutableList());
 
       // Fail early to give the operator a tight feedback loop when configuring the connector
-      Preconditions.checkArgument(hasUniqueQueryNames(queries), "Tag SQL query names must be unique");
+      Preconditions.checkArgument(TagQuery.allUnique(queries), "Tag SQL queries must be unique");
       return queries;
 
     } catch (IOException ioe) {
@@ -137,7 +135,7 @@ public class TagQueryProvider {
     }
   }
 
-  private TagQuery enforceValid(final TagQuery query) {
+  private static TagQuery enforceValid(final TagQuery query) {
     Preconditions.checkArgument(StringUtils.isNotEmpty(query.getName()), "Tag SQL query name is required");
     Preconditions.checkArgument(StringUtils.isNotEmpty(query.getInitialSyncMarker()),
         "Initial sync marker for tag SQL query %s can't be empty", query.getName());
