@@ -7,7 +7,6 @@ package io.wisetime.connector.sql.queries;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -26,6 +25,16 @@ public class TagQuery {
   private String initialSyncMarker;
   private List<String> skippedIds;
 
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    TagQuery query = (TagQuery) o;
+    return sql.equals(query.sql) &&
+        initialSyncMarker.equals(query.initialSyncMarker) &&
+        skippedIds.equals(query.skippedIds);
+  }
+
   /**
    * This hashing logic was originally implemented in SyncStore. SyncStore uses the hash code as
    * part of the key under which sync state is stored for each query. It is important that the
@@ -36,18 +45,7 @@ public class TagQuery {
     return Objects.hash(sql, initialSyncMarker, skippedIds);
   }
 
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    TagQuery query = (TagQuery) o;
-    return com.google.common.base.Objects.equal(sql, query.sql) &&
-        com.google.common.base.Objects.equal(initialSyncMarker, query.initialSyncMarker) &&
-        com.google.common.base.Objects.equal(skippedIds, query.skippedIds);
-  }
-
   public static boolean allUnique(Collection<TagQuery> queries) {
-    final List<TagQuery> distinctQueries = queries.stream().distinct().collect(Collectors.toList());
-    return queries.size() == distinctQueries.size();
+    return queries.size() == queries.stream().distinct().count();
   }
 }
