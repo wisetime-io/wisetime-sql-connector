@@ -290,11 +290,6 @@ class SqlConnectorTagUpdateTest {
   void performTagUpdate_send_event() {
     List<TagQuery> tagQueries = Arrays.asList(randomTagQuery("cases"), randomTagQuery("projects"));
     eventBus.post(tagQueries);
-    ArgumentCaptor<List<TagQuery>> captor = ArgumentCaptor.forClass(List.class);
-    verify(mockConnector).onTagQueriesChanged(captor.capture());
-
-    assertThat(captor.getValue())
-        .as("Posted queries are received by the connector")
-        .isEqualTo(tagQueries);
+    verify(mockConnector).onTagQueriesChanged(tagQueries);
   }
 }
