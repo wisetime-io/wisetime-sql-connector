@@ -25,6 +25,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -44,16 +45,16 @@ public class TagQueryProvider {
 
   private final CompletableFuture<Void> fileWatch;
   private final EventBus eventBus;
-  private List<TagQuery> tagQueries;
+  private AtomicReference<List<TagQuery>> tagQueries;
 
   public TagQueryProvider(final Path tagSqlPath, EventBus eventBus) {
-    tagQueries = parseTagSqlFile(tagSqlPath);
+    tagQueries = new AtomicReference<>(parseTagSqlFile(tagSqlPath));
     fileWatch = startWatchingFile(tagSqlPath);
     this.eventBus = eventBus;
   }
 
   public List<TagQuery> getQueries() {
-    return ImmutableList.copyOf(tagQueries);
+    return tagQueries.get();
   }
 
   public void stopWatching() {
@@ -64,13 +65,13 @@ public class TagQueryProvider {
   @VisibleForTesting
   List<TagQuery> waitForQueryChange(final List<TagQuery> awaitedResult, Duration timeout) throws InterruptedException {
     long stopTime = System.currentTimeMillis() + timeout.toMillis();
-    while (!tagQueries.equals(awaitedResult)) {
+    while (!tagQueries.get().equals(awaitedResult)) {
       if (System.currentTimeMillis() > stopTime) {
         throw new RuntimeException("Timeout");
       }
       Thread.sleep(50);
     }
-    return tagQueries;
+    return tagQueries.get();
   }
 
   private CompletableFuture<Void> startWatchingFile(final Path path) {
@@ -90,12 +91,12 @@ public class TagQueryProvider {
               switch (event.kind().name()) {
                 case "ENTRY_CREATE":
                 case "ENTRY_MODIFY":
-                  tagQueries = parseTagSqlFile(path);
-                  eventBus.post(tagQueries);
+                  tagQueries.set(parseTagSqlFile(path));
+                  eventBus.post(tagQueries.get());
                   break;
 
                 case "ENTRY_DELETE":
-                  tagQueries = ImmutableList.of();
+                  tagQueries.set(ImmutableList.of());
                   break;
 
                 default:
