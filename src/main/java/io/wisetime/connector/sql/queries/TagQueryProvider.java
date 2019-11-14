@@ -120,10 +120,10 @@ public class TagQueryProvider {
       lines.close();
 
       final Yaml yaml = new Yaml(new Constructor(TagQuery.class));
-      final List<TagQuery> queries = StreamSupport.stream(yaml.loadAll(contents).spliterator(), false)
+      final ImmutableList<TagQuery> queries = StreamSupport.stream(yaml.loadAll(contents).spliterator(), false)
           .map(query -> (TagQuery) query)
           .map(TagQueryProvider::enforceValid)
-          .collect(Collectors.toList());
+          .collect(ImmutableList.toImmutableList());
 
       // Fail early to give the operator a tight feedback loop when configuring the connector
       Preconditions.checkArgument(TagQuery.allUnique(queries), "Tag SQL queries must be unique");
