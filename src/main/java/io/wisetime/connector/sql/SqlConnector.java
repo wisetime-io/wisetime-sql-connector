@@ -66,7 +66,7 @@ public class SqlConnector implements WiseTimeConnector {
 
   @Override
   public void performTagUpdate() {
-    performTagUpdate(tagQueryProvider.getQueries());
+    performTagUpdate(tagQueryProvider.getTagQueries());
   }
 
   private void performTagUpdate(List<TagQuery> tagQueries) {
@@ -104,7 +104,7 @@ public class SqlConnector implements WiseTimeConnector {
 
   @Override
   public boolean isConnectorHealthy() {
-    return !tagQueryProvider.getQueries().isEmpty() && database.isAvailable();
+    return !tagQueryProvider.getTagQueries().isEmpty() && database.isAvailable();
   }
 
   @Override
@@ -167,6 +167,6 @@ public class SqlConnector implements WiseTimeConnector {
   }
 
   private boolean hasUpdatedQueries(final List<TagQuery> tagQueries) {
-    return !tagQueries.equals(tagQueryProvider.getQueries());
+    return !tagQueries.equals(tagQueryProvider.getTagQueries());
   }
 }

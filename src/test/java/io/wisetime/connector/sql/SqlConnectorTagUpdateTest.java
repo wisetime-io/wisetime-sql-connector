@@ -85,14 +85,14 @@ class SqlConnectorTagUpdateTest {
 
   @Test
   void performTagUpdate_no_configured_tag_queries() {
-    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of());
+    when(mockTagQueryProvider.getTagQueries()).thenReturn(ImmutableList.of());
     connector.performTagUpdate();
     verifyZeroInteractions(mockDatabase, mockApiClient, mockConnectorStore);
   }
 
   @Test
   void performTagUpdate_no_tags_to_sync() {
-    when(mockTagQueryProvider.getQueries())
+    when(mockTagQueryProvider.getTagQueries())
         .thenReturn(ImmutableList.of(new TagQuery("one", "SELECT 1", "",
             Collections.singletonList("0"))));
     when(mockDrainSyncStore.getSyncMarker(any(TagQuery.class))).thenReturn("");
@@ -108,7 +108,7 @@ class SqlConnectorTagUpdateTest {
 
   @Test
   void performTagUpdate_exception_does_not_prevent_next_run() {
-    when(mockTagQueryProvider.getQueries())
+    when(mockTagQueryProvider.getTagQueries())
         .thenReturn(ImmutableList.of(new TagQuery("one", "SELECT 1", "",
             Collections.singletonList("0"))));
 
@@ -138,7 +138,7 @@ class SqlConnectorTagUpdateTest {
   @Test
   void syncAllNewRecords_perform_sync_multiple_database_results() {
     TagQuery query = new TagQuery("cases", "SELECT 1", "1", Collections.singletonList("skipped1"));
-    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(query));
+    when(mockTagQueryProvider.getTagQueries()).thenReturn(ImmutableList.of(query));
     String marker = "10";
     when(mockDrainSyncStore.getSyncMarker(query)).thenReturn(marker);
     when(mockDrainSyncStore.getLastSyncedIds(query)).thenReturn(ImmutableList.of("synced1"));
@@ -227,7 +227,7 @@ class SqlConnectorTagUpdateTest {
   @Test
   void refreshOneBatch_perform_sync() {
     TagQuery query = new TagQuery("cases", "SELECT 1", "1", Collections.singletonList("skipped1"));
-    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(query));
+    when(mockTagQueryProvider.getTagQueries()).thenReturn(ImmutableList.of(query));
     String marker = "10";
     when(mockRefreshSyncStore.getSyncMarker(query)).thenReturn(marker);
     when(mockRefreshSyncStore.getLastSyncedIds(query)).thenReturn(ImmutableList.of("synced1"));

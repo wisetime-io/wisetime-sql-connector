@@ -26,18 +26,18 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class TagQueryProviderIntegrationTest {
 
   @Test
-  void getQueries_empty_if_file_not_found() {
+  void getTagQueries_empty_if_file_not_found() {
     final TagQueryProvider tagQueryProvider = new TagQueryProvider(Paths.get("does_not_exist"), new EventBus());
-    assertThat(tagQueryProvider.getQueries())
+    assertThat(tagQueryProvider.getTagQueries())
         .as("There is nothing to parse")
         .isEmpty();
   }
 
   @Test
-  void getQueries_correctly_parsed() {
+  void getTagQueries_correctly_parsed() {
     final String fileLocation = getClass().getClassLoader().getResource("tag_sql.yaml").getPath();
     final TagQueryProvider tagQueryProvider = new TagQueryProvider(Paths.get(fileLocation), new EventBus());
-    final List tagQueries = tagQueryProvider.getQueries();
+    final List tagQueries = tagQueryProvider.getTagQueries();
 
     assertThat(tagQueries.size())
         .as("The tag queries are parsed from YAML")
@@ -53,7 +53,7 @@ class TagQueryProviderIntegrationTest {
   }
 
   @Test
-  void getQueries_fail_non_unique_queries() throws Exception {
+  void getTagQueries_fail_non_unique_queries() throws Exception {
     final Path path = Files.createTempFile("tag_query_test_distinct_queries", ".yaml");
     Files.write(path, ImmutableList.of(
         "name: cases",
@@ -70,7 +70,7 @@ class TagQueryProviderIntegrationTest {
   }
 
   @Test
-  void getQueries_fail_empty_required_field() throws Exception {
+  void getTagQueries_fail_empty_required_field() throws Exception {
     final Path path = Files.createTempFile("tag_query_test_query_names", ".yaml");
     Files.write(path, ImmutableList.of(
         "name: cases",
@@ -82,7 +82,7 @@ class TagQueryProviderIntegrationTest {
   }
 
   @Test
-  void getQueries_fail_missing_required_fields() throws Exception {
+  void getTagQueries_fail_missing_required_fields() throws Exception {
     final Path path = Files.createTempFile("tag_query_test_query_names", ".yaml");
     Files.write(path, ImmutableList.of("name: cases"));
     assertThrows(IllegalArgumentException.class, () -> new TagQueryProvider(path, new EventBus()));
@@ -94,7 +94,7 @@ class TagQueryProviderIntegrationTest {
    */
   @Test
   @Disabled("This is VERY slow. Run manually.")
-  void getQueries_file_watch() throws Exception {
+  void getTagQueries_file_watch() throws Exception {
     final Path path = Files.createTempFile("tag_query_test_deletes", ".yaml");
     final TagQueryProvider tagQueryProvider = new TagQueryProvider(path, new EventBus());
     final Duration timeout = Duration.ofSeconds(10);

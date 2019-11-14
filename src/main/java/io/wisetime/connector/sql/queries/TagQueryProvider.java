@@ -53,7 +53,7 @@ public class TagQueryProvider {
     this.eventBus = eventBus;
   }
 
-  public List<TagQuery> getQueries() {
+  public List<TagQuery> getTagQueries() {
     return tagQueries.get();
   }
 
