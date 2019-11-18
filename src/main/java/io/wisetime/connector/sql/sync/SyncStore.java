@@ -90,6 +90,11 @@ public class SyncStore {
     }
   }
 
+  public void resetSyncPosition(final TagQuery tagQuery) {
+    connectorStore.putString(markerKey(tagQuery), tagQuery.getInitialSyncMarker());
+    connectorStore.putString(lastSyncedIdsKey(tagQuery), "");
+  }
+
   public String getSyncMarker(final TagQuery tagQuery) {
     return connectorStore.getString(markerKey(tagQuery)).orElse(tagQuery.getInitialSyncMarker());
   }

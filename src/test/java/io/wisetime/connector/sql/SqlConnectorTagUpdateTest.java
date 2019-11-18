@@ -225,6 +225,15 @@ class SqlConnectorTagUpdateTest {
   }
 
   @Test
+  void refreshOneBatch_reset_sync() {
+    TagQuery query = randomTagQuery("cases");
+    when(mockTagQueryProvider.getTagQueries()).thenReturn(ImmutableList.of());
+    connector.refreshOneBatch(query, () -> true);
+    verify(mockRefreshSyncStore, times(1)).resetSyncPosition(query);
+    verifyZeroInteractions(mockApiClient);
+  }
+
+  @Test
   void refreshOneBatch_perform_sync() {
     TagQuery query = new TagQuery("cases", "SELECT 1", "1", Collections.singletonList("skipped1"));
     when(mockTagQueryProvider.getTagQueries()).thenReturn(ImmutableList.of(query));
