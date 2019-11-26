@@ -131,7 +131,7 @@ public class SqlConnector implements WiseTimeConnector {
 
   @VisibleForTesting
   void refreshOneBatch(final TagQuery tagQuery, final Supplier<Boolean> allowSync) {
-    if (!allowSync.get()) {
+    if (!tagQuery.getContinuousResync() || !allowSync.get()) {
       return;
     }
     final LinkedList<TagSyncRecord> refreshTagSyncRecords = getUnsyncedRecords(tagQuery, refreshSyncStore);

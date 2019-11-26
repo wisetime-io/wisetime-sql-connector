@@ -137,18 +137,6 @@ public class TagQueryProvider {
     }
   }
 
-  private static TagQuery trimSql(final TagQuery query) {
-    query.setSql(query.getSql().trim());
-    return query;
-  }
-
-  private static TagQuery applyDefaults(final TagQuery query) {
-    if (query.getContinuousResync() == null) {
-      query.setContinuousResync(true);
-    }
-    return query;
-  }
-
   private static TagQuery enforceValid(final TagQuery query) {
     Preconditions.checkArgument(StringUtils.isNotEmpty(query.getName()), "Tag SQL query name is required");
     Preconditions.checkArgument(StringUtils.isNotEmpty(query.getInitialSyncMarker()),
@@ -158,6 +146,18 @@ public class TagQueryProvider {
     Preconditions.checkArgument(!query.getSkippedIds().isEmpty(),
         "Skipped ID list is required for tag SQL query %s. Use a sentinel value if none apply.",
         query.getName());
+    return query;
+  }
+
+  private static TagQuery trimSql(final TagQuery query) {
+    query.setSql(query.getSql().trim());
+    return query;
+  }
+
+  private static TagQuery applyDefaults(final TagQuery query) {
+    if (query.getContinuousResync() == null) {
+      query.setContinuousResync(true);
+    }
     return query;
   }
 }
