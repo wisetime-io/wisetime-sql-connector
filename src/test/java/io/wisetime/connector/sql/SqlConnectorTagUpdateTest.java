@@ -94,7 +94,7 @@ class SqlConnectorTagUpdateTest {
   void performTagUpdate_no_tags_to_sync() {
     when(mockTagQueryProvider.getTagQueries())
         .thenReturn(ImmutableList.of(new TagQuery("one", "SELECT 1", "",
-            Collections.singletonList("0"))));
+            Collections.singletonList("0"), true)));
     when(mockDrainSyncStore.getSyncMarker(any(TagQuery.class))).thenReturn("");
     when(mockDrainSyncStore.getLastSyncedIds(any(TagQuery.class))).thenReturn(ImmutableList.of());
     when(mockDatabase.getTagsToSync(eq("SELECT 1"), eq(""), anyList())).thenReturn(new LinkedList<>());
@@ -110,7 +110,7 @@ class SqlConnectorTagUpdateTest {
   void performTagUpdate_exception_does_not_prevent_next_run() {
     when(mockTagQueryProvider.getTagQueries())
         .thenReturn(ImmutableList.of(new TagQuery("one", "SELECT 1", "",
-            Collections.singletonList("0"))));
+            Collections.singletonList("0"), true)));
 
     when(mockDrainSyncStore.getSyncMarker(any(TagQuery.class)))
         .thenThrow(new RuntimeException("First call throws"))
@@ -137,7 +137,7 @@ class SqlConnectorTagUpdateTest {
 
   @Test
   void syncAllNewRecords_perform_sync_multiple_database_results() {
-    TagQuery query = new TagQuery("cases", "SELECT 1", "1", Collections.singletonList("skipped1"));
+    TagQuery query = new TagQuery("cases", "SELECT 1", "1", Collections.singletonList("skipped1"), true);
     when(mockTagQueryProvider.getTagQueries()).thenReturn(ImmutableList.of(query));
     String marker = "10";
     when(mockDrainSyncStore.getSyncMarker(query)).thenReturn(marker);
@@ -235,7 +235,7 @@ class SqlConnectorTagUpdateTest {
 
   @Test
   void refreshOneBatch_perform_sync() {
-    TagQuery query = new TagQuery("cases", "SELECT 1", "1", Collections.singletonList("skipped1"));
+    TagQuery query = new TagQuery("cases", "SELECT 1", "1", Collections.singletonList("skipped1"), true);
     when(mockTagQueryProvider.getTagQueries()).thenReturn(ImmutableList.of(query));
     String marker = "10";
     when(mockRefreshSyncStore.getSyncMarker(query)).thenReturn(marker);

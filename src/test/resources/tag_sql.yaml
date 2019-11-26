@@ -14,6 +14,7 @@ sql: >
   WHERE [DATE_UPDATED] >= :previous_sync_marker
   AND [IRN] NOT IN (:skipped_ids)
   ORDER BY [DATE_UPDATED] ASC;
+continuousResync: yes
 
 ---
 name: keywords
@@ -31,6 +32,7 @@ sql: >
   WHERE [PRJ_ID] >= :previous_sync_marker
   AND [PRJ_ID] NOT IN (:skipped_ids)
   ORDER BY [PRJ_ID] ASC;
+continuousResync: no
 
 ---
 name: missing-placeholders
@@ -39,3 +41,12 @@ skippedIds:
   - 0
 sql: >
   SELECT 'missing required fields and parameter placeholders';
+continuousResync: no
+
+---
+name: default-continuous-resync
+initialSyncMarker: 0
+skippedIds:
+  - 0
+sql: >
+  SELECT 'default continuous resync is true';

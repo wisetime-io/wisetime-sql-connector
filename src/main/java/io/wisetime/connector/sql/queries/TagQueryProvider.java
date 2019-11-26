@@ -123,6 +123,8 @@ public class TagQueryProvider {
       final ImmutableList<TagQuery> queries = StreamSupport.stream(yaml.loadAll(contents).spliterator(), false)
           .map(query -> (TagQuery) query)
           .map(TagQueryProvider::enforceValid)
+          .map(TagQueryProvider::applyDefaults)
+          .map(TagQueryProvider::trimSql)
           .collect(ImmutableList.toImmutableList());
 
       // Fail early to give the operator a tight feedback loop when configuring the connector
@@ -133,6 +135,18 @@ public class TagQueryProvider {
       log.error("Failed to read tag SQL configuration file at {}", path);
       return ImmutableList.of();
     }
+  }
+
+  private static TagQuery trimSql(final TagQuery query) {
+    query.setSql(query.getSql().trim());
+    return query;
+  }
+
+  private static TagQuery applyDefaults(final TagQuery query) {
+    if (query.getContinuousResync() == null) {
+      query.setContinuousResync(true);
+    }
+    return query;
   }
 
   private static TagQuery enforceValid(final TagQuery query) {
