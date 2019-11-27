@@ -222,7 +222,7 @@ class SqlConnectorTagUpdateTest {
   void refreshOneBatch_continuous_resync_turned_off() {
     final TagQuery query = randomTagQuery("cases");
     query.setContinuousResync(false);
-    connector.refreshOneBatch(query, () -> false);
+    connector.refreshOneBatch(query, () -> true);
     verifyZeroInteractions(mockDrainSyncStore, mockDatabase, mockApiClient);
   }
 
