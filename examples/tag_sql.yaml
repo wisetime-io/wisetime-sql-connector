@@ -13,3 +13,4 @@ sql: >
   WHERE [DATE_UPDATED] >= :previous_sync_marker
   AND [CASEID] NOT IN (:skipped_ids)
   ORDER BY [DATE_UPDATED] ASC;
+continuousResync: yes
