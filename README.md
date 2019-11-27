@@ -58,6 +58,7 @@ sql: >
   WHERE [PRJ_ID] >= :previous_sync_marker
   AND [PRJ_ID] NOT IN (:skipped_ids)
   ORDER BY [PRJ_ID] ASC;
+continuousResync: no
 ```
 
 In the above example, we have provided two queries, named `cases` and `keywords`. The connector will run the queries and upsert a tag in WiseTime for each record found. Starting from the top of the configuration file, each query is run repeatedly until there are no more records before moving on to the next query. This is behaviour is especially desirable when doing initial imports of a large number of tags. In this example we would prefer to import all cases first before moving on to the secondary task of detecting keywords.
@@ -65,6 +66,8 @@ In the above example, we have provided two queries, named `cases` and `keywords`
 Selecting an empty string for a field lets the connector know that we don't want to overwrite the field during upsert if a tag already exists. For example, when sending keywords to WiseTime via the second query, we don't want to change the current tag description.
 
 The `initialSyncMarker` configuration is required and specifies the first value to be used for `:previous_sync_marker`.
+
+The default sync behaviour of the of the connector is to detect all unsynced tags and sync them as fast as possible with WiseTime until there are no more tags detected by a query. In addition to this fast sync, a slow continuous sync can be configured for each query. The slow sync will sync one batch every 5 minutes. The `continuousResync` configuration enables or disables a slow resync that runs continuously and resets the sync marker when no more records are found. I.e. the connector resyncs from the start as it reaches the end.
 
 #### Selected Fields
 
@@ -98,6 +101,7 @@ The connector will detect changes to the tag SQL configuration file and automati
 * initialSyncMarker
 * skippedIds
 * sql
+* continuousResync
 
 ### Optional Configuration Parameters
 
