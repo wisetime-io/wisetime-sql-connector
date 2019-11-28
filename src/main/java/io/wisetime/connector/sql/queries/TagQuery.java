@@ -24,15 +24,17 @@ public class TagQuery {
   private String sql;
   private String initialSyncMarker;
   private List<String> skippedIds;
+  private Boolean continuousResync;
 
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     TagQuery query = (TagQuery) o;
-    return sql.equals(query.sql) &&
-        initialSyncMarker.equals(query.initialSyncMarker) &&
-        skippedIds.equals(query.skippedIds);
+    return Objects.equals(sql, query.sql) &&
+        Objects.equals(initialSyncMarker, query.initialSyncMarker) &&
+        Objects.equals(skippedIds, query.skippedIds) &&
+        Objects.equals(continuousResync, query.continuousResync);
   }
 
   /**
@@ -42,7 +44,11 @@ public class TagQuery {
    */
   @Override
   public int hashCode() {
-    return Objects.hash(sql, initialSyncMarker, skippedIds);
+    if (continuousResync) {
+      // Continuous resync was not in initial implementation, defaults to true for backwards compatibility
+      return Objects.hash(sql, initialSyncMarker, skippedIds);
+    }
+    return Objects.hash(sql, initialSyncMarker, skippedIds, continuousResync);
   }
 
   public static boolean allUnique(Collection<TagQuery> queries) {

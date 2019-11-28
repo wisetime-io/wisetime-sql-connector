@@ -131,10 +131,16 @@ public class SqlConnector implements WiseTimeConnector {
 
   @VisibleForTesting
   void refreshOneBatch(final TagQuery tagQuery, final Supplier<Boolean> allowSync) {
-    if (!allowSync.get()) {
+    if (!tagQuery.getContinuousResync() || !allowSync.get()) {
       return;
     }
     final LinkedList<TagSyncRecord> refreshTagSyncRecords = getUnsyncedRecords(tagQuery, refreshSyncStore);
+    if (refreshTagSyncRecords.isEmpty()) {
+      // Next refresh batch to start again from the beginning
+      log.info("Resetting tag refresh to start from the beginning");
+      refreshSyncStore.resetSyncPosition(tagQuery);
+      return;
+    }
     connectApi.upsertWiseTimeTags(refreshTagSyncRecords);
     refreshSyncStore.markSyncPosition(tagQuery, refreshTagSyncRecords);
     log.info("Existing tag refresh: " + format(refreshTagSyncRecords));

@@ -5,12 +5,14 @@
 package io.wisetime.connector.sql;
 
 import com.github.javafaker.Faker;
-import io.wisetime.connector.sql.queries.TagQuery;
-import io.wisetime.connector.sql.sync.TagSyncRecord;
+
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
+
+import io.wisetime.connector.sql.queries.TagQuery;
+import io.wisetime.connector.sql.sync.TagSyncRecord;
 
 /**
  * Generate random entities for tests.
@@ -56,6 +58,7 @@ public class RandomEntities {
     tagQuery.setSql("SELECT '" + faker.lorem().sentence() + "'");
     tagQuery.setInitialSyncMarker(syncMarker);
     tagQuery.setSkippedIds(Collections.emptyList());
+    tagQuery.setContinuousResync(faker.random().nextBoolean());
     return tagQuery;
   }
 }

@@ -41,14 +41,29 @@ class TagQueryProviderIntegrationTest {
 
     assertThat(tagQueries.size())
         .as("The tag queries are parsed from YAML")
-        .isEqualTo(3);
+        .isEqualTo(4);
 
     final TagQuery invalidQuery = new TagQuery("missing-placeholders",
         "SELECT 'missing required fields and parameter placeholders';",
-        "0", Collections.singletonList("0"));
+        "0", Collections.singletonList("0"), false);
 
     assertThat(tagQueries.get(2))
         .as("The tag query is correctly parsed from YAML")
+        .isEqualTo(invalidQuery);
+  }
+
+  @Test
+  void getTagQueries_continuous_resync_defaults_to_true() {
+    final String fileLocation = getClass().getClassLoader().getResource("tag_sql.yaml").getPath();
+    final TagQueryProvider tagQueryProvider = new TagQueryProvider(Paths.get(fileLocation), new EventBus());
+    final List tagQueries = tagQueryProvider.getTagQueries();
+
+    final TagQuery invalidQuery = new TagQuery("default-continuous-resync",
+        "SELECT 'default continuous resync is true';",
+        "0", Collections.singletonList("0"), true);
+
+    assertThat(tagQueries.get(3))
+        .as("Continuous resync, if not configured, defaults to true")
         .isEqualTo(invalidQuery);
   }
 
@@ -102,7 +117,7 @@ class TagQueryProviderIntegrationTest {
     // Verify file update
     Files.write(path, ImmutableList.of("name: cases", "sql: SELECT 'cases'", "initialSyncMarker: 0", "skippedIds: 0"));
     tagQueryProvider.waitForQueryChange(ImmutableList.of(
-        new TagQuery("cases", "SELECT 'cases'", "0", Collections.singletonList("0"))
+        new TagQuery("cases", "SELECT 'cases'", "0", Collections.singletonList("0"), true)
     ), timeout);
 
     // Verify file deletion
@@ -114,7 +129,7 @@ class TagQueryProviderIntegrationTest {
     Files.write(path, ImmutableList.of("name: keywords", "sql: SELECT 'keywords'", "initialSyncMarker: 1",
         "skippedIds: 0"));
     tagQueryProvider.waitForQueryChange(ImmutableList.of(
-        new TagQuery("keywords", "SELECT 'keywords'", "1", Collections.singletonList("0"))
+        new TagQuery("keywords", "SELECT 'keywords'", "1", Collections.singletonList("0"), true)
     ), timeout);
   }
 }

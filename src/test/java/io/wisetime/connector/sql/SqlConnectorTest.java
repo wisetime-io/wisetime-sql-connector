@@ -4,14 +4,14 @@
 
 package io.wisetime.connector.sql;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.google.common.collect.ImmutableList;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+
 import io.wisetime.connector.ConnectorModule;
 import io.wisetime.connector.api_client.ApiClient;
 import io.wisetime.connector.config.RuntimeConfig;
@@ -21,11 +21,14 @@ import io.wisetime.connector.sql.queries.TagQuery;
 import io.wisetime.connector.sql.queries.TagQueryProvider;
 import io.wisetime.connector.sql.sync.ConnectedDatabase;
 import io.wisetime.generated.connect.TimeGroup;
-import java.util.Collections;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 import spark.Request;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * @author shane.xie
@@ -77,12 +80,12 @@ class SqlConnectorTest {
     assertThat(connector.isConnectorHealthy()).isFalse();
 
     when(mockTagQueryProvider.getTagQueries()).thenReturn(ImmutableList.of(
-        new TagQuery("name", "sql", "0", Collections.singletonList("0"))));
+        new TagQuery("name", "sql", "0", Collections.singletonList("0"), true)));
     when(mockDatabase.isAvailable()).thenReturn(false);
     assertThat(connector.isConnectorHealthy()).isFalse();
 
     when(mockTagQueryProvider.getTagQueries()).thenReturn(ImmutableList.of(
-        new TagQuery("name", "sql", "0", Collections.singletonList("0"))));
+        new TagQuery("name", "sql", "0", Collections.singletonList("0"), true)));
     when(mockDatabase.isAvailable()).thenReturn(true);
     assertThat(connector.isConnectorHealthy()).isTrue();
   }

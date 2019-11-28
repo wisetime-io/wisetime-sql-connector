@@ -18,6 +18,7 @@ import io.wisetime.connector.sql.queries.TagQuery;
 
 import static io.wisetime.connector.sql.RandomEntities.fixedTime;
 import static io.wisetime.connector.sql.RandomEntities.fixedTimeMinusMinutes;
+import static io.wisetime.connector.sql.RandomEntities.randomTagQuery;
 import static io.wisetime.connector.sql.RandomEntities.randomTagSyncRecord;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -194,6 +195,18 @@ class SyncStoreTest {
     // Verify that the current synced IDs are appended to previous list
     verify(mockConnectorStore, times(1))
         .putString(tagQuery.hashCode() + "_last_synced_ids", persistedIds);
+  }
+
+  @Test
+  void resetSyncPosition() {
+    final TagQuery tagQuery = randomTagQuery("cases");
+    final SyncStore syncStore = new SyncStore(mockConnectorStore);
+    syncStore.resetSyncPosition(tagQuery);
+
+    verify(mockConnectorStore, times(1))
+        .putString(tagQuery.hashCode() + "_sync_marker", tagQuery.getInitialSyncMarker());
+    verify(mockConnectorStore, times(1))
+        .putString(tagQuery.hashCode() + "_last_synced_ids", "");
   }
 
   @Test
