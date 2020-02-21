@@ -42,6 +42,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:3.3.1")
     // Add more databases as we need to support them
     implementation("com.microsoft.sqlserver:mssql-jdbc:7.4.1.jre8")
+    implementation("org.antlr:antlr4-runtime:4.8-1")  // For MS SQL Server useFmtOnly feature
 
     compileOnly("org.projectlombok:lombok:1.18.8")
     annotationProcessor("org.projectlombok:lombok:1.18.8")
