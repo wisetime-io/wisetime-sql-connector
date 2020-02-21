@@ -30,7 +30,7 @@ repositories {
 }
 
 dependencies {
-    implementation("io.wisetime:wisetime-connector:2.3.0-1")
+    implementation("io.wisetime:wisetime-connector:2.3.1")
     implementation("org.apache.commons:commons-configuration2:2.5")
     implementation("com.google.guava:guava:28.0-jre")
 
