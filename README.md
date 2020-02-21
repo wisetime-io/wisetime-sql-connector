@@ -71,7 +71,7 @@ The default sync behaviour of the of the connector is to detect all unsynced tag
 
 #### Selected Fields
 
-The `TAG_SQL` must select the relevant information as `id`, `tag_name`, `keyword`, `description` and `sync_marker`. The connector expects these names in the result set. The connector uses `sync_marker` to remember what tags it has already upserted. The following table explains how each selected field is used by the connector.
+The `TAG_SQL` must select the relevant information as `id`, `tag_name`, `additional_keyword`, `tag_description` and `sync_marker`. The connector expects these names in the result set. The connector uses `sync_marker` to remember what tags it has already upserted. The following table explains how each selected field is used by the connector.
 
 | Field | Explanation |
 --- | ---
