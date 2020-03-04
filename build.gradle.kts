@@ -30,7 +30,7 @@ repositories {
 }
 
 dependencies {
-    implementation("io.wisetime:wisetime-connector:2.3.1")
+    implementation("io.wisetime:wisetime-connector:2.3.2")
     implementation("org.apache.commons:commons-configuration2:2.5")
     implementation("com.google.guava:guava:28.0-jre")
 
@@ -92,6 +92,9 @@ jib {
         }
     } else {
         println("Building image with (default) architecture: amd64")
+        from {
+            image = "gcr.io/pi-gcp/jdk:8"
+        }
         to {
             image = "wisetime/wisetime-sql-connector"
         }
