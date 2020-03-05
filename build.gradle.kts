@@ -30,7 +30,7 @@ repositories {
 }
 
 dependencies {
-    implementation("io.wisetime:wisetime-connector:2.3.1")
+    implementation("io.wisetime:wisetime-connector:2.3.2")
     implementation("org.apache.commons:commons-configuration2:2.5")
     implementation("com.google.guava:guava:28.0-jre")
 
@@ -54,7 +54,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
     testRuntime("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
 
-    testImplementation("io.wisetime:wisetime-test-support:2.3.12")
+    testImplementation("io.wisetime:wisetime-test-support:2.4.0-0")
     testImplementation("org.flywaydb:flyway-core:5.2.4")
     testImplementation("com.github.javafaker:javafaker:1.0.1")
     testImplementation("org.mockito:mockito-core:3.0.0")
@@ -92,6 +92,9 @@ jib {
         }
     } else {
         println("Building image with (default) architecture: amd64")
+        from {
+            image = "gcr.io/pi-gcp/jdk:8"
+        }
         to {
             image = "wisetime/wisetime-sql-connector"
         }
