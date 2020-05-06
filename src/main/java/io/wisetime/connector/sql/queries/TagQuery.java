@@ -28,13 +28,17 @@ public class TagQuery {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
     TagQuery query = (TagQuery) o;
-    return Objects.equals(sql, query.sql) &&
-        Objects.equals(initialSyncMarker, query.initialSyncMarker) &&
-        Objects.equals(skippedIds, query.skippedIds) &&
-        Objects.equals(continuousResync, query.continuousResync);
+    return Objects.equals(sql, query.sql)
+        && Objects.equals(initialSyncMarker, query.initialSyncMarker)
+        && Objects.equals(skippedIds, query.skippedIds)
+        && Objects.equals(continuousResync, query.continuousResync);
   }
 
   /**

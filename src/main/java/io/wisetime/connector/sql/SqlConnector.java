@@ -4,18 +4,10 @@
 
 package io.wisetime.connector.sql;
 
+import static io.wisetime.connector.sql.format.LogFormatter.format;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.eventbus.Subscribe;
-
-import org.apache.commons.lang3.StringUtils;
-
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import io.wisetime.connector.ConnectorModule;
 import io.wisetime.connector.WiseTimeConnector;
 import io.wisetime.connector.api_client.PostResult;
@@ -26,11 +18,16 @@ import io.wisetime.connector.sql.sync.ConnectedDatabase;
 import io.wisetime.connector.sql.sync.SyncStore;
 import io.wisetime.connector.sql.sync.TagSyncRecord;
 import io.wisetime.generated.connect.TimeGroup;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.Generated;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import spark.Request;
-
-import static io.wisetime.connector.sql.format.LogFormatter.format;
 
 /**
  * @author shane.xie
@@ -70,6 +67,29 @@ public class SqlConnector implements WiseTimeConnector {
     performTagUpdate(tagQueryProvider.getTagQueries());
   }
 
+  private void performTagUpdate(List<TagQuery> tagQueries) {
+    if (tagQueries.isEmpty()) {
+      log.warn("No tag SQL queries configured. Skipping tag sync.");
+      isPerformingUpdate.set(false);
+      return;
+    }
+
+    // Prevent possible concurrent runs of scheduled update and on query changed event
+    if (isPerformingUpdate.compareAndSet(false, true)) {
+      tagQueries.forEach(query -> {
+        try {
+          final Supplier<Boolean> allowSync = () -> !hasUpdatedQueries(tagQueries);
+
+          // Drain everything
+          syncAllNewRecords(query, allowSync);
+        } finally {
+          isPerformingUpdate.set(false);
+        }
+      });
+      isPerformingUpdate.set(false);
+    }
+  }
+
   @Override
   public void performTagUpdateSlowLoop() {
     performSlowResync(tagQueryProvider.getTagQueries());
@@ -95,29 +115,6 @@ public class SqlConnector implements WiseTimeConnector {
         }
       });
       isPerformingSlowResync.set(false);
-    }
-  }
-
-  private void performTagUpdate(List<TagQuery> tagQueries) {
-    if (tagQueries.isEmpty()) {
-      log.warn("No tag SQL queries configured. Skipping tag sync.");
-      isPerformingUpdate.set(false);
-      return;
-    }
-
-    // Prevent possible concurrent runs of scheduled update and on query changed event
-    if (isPerformingUpdate.compareAndSet(false, true)) {
-      tagQueries.forEach(query -> {
-        try {
-          final Supplier<Boolean> allowSync = () -> !hasUpdatedQueries(tagQueries);
-
-          // Drain everything
-          syncAllNewRecords(query, allowSync);
-        } finally {
-          isPerformingUpdate.set(false);
-        }
-      });
-      isPerformingUpdate.set(false);
     }
   }
 

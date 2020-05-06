@@ -110,10 +110,6 @@ checkstyle {
     isShowViolations = true
 }
 
-tasks.versionCheck {
-    dependsOn(tasks.dependencyUpdates)
-}
-
 tasks {
     check {
         dependsOn(jacocoTestCoverageVerification)

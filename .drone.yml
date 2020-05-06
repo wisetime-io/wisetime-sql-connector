@@ -21,15 +21,6 @@ steps:
       - name: host-cache
         path: /cache
 
-  - name: unit-test
-    image: openjdk:8-jdk-slim
-    environment:
-      GRADLE_USER_HOME: .gcache
-      GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
-      MSSQL_TEST_HOST: mssql-service
-    commands:
-      - ./gradlew test check
-
   - name: check-versions
     image: openjdk:8-jdk
     environment:
@@ -43,6 +34,15 @@ steps:
           - master
       event:
         - push
+
+  - name: unit-test
+    image: openjdk:8-jdk-slim
+    environment:
+      GRADLE_USER_HOME: .gcache
+      GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      MSSQL_TEST_HOST: mssql-service
+    commands:
+      - ./gradlew test check
 
   - name: save-cache
     image: drillster/drone-volume-cache
