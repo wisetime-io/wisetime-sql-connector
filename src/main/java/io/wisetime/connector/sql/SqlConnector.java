@@ -45,7 +45,8 @@ public class SqlConnector implements WiseTimeConnector {
   private SyncStore refreshSyncStore;
 
   private ConnectApi connectApi;
-  private AtomicBoolean isPerformingUpdate = new AtomicBoolean();
+  private final AtomicBoolean isPerformingUpdate = new AtomicBoolean();
+  private final AtomicBoolean isPerformingSlowResync = new AtomicBoolean();
 
   public SqlConnector(final ConnectedDatabase connectedDatabase, final TagQueryProvider tagQueryProvider) {
     database = connectedDatabase;
@@ -69,6 +70,34 @@ public class SqlConnector implements WiseTimeConnector {
     performTagUpdate(tagQueryProvider.getTagQueries());
   }
 
+  @Override
+  public void performTagUpdateSlowLoop() {
+    performSlowResync(tagQueryProvider.getTagQueries());
+  }
+
+  private void performSlowResync(List<TagQuery> tagQueries) {
+    if (tagQueries.isEmpty()) {
+      log.warn("No tag SQL queries configured. Skipping tag sync.");
+      isPerformingSlowResync.set(false);
+      return;
+    }
+
+    // Prevent possible concurrent runs of scheduled update and on query changed event
+    if (isPerformingSlowResync.compareAndSet(false, true)) {
+      tagQueries.forEach(query -> {
+        try {
+          final Supplier<Boolean> allowSync = () -> !hasUpdatedQueries(tagQueries);
+
+          // slow resync mechanism that is separate from the main drain-everything mechanism.
+          refreshOneBatch(query, allowSync);
+        } finally {
+          isPerformingSlowResync.set(false);
+        }
+      });
+      isPerformingSlowResync.set(false);
+    }
+  }
+
   private void performTagUpdate(List<TagQuery> tagQueries) {
     if (tagQueries.isEmpty()) {
       log.warn("No tag SQL queries configured. Skipping tag sync.");
@@ -84,11 +113,6 @@ public class SqlConnector implements WiseTimeConnector {
 
           // Drain everything
           syncAllNewRecords(query, allowSync);
-
-          // By only resyncing one batch per scheduled performTagUpdate call, we implement a
-          // slow resync mechanism that is separate from the main drain-everything mechanism.
-          refreshOneBatch(query, allowSync);
-
         } finally {
           isPerformingUpdate.set(false);
         }

@@ -12,7 +12,7 @@ plugins {
     `maven-publish`
     id("com.google.cloud.tools.jib") version "1.4.0"
     id("io.freefair.lombok") version "3.8.4"
-    id("io.wisetime.versionChecker").version("0.5.3")
+    id("io.wisetime.versionChecker").version("0.9.13")
     id("fr.brouillard.oss.gradle.jgitver").version("0.9.1")
     id("com.github.ben-manes.versions").version("0.21.0")
 }
@@ -30,9 +30,9 @@ repositories {
 }
 
 dependencies {
-    implementation("io.wisetime:wisetime-connector:2.3.2")
+    implementation("io.wisetime:wisetime-connector:2.3.3")
     implementation("org.apache.commons:commons-configuration2:2.5")
-    implementation("com.google.guava:guava:28.0-jre")
+    implementation("com.google.guava:guava:28.2-jre")
 
     implementation("ch.qos.logback:logback-classic:1.2.3")
     implementation("ch.qos.logback:logback-core:1.2.3")
