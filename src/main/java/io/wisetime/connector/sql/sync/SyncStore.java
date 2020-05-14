@@ -4,10 +4,11 @@
 
 package io.wisetime.connector.sql.sync;
 
+import static io.wisetime.connector.sql.format.LogFormatter.ellipsize;
+
 import com.google.common.collect.ImmutableList;
-
-import org.apache.commons.lang3.StringUtils;
-
+import io.wisetime.connector.datastore.ConnectorStore;
+import io.wisetime.connector.sql.queries.TagQuery;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -16,12 +17,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import io.wisetime.connector.datastore.ConnectorStore;
-import io.wisetime.connector.sql.queries.TagQuery;
 import lombok.extern.slf4j.Slf4j;
-
-import static io.wisetime.connector.sql.format.LogFormatter.ellipsize;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * A store to remember the latest synced tags at the same sync marker.
@@ -41,8 +38,6 @@ public class SyncStore {
 
   /**
    * Create a SyncStore with default key space.
-   *
-   * @param connectorStore
    */
   public SyncStore(final ConnectorStore connectorStore) {
     // Do not change the default key space value. Doing so will cause existing stores that have
@@ -52,9 +47,6 @@ public class SyncStore {
 
   /**
    * Create a SyncStore, providing a custom key space.
-   *
-   * @param connectorStore
-   * @param keySpace
    */
   public SyncStore(final ConnectorStore connectorStore, final String keySpace) {
     this.connectorStore = connectorStore;

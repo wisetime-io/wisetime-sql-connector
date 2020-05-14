@@ -4,23 +4,20 @@
 
 package io.wisetime.connector.sql.sync;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-
+import io.wisetime.test_docker.ContainerRuntimeSpec;
+import io.wisetime.test_docker.DockerLauncher;
+import io.wisetime.test_docker.containers.SqlServer;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableList;
-
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import io.wisetime.test_docker.ContainerRuntimeSpec;
-import io.wisetime.test_docker.DockerLauncher;
-import io.wisetime.test_docker.containers.SqlServer;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author shane.xie

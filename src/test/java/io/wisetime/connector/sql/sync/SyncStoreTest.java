@@ -4,18 +4,6 @@
 
 package io.wisetime.connector.sql.sync;
 
-import com.google.common.collect.ImmutableList;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.util.LinkedList;
-import java.util.Optional;
-
-import io.wisetime.connector.datastore.ConnectorStore;
-import io.wisetime.connector.sql.RandomEntities;
-import io.wisetime.connector.sql.queries.TagQuery;
-
 import static io.wisetime.connector.sql.RandomEntities.fixedTime;
 import static io.wisetime.connector.sql.RandomEntities.fixedTimeMinusMinutes;
 import static io.wisetime.connector.sql.RandomEntities.randomTagQuery;
@@ -28,6 +16,15 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
+
+import com.google.common.collect.ImmutableList;
+import io.wisetime.connector.datastore.ConnectorStore;
+import io.wisetime.connector.sql.RandomEntities;
+import io.wisetime.connector.sql.queries.TagQuery;
+import java.util.LinkedList;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author shane.xie

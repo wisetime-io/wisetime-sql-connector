@@ -4,28 +4,6 @@
 
 package io.wisetime.connector.sql;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.eventbus.EventBus;
-
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-
-import io.wisetime.connector.api_client.ApiClient;
-import io.wisetime.connector.datastore.ConnectorStore;
-import io.wisetime.connector.sql.queries.TagQuery;
-import io.wisetime.connector.sql.queries.TagQueryProvider;
-import io.wisetime.connector.sql.sync.ConnectApi;
-import io.wisetime.connector.sql.sync.ConnectedDatabase;
-import io.wisetime.connector.sql.sync.SyncStore;
-import io.wisetime.connector.sql.sync.TagSyncRecord;
-
 import static io.wisetime.connector.sql.RandomEntities.fixedTime;
 import static io.wisetime.connector.sql.RandomEntities.fixedTimeMinusMinutes;
 import static io.wisetime.connector.sql.RandomEntities.randomTagQuery;
@@ -43,6 +21,25 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.eventbus.EventBus;
+import io.wisetime.connector.api_client.ApiClient;
+import io.wisetime.connector.datastore.ConnectorStore;
+import io.wisetime.connector.sql.queries.TagQuery;
+import io.wisetime.connector.sql.queries.TagQueryProvider;
+import io.wisetime.connector.sql.sync.ConnectApi;
+import io.wisetime.connector.sql.sync.ConnectedDatabase;
+import io.wisetime.connector.sql.sync.SyncStore;
+import io.wisetime.connector.sql.sync.TagSyncRecord;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * @author shane.xie
@@ -222,7 +219,8 @@ class SqlConnectorTagUpdateTest {
   void refreshOneBatch_continuous_resync_turned_off() {
     final TagQuery query = randomTagQuery("cases");
     query.setContinuousResync(false);
-    connector.refreshOneBatch(query, () -> true);
+    when(mockTagQueryProvider.getTagQueries()).thenReturn(ImmutableList.of(query));
+    connector.performTagUpdateSlowLoop();
     verifyZeroInteractions(mockDrainSyncStore, mockDatabase, mockApiClient);
   }
 
@@ -230,7 +228,10 @@ class SqlConnectorTagUpdateTest {
   void refreshOneBatch_disallow_sync() {
     final TagQuery query = randomTagQuery("cases");
     query.setContinuousResync(true);
-    connector.refreshOneBatch(query, () -> false);
+    when(mockTagQueryProvider.getTagQueries())
+        .thenReturn(ImmutableList.of(query))
+        .thenReturn(ImmutableList.of());
+    connector.performTagUpdateSlowLoop();
     verifyZeroInteractions(mockDrainSyncStore, mockDatabase, mockApiClient);
   }
 
@@ -238,8 +239,11 @@ class SqlConnectorTagUpdateTest {
   void refreshOneBatch_reset_sync() {
     TagQuery query = randomTagQuery("cases");
     query.setContinuousResync(true);
-    when(mockTagQueryProvider.getTagQueries()).thenReturn(ImmutableList.of());
-    connector.refreshOneBatch(query, () -> true);
+    when(mockTagQueryProvider.getTagQueries())
+        .thenReturn(ImmutableList.of(query))
+        .thenReturn(ImmutableList.of(query))
+        .thenReturn(ImmutableList.of());
+    connector.performTagUpdateSlowLoop();
     verify(mockRefreshSyncStore, times(1)).resetSyncPosition(query);
     verifyZeroInteractions(mockApiClient);
   }
@@ -262,7 +266,7 @@ class SqlConnectorTagUpdateTest {
         .thenReturn(queryResults)
         .thenReturn(new LinkedList<>());
 
-    connector.refreshOneBatch(query, () -> true);
+    connector.performTagUpdateSlowLoop();
 
     // Verify API was called to upsert tags
     ArgumentCaptor<List<TagSyncRecord>> recordsCaptor = ArgumentCaptor.forClass(List.class);

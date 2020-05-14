@@ -4,13 +4,12 @@
 
 package io.wisetime.connector.sql.queries;
 
-import org.junit.jupiter.api.Test;
-import org.testcontainers.shaded.com.google.common.collect.ImmutableList;
-
-import java.util.Objects;
-
 import static io.wisetime.connector.sql.RandomEntities.randomTagQuery;
 import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.Objects;
+import org.junit.jupiter.api.Test;
+import org.testcontainers.shaded.com.google.common.collect.ImmutableList;
 
 /**
  * @author shane.xie
