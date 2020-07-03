@@ -112,8 +112,12 @@ class TagQueryProviderIntegrationTest {
     final TagQueryProvider tagQueryProvider = new TagQueryProvider(path, new EventBus());
     final Duration timeout = Duration.ofSeconds(10);
 
+    // Wait for start file watching
+    Thread.sleep(100);
+
     // Verify file update
-    Files.write(path, ImmutableList.of("name: cases", "sql: SELECT 'cases'", "initialSyncMarker: 0", "skippedIds: 0"));
+    Files.write(path, ImmutableList.of("name: cases", "sql: SELECT 'cases'", "initialSyncMarker: 0",
+        "skippedIds: \n  - 0", "continuousResync: true"));
     tagQueryProvider.waitForQueryChange(ImmutableList.of(
         new TagQuery("cases", "SELECT 'cases'", "0", Collections.singletonList("0"), true)
     ), timeout);
@@ -125,7 +129,15 @@ class TagQueryProviderIntegrationTest {
     // Verify file creation
     Files.createFile(path);
     Files.write(path, ImmutableList.of("name: keywords", "sql: SELECT 'keywords'", "initialSyncMarker: 1",
-        "skippedIds: 0"));
+        "skippedIds: \n  - 0", "continuousResync: true"));
+    tagQueryProvider.waitForQueryChange(ImmutableList.of(
+        new TagQuery("keywords", "SELECT 'keywords'", "1", Collections.singletonList("0"), true)
+    ), timeout);
+
+    // Verify stop watching
+    tagQueryProvider.stopWatching();
+    Files.delete(path);
+    // Watching is stopped, no queries update (expect queries from the previous step)
     tagQueryProvider.waitForQueryChange(ImmutableList.of(
         new TagQuery("keywords", "SELECT 'keywords'", "1", Collections.singletonList("0"), true)
     ), timeout);

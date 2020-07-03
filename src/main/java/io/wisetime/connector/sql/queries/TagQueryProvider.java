@@ -8,6 +8,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.eventbus.EventBus;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -19,6 +20,7 @@ import java.nio.file.WatchService;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -32,20 +34,26 @@ import org.yaml.snakeyaml.constructor.Constructor;
 /**
  * Reads tag queries from the provided file path.
  *
- * Watches the file for changes so that each call of TagQueryProvider#getQueries returns the latest
- * tag queries from the configuration file.
+ * Watches the file for changes so that each call of TagQueryProvider#getQueries returns the latest tag queries from the
+ * configuration file.
  *
  * @author shane.xie
  */
 @Slf4j
 public class TagQueryProvider {
 
+  private final ExecutorService fileWatchExecutor;
   private final CompletableFuture<Void> fileWatch;
   private final EventBus eventBus;
-  private AtomicReference<List<TagQuery>> tagQueries;
+  private final AtomicReference<List<TagQuery>> tagQueries;
 
   public TagQueryProvider(final Path tagSqlPath, EventBus eventBus) {
     tagQueries = new AtomicReference<>(parseTagSqlFile(tagSqlPath));
+    fileWatchExecutor = Executors.newSingleThreadExecutor(
+        new ThreadFactoryBuilder()
+            .setDaemon(true)
+            .setNameFormat("file-watch")
+            .build());
     fileWatch = startWatchingFile(tagSqlPath);
     this.eventBus = eventBus;
   }
@@ -56,6 +64,7 @@ public class TagQueryProvider {
 
   public void stopWatching() {
     fileWatch.cancel(true);
+    fileWatchExecutor.shutdownNow();
   }
 
   // Blocking, only meant for use in tests
@@ -107,7 +116,7 @@ public class TagQueryProvider {
       } catch (IOException | InterruptedException e) {
         throw new RuntimeException("Autoload failed for tag SQL configuration file", e);
       }
-    }, Executors.newSingleThreadExecutor());
+    }, fileWatchExecutor);
   }
 
   private List<TagQuery> parseTagSqlFile(final Path path) {
