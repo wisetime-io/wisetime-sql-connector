@@ -92,6 +92,9 @@ jib {
         }
     } else {
         println("Building image with (default) architecture: amd64")
+        from {
+            image = "wisetime/wisetime-java8-connector"
+        }
         to {
             image = "wisetime/wisetime-sql-connector"
         }
