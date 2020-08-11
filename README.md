@@ -37,7 +37,13 @@ sql: >
   [IRN] AS [tag_name],
   [IRN] AS [additional_keyword],
   [TITLE] AS [tag_description],
-  [PROPS] AS [tag_metadata],
+  [PROPS] = (SELECT [KEY],
+                    [VALUE] 
+             FROM [dbo].[PARAMETERS] 
+             WHERE [dbo].[PARAMETERS].[IRN]= [dbo].[CASES].[IRN]
+             FOR JSON PATH   
+             )  
+   AS [tag_metadata],
   [DATE_UPDATED] AS [sync_marker]
   FROM [dbo].[CASES]
   WHERE [DATE_UPDATED] >= :previous_sync_marker
@@ -54,7 +60,12 @@ sql: >
   [IRN] AS [tag_name],
   CONCAT('FID', [PRJ_ID]) AS [additional_keyword],
   [DESCRIPTION] AS [tag_description],
-  [META] AS [tag_metadata],
+  [META] = (SELECT [KEY],[VALUE] 
+      FROM [dbo].[META_STORE] 
+      WHERE [dbo].[META_STORE].[IRN]= [dbo].[PROJECTS].[IRN]
+      FOR JSON PATH   
+      )  
+      AS [tag_metadata], 
   [PRJ_ID] AS [sync_marker]
   FROM [dbo].[PROJECTS]
   WHERE [PRJ_ID] >= :previous_sync_marker
