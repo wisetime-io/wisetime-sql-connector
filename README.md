@@ -41,7 +41,7 @@ sql: >
                     [VALUE] 
              FROM [dbo].[PARAMETERS] 
              WHERE [dbo].[PARAMETERS].[IRN]= [dbo].[CASES].[IRN]
-             FOR JSON PATH   
+             FOR JSON PATH, WITHOUT_ARRAY_WRAPPER    
              )  
    AS [tag_metadata],
   [DATE_UPDATED] AS [sync_marker]
@@ -63,7 +63,7 @@ sql: >
   [META] = (SELECT [KEY],[VALUE] 
       FROM [dbo].[META_STORE] 
       WHERE [dbo].[META_STORE].[IRN]= [dbo].[PROJECTS].[IRN]
-      FOR JSON PATH   
+      FOR JSON PATH, WITHOUT_ARRAY_WRAPPER    
       )  
       AS [tag_metadata], 
   [PRJ_ID] AS [sync_marker]
@@ -93,7 +93,7 @@ The `TAG_SQL` must select the relevant information as `id`, `tag_name`, `additio
 | additional_keyword | Used as the keyword to **add** to the tag during upsert. Previous keywords are not removed if the tag already exists. |
 | tag_description | Used as the tag description when creating the tag. This description will be searchable in the WiseTime Console UI. If empty, will not overwrite an existing description when upserting tag. |
 | sync_marker | Used as the sync position marker so that the connector remembers which records it has already synced. Should be comparable. |
-| tag_metadata |  Used as the tag metadata. The metadata represents a map of key-value pairs that will be recorded against the tag, eg. [\{"url":"http://test.instance/P12012123GBT1"},\{"tag type 1":"Patent"},\{"tag type 2":"Great Britain"},\{"tag type 3":"Divisional"}].  |
+| tag_metadata |  Used as the tag metadata. The metadata represents a map of key-value pairs that will be recorded against the tag, eg. {"url":"http://test.instance/P12012123GBT1", "tag type 1":"Patent", "tag type 2":"Great Britain", "tag type 3":"Divisional"}.  |
 
 #### Placeholder Parameters
 
