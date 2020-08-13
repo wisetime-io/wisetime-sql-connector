@@ -112,7 +112,7 @@ SELECT
 ```
 The similar approach can be used for Postgres database
 ```sql
-select array_to_json(array_agg(row_to_json(t)))
+select row_to_json(t)
 from (
 select team_id from time_row_usr_activity_type
 ) t
