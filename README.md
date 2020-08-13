@@ -37,13 +37,13 @@ sql: >
   [IRN] AS [tag_name],
   [IRN] AS [additional_keyword],
   [TITLE] AS [tag_description],
-  [PROPS] = (SELECT [KEY],
-                    [VALUE] 
-             FROM [dbo].[PARAMETERS] 
-             WHERE [dbo].[PARAMETERS].[IRN]= [dbo].[CASES].[IRN]
-             FOR JSON PATH, WITHOUT_ARRAY_WRAPPER    
-             )  
-   AS [tag_metadata],
+  [PROPS] = (SELECT
+                 [CLIENT_NAME] as Client,
+                 [PROJECT_NAME] as Project
+               FROM [dbo].[PROJECTS] 
+               WHERE [dbo].[PROJECTS].[IRN]= [dbo].[CASES].[IRN]
+               FOR JSON PATH, WITHOUT_ARRAY_WRAPPER  
+             ) AS [tag_metadata],   
   [DATE_UPDATED] AS [sync_marker]
   FROM [dbo].[CASES]
   WHERE [DATE_UPDATED] >= :previous_sync_marker
@@ -60,7 +60,9 @@ sql: >
   [IRN] AS [tag_name],
   CONCAT('FID', [PRJ_ID]) AS [additional_keyword],
   [DESCRIPTION] AS [tag_description],
-  [META] = (SELECT [KEY],[VALUE] 
+  [META] = (SELECT 
+              [CLIENT_NAME] as Client,
+              [PROJECT_NAME] as Project
       FROM [dbo].[META_STORE] 
       WHERE [dbo].[META_STORE].[IRN]= [dbo].[PROJECTS].[IRN]
       FOR JSON PATH, WITHOUT_ARRAY_WRAPPER    
@@ -94,6 +96,48 @@ The `TAG_SQL` must select the relevant information as `id`, `tag_name`, `additio
 | tag_description | Used as the tag description when creating the tag. This description will be searchable in the WiseTime Console UI. If empty, will not overwrite an existing description when upserting tag. |
 | sync_marker | Used as the sync position marker so that the connector remembers which records it has already synced. Should be comparable. |
 | tag_metadata |  Used as the tag metadata. The metadata represents a map of key-value pairs that will be recorded against the tag, eg. {"url":"http://test.instance/P12012123GBT1", "tag type 1":"Patent", "tag type 2":"Great Britain", "tag type 3":"Divisional"}.  |
+
+#### Tag metadata
+
+The metadata represents a map of key-value pairs that will be recorded against the tag. 
+This is essentially a JSON object. In the examples above it is built using a select
+statement with FOR JSON PATH, WITHOUT_ARRAY_WRAPPER in the end, i.e
+```sql
+SELECT
+     [CLIENT_NAME] as Client,
+     [PROJECT_NAME] as Project
+    FROM [dbo].[PROJECTS] 
+    WHERE [dbo].[PROJECTS].[IRN]= [dbo].[CASES].[IRN]
+    FOR JSON PATH, WITHOUT_ARRAY_WRAPPER     
+```
+The similar approach can be used for Postgres database
+```sql
+select array_to_json(array_agg(row_to_json(t)))
+from (
+select team_id from time_row_usr_activity_type
+) t
+```
+The metadata can also be retrieved from multiple tables, for example using CONCAT function
+```sql
+SELECT CONCAT(
+(SELECT
+      [CLIENT_NAME] as Client,
+      [PROJECT_NAME] as Project
+     FROM [dbo].[PROJECTS] 
+     WHERE [dbo].[PROJECTS].[IRN]= [dbo].[CASES].[IRN]
+     FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)
+ ,',',
+ (SELECT 
+      [CLIENT_URL] as Url,
+      [PROJECT_TEAM] as Team
+       FROM [dbo].[META_STORE] 
+       WHERE [dbo].[META_STORE].[IRN]= [dbo].[PROJECTS].[IRN]
+       FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)  
+)  
+```
+Please note that metadata tags are represented as a set of key-value pairs, where the key is unique.
+The connector will not trigger an error if there are duplicate keys in the set but only one of
+associated values will be saved as tag metadata. 
 
 #### Placeholder Parameters
 
