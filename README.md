@@ -101,43 +101,138 @@ The `TAG_SQL` must select the relevant information as `id`, `tag_name`, `additio
 
 The metadata represents a map of key-value pairs that will be recorded against the tag. 
 This is essentially a JSON object. In the examples above it is built using a select
-statement with FOR JSON PATH, WITHOUT_ARRAY_WRAPPER in the end, i.e
+statement with FOR JSON PATH, WITHOUT_ARRAY_WRAPPER in the end.
+To understand how it works lets have a look at some more detailed examples.
+
+Let's assume that we have a table named PROJECTS 
+
+| id | CLIENT_NAME | PROJECT_NAME | PROJECT_DESCRIPTION |
+--- | --- | --- | ----
+| 1 | John  |  MASTERS | Masters project 
+| 2 | Karl  | ALFA | Project Alfa 
+| 3 | Peter | SPARTAN | Project Spartan
+| 4 | Steve | EVEREST | Project Everest 
+| 5 | Mark  | REWARD | Project Reward
+
 ```sql
 SELECT
      [CLIENT_NAME] as Client,
-     [PROJECT_NAME] as Project
-    FROM [dbo].[PROJECTS] 
-    WHERE [dbo].[PROJECTS].[IRN]= [dbo].[CASES].[IRN]
+     [PROJECT_NAME] as Project,
+     [PROJECT_DESCRIPTION] as Description
+    FROM [PROJECTS] 
     FOR JSON PATH, WITHOUT_ARRAY_WRAPPER     
 ```
-The similar approach can be used for Postgres database
+This select will return a set of json string objects
+```json
+{ "Client": "John", "Project":"MASTERS",  "Description":"Project Alfa"},
+{ "Client": "Karl","Project":"ALFA",  "Description":"Project Alfa"},
+{ "Client": "Peter", "Project":"SPARTAN",  "Description":"Project Alfa"},
+{ "Client": "Steve", "Project":"EVEREST",  "Description":"Project Alfa"},
+{ "Client": "Mark", "Project":"REWARD",  "Description":"Project Alfa"},
+```
+These objects will be transformed into three metadata tags
+Client, Project, Description. But we have 5 records in database. It means that 4
+records will be overridden by the record retrieved last.
+To avoid such a situation we should clearly indicate which record should be used.
+
+For example  
+```sql
+SELECT
+     [CLIENT_NAME] as Client,
+     [PROJECT_NAME] as Project,
+     [PROJECT_DESCRIPTION] as Description
+    FROM [PROJECTS] 
+    WHERE [ID] = 3
+    FOR JSON PATH, WITHOUT_ARRAY_WRAPPER     
+```
+We will get 
+
+```json
+{ "Client": "Peter", "Project":"SPARTAN",  "Description":"Project Alfa"}
+```
+
+The similar approach can be used for Postgres database. The query below will return the exactly same result.
 ```sql
 select row_to_json(t)
 from (
-select team_id from time_row_usr_activity_type
+  SELECT
+     CLIENT_NAME as Client,
+     PROJECT_NAME as Project,
+     PROJECT_DESCRIPTION as Description
+    FROM PROJECTS 
+    WHERE [ID] = 3
 ) t
 ```
-The metadata can also be retrieved from multiple tables, for example using CONCAT function
+The metadata can also be retrieved from multiple tables.
+Let's assume that we have another table called TASKS that also
+contains some tag metadata.
+
+| id | TEAM_NAME | TASK_NAME | TASK_DESCRIPTION |
+--- | --- | --- | ----
+| 1 | Rev1 |  Reviewing | Reviewing Task  
+| 2 | Test1 | Testing  |  Testing Task
+| 3 | B1 | Building | Building Task 
+| 4 | C1 | Climbing | Climbing Task 
+| 5 | Tr1  | Travelling | Travelling Task 
+ 
+
+We can use CONCAT function
 ```sql
 SELECT CONCAT(
 (SELECT
-      [CLIENT_NAME] as Client,
-      [PROJECT_NAME] as Project
-     FROM [dbo].[PROJECTS] 
-     WHERE [dbo].[PROJECTS].[IRN]= [dbo].[CASES].[IRN]
+     [CLIENT_NAME] as Client,
+     [PROJECT_NAME] as Project,
+     [PROJECT_DESCRIPTION] as Description
+     FROM [PROJECTS] 
+     WHERE [ID] = 3
      FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)
  ,',',
  (SELECT 
-      [CLIENT_URL] as Url,
-      [PROJECT_TEAM] as Team
-       FROM [dbo].[META_STORE] 
-       WHERE [dbo].[META_STORE].[IRN]= [dbo].[PROJECTS].[IRN]
+      [TEAM_NAME] as Team,
+      [TASK_NAME]  as Task
+       FROM [TASKS] 
+      WHERE [ID] = 3       
        FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)  
 )  
 ```
-Please note that metadata tags are represented as a set of key-value pairs, where the key is unique.
-The connector will not trigger an error if there are duplicate keys in the set but only one of
-associated values will be saved as tag metadata. 
+The result of select will be 2 json objects returned in a one string
+```json
+  { "Client": "Peter", "Project":"SPARTAN",  "Description":"Project Alfa"},
+  { "Team":"B1","Task":"Building"} 
+```
+The result will be converted into 5 tag metadata key-value pairs
+
+| Key | Value |
+--- | ---  
+Client | Peter 
+Project|SPARTAN  
+Description|Project Alfa
+Team|B1
+Task|Building 
+
+The same result for Postgres  syntax looks like this
+
+```sql
+SELECT CONCAT ((select row_to_json(t1)
+FROM (
+    SELECT
+     CLIENT_NAME as Client,
+     PROJECT_NAME as Project,
+     PROJECT_DESCRIPTION as Description
+     FROM PROJECTS 
+     WHERE ID = 3
+    )t1)
+,',',
+(select row_to_json(t2)
+FROM (
+   SELECT 
+     TEAM_NAME as Team,
+     TASK_NAME  as Task
+   FROM TASKS 
+   WHERE ID = 3       
+ )t2)
+ )
+```
 
 #### Placeholder Parameters
 
@@ -167,7 +262,7 @@ The following configuration parameters are optional.
 
 | Environment Variable | Description |
 | ---  | --- |
-| DATA_DIR | If set, the connector will use the directory as the location for storing data to keep track on the cases and projects it has synced. By default, WiseTime SQL Connector will create a temporary dir under /tmp as its data storage. |
+| DATA_DIR | If set, the connector will use the directory as the location for storing data to keep track on the cases and projects it has synced. By default, WiseTime SQL Connector will create a temporary dir under |tmp as its data storage. |
 | LOG_LEVEL | Define log level. Available values are: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` and `OFF`. Default is `INFO`. |
 
 ## Running the WiseTime SQL Connector
