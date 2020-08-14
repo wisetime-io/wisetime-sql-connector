@@ -104,15 +104,28 @@ This is essentially a JSON object. In the examples above it is built using a sel
 statement with FOR JSON PATH, WITHOUT_ARRAY_WRAPPER in the end.
 To understand how it works lets have a look at some more detailed examples.
 
-Let's assume that we have a table named PROJECTS 
+Let's assume that we have two tables: PROJECT and CASES.
+ 
+**PROJECTS** 
 
-| id | CLIENT_NAME | PROJECT_NAME | PROJECT_DESCRIPTION |
+| IRN | CLIENT_NAME | PROJECT_NAME | PROJECT_DESCRIPTION |
 --- | --- | --- | ----
-| 1 | John  |  MASTERS | Masters project 
-| 2 | Karl  | ALFA | Project Alfa 
-| 3 | Peter | SPARTAN | Project Spartan
-| 4 | Steve | EVEREST | Project Everest 
-| 5 | Mark  | REWARD | Project Reward
+| P1000 | CLIENT 1 | PROJECT 1 | Project description 1 
+| P2000 | CLIENT 2 | PROJECT 2 | Project description 2 
+| P3000 | CLIENT 3 | PROJECT 3 | Project description 3
+| P4000 | CLIENT 4 | PROJECT 4 | Project description 4
+| P5000 | CLIENT 5 | PROJECT 5 | Project description 5
+
+**CASES**
+
+| IRN | TITLE | DESCRIPTION | DATE_UPDATED |
+--- | --- | --- | ---
+| P1000 | CASE 1 | DESCRIPTION 1 | 01.01.2020
+| P2000 | CASE 2 | DESCRIPTION 2 | 02.01.2020  
+| P3000 | CASE 3 | DESCRIPTION 3 | 03.01.2020
+| P4000 | CASE 4 | DESCRIPTION 4 | 04.01.2020
+| P5000 | CASE 5 | DESCRIPTION 5 | 05.01.2020
+
 
 ```sql
 SELECT
@@ -124,11 +137,11 @@ SELECT
 ```
 This select will return a set of json string objects
 ```json
-{ "Client": "John", "Project":"MASTERS",  "Description":"Project Alfa"},
-{ "Client": "Karl","Project":"ALFA",  "Description":"Project Alfa"},
-{ "Client": "Peter", "Project":"SPARTAN",  "Description":"Project Alfa"},
-{ "Client": "Steve", "Project":"EVEREST",  "Description":"Project Alfa"},
-{ "Client": "Mark", "Project":"REWARD",  "Description":"Project Alfa"},
+{ "Client": "CLIENT 1", "Project":"PROJECT 1", "Description":"Project description 1"},
+{ "Client": "CLIENT 2","Project":"PROJECT 2",  "Description":"Project description 2"},
+{ "Client": "CLIENT 3", "Project":"PROJECT 3", "Description":"Project description 3"},
+{ "Client": "CLIENT 4", "Project":"PROJECT 4", "Description":"Project description 4"},
+{ "Client": "CLIENT 5", "Project":"PROJECT 5", "Description":"Project description 5"},
 ```
 These objects will be transformed into three metadata tags
 Client, Project, Description. But we have 5 records in database. It means that 4
@@ -137,101 +150,174 @@ To avoid such a situation we should clearly indicate which record should be used
 
 For example  
 ```sql
-SELECT
-     [CLIENT_NAME] as Client,
-     [PROJECT_NAME] as Project,
-     [PROJECT_DESCRIPTION] as Description
-    FROM [PROJECTS] 
-    WHERE [ID] = 3
-    FOR JSON PATH, WITHOUT_ARRAY_WRAPPER     
+SELECT TOP 100
+  [IRN] as [id],
+  [IRN] AS [tag_name],
+  [IRN] AS [additional_keyword],
+  [TITLE] AS [tag_description],
+  [PROPS] = (SELECT
+                 [CLIENT_NAME] as Client,
+                 [PROJECT_NAME] as Project
+               FROM [dbo].[PROJECTS] 
+               WHERE [dbo].[PROJECTS].[IRN]= [dbo].[CASES].[IRN]
+               FOR JSON PATH, WITHOUT_ARRAY_WRAPPER  
+             ) AS [tag_metadata],   
+  [DATE_UPDATED] AS [sync_marker]
+  FROM [dbo].[CASES]
+  ORDER BY [DATE_UPDATED] ASC;
 ```
-We will get 
+We will get the following set of values 
 
-```json
-{ "Client": "Peter", "Project":"SPARTAN",  "Description":"Project Alfa"}
-```
+
+| id | tag_name | additional_keyword | tag_description |tag_metadata | date_updated |
+--- | --- | --- | ---- | --- | ---
+| P1000 | P1000 | P1000 | CASE 1 | { "Client": "CLIENT 1", "Project":"PROJECT 1"}| 01.01.2020
+| P2000 | P2000 | P2000 | CASE 2 | { "Client": "CLIENT 2", "Project":"PROJECT 2"}| 02.01.2020
+| P3000 | P3000 | P3000 | CASE 3 | { "Client": "CLIENT 3", "Project":"PROJECT 3"}| 03.01.2020
+| P4000 | P4000 | P4000 | CASE 4 | { "Client": "CLIENT 4", "Project":"PROJECT 4"}| 04.01.2020
+| P5000 | P5000 | P5000 | CASE 5 | { "Client": "CLIENT 5", "Project":"PROJECT 5"}| 05.01.2020
+
 
 The similar approach can be used for Postgres database. The query below will return the exactly same result.
 ```sql
-select row_to_json(t)
-from (
-  SELECT
-     CLIENT_NAME as Client,
-     PROJECT_NAME as Project,
-     PROJECT_DESCRIPTION as Description
-    FROM PROJECTS 
-    WHERE [ID] = 3
-) t
+SELECT 
+  IRN as id,
+  IRN AS tag_name,
+  IRN AS additional_keyword,
+  TITLE AS tag_description,
+  PROPS = (select row_to_json(t)
+            from (
+              SELECT
+                CLIENT_NAME as Client,
+                PROJECT_NAME as Project
+             FROM dbo.PROJECTS 
+             WHERE dbo.PROJECTS.IRN= dbo.CASES.IRN             
+             )t ) AS tag_metadata,   
+  DATE_UPDATED AS sync_marker
+  FROM dbo.CASES
+  ORDER BY DATE_UPDATED ASC LIMIT 100;
 ```
+
 The metadata can also be retrieved from multiple tables.
 Let's assume that we have another table called TASKS that also
 contains some tag metadata.
 
-| id | TEAM_NAME | TASK_NAME | TASK_DESCRIPTION |
---- | --- | --- | ----
-| 1 | Rev1 |  Reviewing | Reviewing Task  
-| 2 | Test1 | Testing  |  Testing Task
-| 3 | B1 | Building | Building Task 
-| 4 | C1 | Climbing | Climbing Task 
-| 5 | Tr1  | Travelling | Travelling Task 
+| IRN | TEAM_NAME | TASK_NAME | TASK_DESCRIPTION | DATE
+--- | --- | --- | ---- | ---
+| P1000 | TEAM 1 | TASK 1 | DESCRIPTION 1 | 01.01.2020
+| P2000 | TEAM 2 | TASK 2 | DESCRIPTION 2 | 02.01.2020
+| P3000 | TEAM 3 | TASK 3 | DESCRIPTION 3 | 03.01.2020
+| P4000 | TEAM 4 | TASK 4 | DESCRIPTION 4 | 04.01.2020
+| P5000 | TEAM 5 | TASK 5 | DESCRIPTION 5 | 05.01.2020 
  
-
-We can use CONCAT function
-```sql
-SELECT CONCAT(
-(SELECT
-     [CLIENT_NAME] as Client,
-     [PROJECT_NAME] as Project,
-     [PROJECT_DESCRIPTION] as Description
-     FROM [PROJECTS] 
-     WHERE [ID] = 3
-     FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)
- ,',',
- (SELECT 
-      [TEAM_NAME] as Team,
-      [TASK_NAME]  as Task
-       FROM [TASKS] 
-      WHERE [ID] = 3       
-       FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)  
-)  
-```
-The result of select will be 2 json objects returned in a one string
-```json
-  { "Client": "Peter", "Project":"SPARTAN",  "Description":"Project Alfa"},
-  { "Team":"B1","Task":"Building"} 
-```
-The result will be converted into 5 tag metadata key-value pairs
-
-| Key | Value |
---- | ---  
-Client | Peter 
-Project|SPARTAN  
-Description|Project Alfa
-Team|B1
-Task|Building 
-
-The same result for Postgres  syntax looks like this
+Here is an example how we can build tag metadata from multiple tables using INNER JOIN
 
 ```sql
-SELECT CONCAT ((select row_to_json(t1)
-FROM (
-    SELECT
-     CLIENT_NAME as Client,
-     PROJECT_NAME as Project,
-     PROJECT_DESCRIPTION as Description
-     FROM PROJECTS 
-     WHERE ID = 3
-    )t1)
-,',',
-(select row_to_json(t2)
-FROM (
-   SELECT 
-     TEAM_NAME as Team,
-     TASK_NAME  as Task
-   FROM TASKS 
-   WHERE ID = 3       
- )t2)
- )
+SELECT TOP 100
+  [IRN] as [id],
+  [IRN] AS [tag_name],
+  [IRN] AS [additional_keyword],
+  [TITLE] AS [tag_description],
+  [PROPS] = (
+              SELECT
+                 [CLIENT_NAME] as Client,
+                 [PROJECT_NAME] as Project,
+                 [TEAM_NAME] as Team,
+                 [TASK_NAME]  as Task
+               FROM [dbo].[PROJECTS] 
+               INNER JOIN TASKS
+                   ON [dbo].[PROJECTS].[IRN]= [dbo].[TASKS].[IRN]
+               WHERE [dbo].[PROJECTS].[IRN]= [dbo].[CASES].[IRN]
+               FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+           ) AS [tag_metadata],   
+  [DATE_UPDATED] AS [sync_marker]
+  FROM [dbo].[CASES]
+  ORDER BY [DATE_UPDATED] ASC;
+
+```
+
+This query will produce following results 
+
+| id | tag_name | additional_keyword | tag_description |tag_metadata | date_updated |
+--- | --- | --- | ---- | --- | ---
+| P1000 | P1000 | P1000 | CASE 1 | { "Client": "CLIENT 1", "Project":"PROJECT 1","Team":"TEAM 1","Task":"TASK 1"}| 01.01.2020
+| P2000 | P2000 | P2000 | CASE 2 | { "Client": "CLIENT 2", "Project":"PROJECT 2","Team":"TEAM 2","Task":"TASK 2"}| 02.01.2020
+| P3000 | P3000 | P3000 | CASE 3 | { "Client": "CLIENT 3", "Project":"PROJECT 3","Team":"TEAM 3","Task":"TASK 3"}| 03.01.2020
+| P4000 | P4000 | P4000 | CASE 4 | { "Client": "CLIENT 4", "Project":"PROJECT 4","Team":"TEAM 4","Task":"TASK 4"}| 04.01.2020
+| P5000 | P5000 | P5000 | CASE 5 | { "Client": "CLIENT 5", "Project":"PROJECT 5","Team":"TEAM 5","Task":"TASK 5"}| 05.01.2020
+
+Sometimes it can be easier to use to use CONCAT function
+
+```sql
+SELECT TOP 100
+  [IRN] as [id],
+  [IRN] AS [tag_name],
+  [IRN] AS [additional_keyword],
+  [TITLE] AS [tag_description],
+  [PROPS] = (SELECT CONCAT(
+              (SELECT
+                 [CLIENT_NAME] as Client,
+                 [PROJECT_NAME] as Project
+               FROM [dbo].[PROJECTS] 
+               WHERE [dbo].[PROJECTS].[IRN]= [dbo].[CASES].[IRN]
+               FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+              )
+              ,',',
+              (SELECT 
+                 [TEAM_NAME] as Team,
+                 [TASK_NAME]  as Task
+                 FROM [TASKS] 
+                WHERE [dbo].[TASKS].[IRN]= [dbo].[CASES].[IRN]   
+                FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+              )
+             )
+           ) AS [tag_metadata],   
+  [DATE_UPDATED] AS [sync_marker]
+  FROM [dbo].[CASES]
+  ORDER BY [DATE_UPDATED] ASC;
+
+```
+We will get the following set of values 
+
+| id | tag_name | additional_keyword | tag_description |tag_metadata | date_updated |
+--- | --- | --- | ---- | --- | ---
+| P1000 | P1000 | P1000 | CASE 1 | { "Client": "CLIENT 1", "Project":"PROJECT 1"},{"Team":"TEAM 1","Task":"TASK 1"}| 01.01.2020
+| P2000 | P2000 | P2000 | CASE 2 | { "Client": "CLIENT 2", "Project":"PROJECT 2"},{"Team":"TEAM 2","Task":"TASK 2"}| 02.01.2020
+| P3000 | P3000 | P3000 | CASE 3 | { "Client": "CLIENT 3", "Project":"PROJECT 3"},{"Team":"TEAM 3","Task":"TASK 3"}| 03.01.2020
+| P4000 | P4000 | P4000 | CASE 4 | { "Client": "CLIENT 4", "Project":"PROJECT 4"},{"Team":"TEAM 4","Task":"TASK 4"}| 04.01.2020
+| P5000 | P5000 | P5000 | CASE 5 | { "Client": "CLIENT 5", "Project":"PROJECT 5"},{"Team":"TEAM 5","Task":"TASK 5"}| 05.01.2020
+
+The get the same result for Postgres  syntax we will need the following query
+
+```sql
+
+SELECT 
+  IRN as id,
+  IRN AS tag_name,
+  IRN AS additional_keyword,
+  TITLE AS tag_description,
+  PROPS = (SELECT CONCAT ((select row_to_json(t1)
+           FROM (
+               SELECT
+                CLIENT_NAME as Client,
+                PROJECT_NAME as Project,
+                FROM PROJECTS 
+                WHERE dbo.PROJECTS.IRN= dbo.CASES.IRN             
+               )t1)
+           ,',',
+           (select row_to_json(t2)
+           FROM (
+              SELECT 
+                TEAM_NAME as Team,
+                TASK_NAME  as Task
+              FROM TASKS 
+              WHERE dbo.TASKS.IRN= dbo.CASES.IRN             
+            )t2)
+            )
+     ) AS tag_metadata,   
+  DATE_UPDATED AS sync_marker
+  FROM dbo.CASES
+  ORDER BY DATE_UPDATED ASC LIMIT 100;
 ```
 
 #### Placeholder Parameters
