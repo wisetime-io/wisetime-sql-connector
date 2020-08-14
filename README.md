@@ -2,7 +2,7 @@
 
 The WiseTime SQL Connector connects [WiseTime](https://wisetime.io) to SQL databases and will upsert a new WiseTime tag whenever a new entity is discovered using the configured SQL.
 
-In order to use the WiseTime Inprotech Connector, you will need a [WiseTime Connect](https://wisetime.io/docs/connect/) API key. The WiseTime Inprotech Connector runs as a Docker container and is easy to set up and operate.
+In order to use the WiseTime SQL Connector, you will need a [WiseTime Connect](https://wisetime.io/docs/connect/) API key. The WiseTime SQL Connector runs as a Docker container and is easy to set up and operate.
 
 ## Database Permissions Requirements
 
