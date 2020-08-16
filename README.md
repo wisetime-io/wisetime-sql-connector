@@ -348,7 +348,7 @@ The following configuration parameters are optional.
 
 | Environment Variable | Description |
 | ---  | --- |
-| DATA_DIR | If set, the connector will use the directory as the location for storing data to keep track on the cases and projects it has synced. By default, WiseTime SQL Connector will create a temporary dir under |tmp as its data storage. |
+| DATA_DIR | If set, the connector will use the directory as the location for storing data to keep track on the cases and projects it has synced. By default, WiseTime SQL Connector will create a temporary dir under /tmp as its data storage. |
 | LOG_LEVEL | Define log level. Available values are: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` and `OFF`. Default is `INFO`. |
 
 ## Running the WiseTime SQL Connector
