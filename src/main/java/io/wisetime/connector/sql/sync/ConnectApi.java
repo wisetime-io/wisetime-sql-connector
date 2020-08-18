@@ -8,6 +8,8 @@ import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.gson.Gson;
+import io.vavr.control.Try;
 import io.wisetime.connector.api_client.ApiClient;
 import io.wisetime.connector.config.RuntimeConfig;
 import io.wisetime.connector.sql.ConnectorLauncher.SqlConnectorConfigKey;
@@ -15,6 +17,7 @@ import io.wisetime.generated.connect.UpsertTagRequest;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -24,6 +27,7 @@ public class ConnectApi {
 
   private final ApiClient apiClient;
   private final String tagUpsertPath;
+  private static final Gson gson = new Gson();
 
   public ConnectApi(final ApiClient apiClient) {
     this.apiClient = apiClient;
@@ -38,11 +42,8 @@ public class ConnectApi {
         .map(tagSyncRecord -> toUpsertTagRequest(tagSyncRecord, tagUpsertPath))
         .collect(Collectors.toList());
     if (!requests.isEmpty()) {
-      try {
-        apiClient.tagUpsertBatch(requests);
-      } catch (IOException ioe) {
-        throw new RuntimeException(ioe);
-      }
+      Try.run(() -> apiClient.tagUpsertBatch(requests))
+          .onFailure(ioe -> new RuntimeException(ioe));
     }
   }
 
@@ -50,6 +51,7 @@ public class ConnectApi {
     final UpsertTagRequest request = new UpsertTagRequest()
         .name(tagSyncRecord.getTagName())
         .additionalKeywords(ImmutableList.of(tagSyncRecord.getAdditionalKeyword()))
+        .metadata(gson.fromJson(tagSyncRecord.getTagMetadata().orElse(null), Map.class))
         .excludeTagNameKeyword(true)
         .path(path);
 

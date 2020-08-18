@@ -4,6 +4,7 @@
 
 package io.wisetime.connector.sql.sync;
 
+import java.util.Optional;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
@@ -20,6 +21,7 @@ public class TagSyncRecord {
   private String tagName;
   private String additionalKeyword;
   private String tagDescription;
+  private Optional<String> tagMetadata = Optional.empty();
   @NonNull
   private String syncMarker;
 }

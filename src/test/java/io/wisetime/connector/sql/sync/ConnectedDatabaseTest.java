@@ -13,6 +13,7 @@ import io.wisetime.test_docker.ContainerRuntimeSpec;
 import io.wisetime.test_docker.DockerLauncher;
 import io.wisetime.test_docker.containers.SqlServer;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
@@ -120,6 +121,46 @@ class ConnectedDatabaseTest {
     result.setAdditionalKeyword("FID80002");
     result.setId("80002");
     result.setSyncMarker("80002");
+
+    assertThat(tagSyncRecords)
+        .as("Query should return one record")
+        .containsExactly(result);
+  }
+
+  @Test
+  void getTagsToSync_testProjectsWithTagMetadata() {
+    final List<TagSyncRecord> tagSyncRecords = database.getTagsToSync(
+        "SELECT TOP 50 "
+            + "[IRN] as [id], "
+            + "[IRN] AS [tag_name], "
+            + "[IRN] AS [additional_keyword], "
+            + "[TITLE] AS [tag_description], "
+            + "[DATE_UPDATED] AS [sync_marker], "
+            + "   (SELECT"
+            + "     [COUNTRY] as [country], "
+            + "     [LOCATION] as [location] "
+            + "    FROM [dbo].[TEST_TAG_METADATA] "
+            + "    WHERE [dbo].[TEST_TAG_METADATA].[IRN]= [dbo].[TEST_CASES].[IRN] "
+            + "    FOR JSON PATH, WITHOUT_ARRAY_WRAPPER "
+            + "   ) as [tag_metadata] "
+            + "FROM [dbo].[TEST_CASES] "
+            + "WHERE [DATE_UPDATED] >= :previous_sync_marker "
+            + "AND [IRN] NOT IN (:skipped_ids) "
+            + "ORDER BY [DATE_UPDATED] ASC;",
+        "2019-07-21",
+        ImmutableList.of("P0436021")
+    );
+
+    final TagSyncRecord result = new TagSyncRecord();
+    result.setTagName("P0100973");
+    result.setTagDescription("Software for connecting SQL databse with timekeeping API");
+    result.setAdditionalKeyword("P0100973");
+    result.setId("P0100973");
+    result.setSyncMarker("2019-08-06 00:00:00.0");
+    result.setTagMetadata(
+        Optional.of(
+            "{\"country\":\"Germany\","
+            + "\"location\":\"Berlin\"}"));
 
     assertThat(tagSyncRecords)
         .as("Query should return one record")

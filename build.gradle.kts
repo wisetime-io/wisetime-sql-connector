@@ -31,10 +31,12 @@ repositories {
 
 dependencies {
     implementation("io.wisetime:wisetime-connector:2.3.4-3")
+    implementation("io.vavr:vavr:0.10.3")
     implementation("org.apache.commons:commons-configuration2:2.5") {
         exclude("commons-logging")
     }
     implementation("com.google.guava:guava:28.2-jre")
+    implementation("com.google.code.gson:gson:2.8.6")
 
     implementation("ch.qos.logback:logback-classic:1.2.3")
     implementation("ch.qos.logback:logback-core:1.2.3")
@@ -62,9 +64,6 @@ dependencies {
     testImplementation("org.mockito:mockito-core:3.0.0")
     testImplementation("org.assertj:assertj-core:3.13.2")
 }
-
-java.sourceCompatibility = JavaVersion.VERSION_1_8
-java.targetCompatibility = JavaVersion.VERSION_1_8
 
 application {
     mainClassName = "ConnectorLauncher"

@@ -12,11 +12,13 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableList;
+import com.google.gson.Gson;
 import io.wisetime.connector.api_client.ApiClient;
 import io.wisetime.connector.config.RuntimeConfig;
 import io.wisetime.connector.sql.ConnectorLauncher.SqlConnectorConfigKey;
 import io.wisetime.generated.connect.UpsertTagRequest;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -29,6 +31,7 @@ class ConnectApiTest {
 
   private static ApiClient mockApiClient = mock(ApiClient.class);
   private static ConnectApi connectApi;
+  private static final Gson gson = new Gson();
 
   @BeforeAll
   static void setUp() {
@@ -65,6 +68,7 @@ class ConnectApiTest {
     final UpsertTagRequest request1 = new UpsertTagRequest()
         .name(record1.getTagName())
         .additionalKeywords(ImmutableList.of(record1.getAdditionalKeyword()))
+        .metadata(gson.fromJson(record1.getTagMetadata().orElse(null), Map.class))
         .description(record1.getTagDescription())
         .excludeTagNameKeyword(true)
         .path("/Connector/");
@@ -72,6 +76,7 @@ class ConnectApiTest {
     final UpsertTagRequest request2 = new UpsertTagRequest()
         .name(record2.getTagName())
         .additionalKeywords(ImmutableList.of(record2.getAdditionalKeyword()))
+        .metadata(gson.fromJson(record2.getTagMetadata().orElse(null), Map.class))
         .description(record2.getTagDescription())
         .excludeTagNameKeyword(true)
         .path("/Connector/");
