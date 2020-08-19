@@ -37,13 +37,13 @@ sql: >
   [IRN] AS [tag_name],
   [IRN] AS [additional_keyword],
   [TITLE] AS [tag_description],
-  [PROPS] = (SELECT
+  (SELECT
                  [CLIENT_NAME] as Client,
                  [PROJECT_NAME] as Project
                FROM [dbo].[PROJECTS] 
-               WHERE [dbo].[PROJECTS].[IRN]= [dbo].[CASES].[IRN]
+               WHERE [dbo].[PROJECTS].[IRN] = [dbo].[CASES].[IRN]
                FOR JSON PATH, WITHOUT_ARRAY_WRAPPER  
-             ) AS [tag_metadata],   
+  ) AS [tag_metadata],   
   [DATE_UPDATED] AS [sync_marker]
   FROM [dbo].[CASES]
   WHERE [DATE_UPDATED] >= :previous_sync_marker
@@ -60,14 +60,13 @@ sql: >
   [IRN] AS [tag_name],
   CONCAT('FID', [PRJ_ID]) AS [additional_keyword],
   [DESCRIPTION] AS [tag_description],
-  [META] = (SELECT 
-              [CLIENT_NAME] as Client,
-              [PROJECT_NAME] as Project
+  (SELECT 
+     [CLIENT_NAME] as Client,
+     [PROJECT_NAME] as Project
       FROM [dbo].[META_STORE] 
-      WHERE [dbo].[META_STORE].[IRN]= [dbo].[PROJECTS].[IRN]
+      WHERE [dbo].[META_STORE].[IRN] = [dbo].[PROJECTS].[IRN]
       FOR JSON PATH, WITHOUT_ARRAY_WRAPPER    
-      )  
-      AS [tag_metadata], 
+  ) AS [tag_metadata], 
   [PRJ_ID] AS [sync_marker]
   FROM [dbo].[PROJECTS]
   WHERE [PRJ_ID] >= :previous_sync_marker
@@ -155,13 +154,13 @@ SELECT TOP 100
   [IRN] AS [tag_name],
   [IRN] AS [additional_keyword],
   [TITLE] AS [tag_description],
-  [PROPS] = (SELECT
-                 [CLIENT_NAME] as Client,
-                 [PROJECT_NAME] as Project
-               FROM [dbo].[PROJECTS] 
-               WHERE [dbo].[PROJECTS].[IRN]= [dbo].[CASES].[IRN]
-               FOR JSON PATH, WITHOUT_ARRAY_WRAPPER  
-             ) AS [tag_metadata],   
+  (SELECT
+      [CLIENT_NAME] as Client,
+      [PROJECT_NAME] as Project
+      FROM [dbo].[PROJECTS] 
+      WHERE [dbo].[PROJECTS].[IRN] = [dbo].[CASES].[IRN]
+      FOR JSON PATH, WITHOUT_ARRAY_WRAPPER  
+  ) AS [tag_metadata],   
   [DATE_UPDATED] AS [sync_marker]
   FROM [dbo].[CASES]
   ORDER BY [DATE_UPDATED] ASC;
@@ -185,14 +184,15 @@ SELECT
   IRN AS tag_name,
   IRN AS additional_keyword,
   TITLE AS tag_description,
-  PROPS = (select row_to_json(t)
-            from (
+  (select row_to_json(t)
+      from (
               SELECT
                 CLIENT_NAME as Client,
                 PROJECT_NAME as Project
              FROM dbo.PROJECTS 
-             WHERE dbo.PROJECTS.IRN= dbo.CASES.IRN             
-             )t ) AS tag_metadata,   
+             WHERE dbo.PROJECTS.IRN = dbo.CASES.IRN             
+           ) t 
+  ) AS tag_metadata,   
   DATE_UPDATED AS sync_marker
   FROM dbo.CASES
   ORDER BY DATE_UPDATED ASC LIMIT 100;
@@ -218,18 +218,17 @@ SELECT TOP 100
   [IRN] AS [tag_name],
   [IRN] AS [additional_keyword],
   [TITLE] AS [tag_description],
-  [PROPS] = (
-              SELECT
-                 [CLIENT_NAME] as Client,
-                 [PROJECT_NAME] as Project,
-                 [TEAM_NAME] as Team,
-                 [TASK_NAME]  as Task
-               FROM [dbo].[PROJECTS] 
-               INNER JOIN TASKS
-                   ON [dbo].[PROJECTS].[IRN]= [dbo].[TASKS].[IRN]
-               WHERE [dbo].[PROJECTS].[IRN]= [dbo].[CASES].[IRN]
-               FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
-           ) AS [tag_metadata],   
+  (SELECT
+     [p].[CLIENT_NAME] as Client,
+     [p].[PROJECT_NAME] as Project,
+     [t].[TEAM_NAME] as Team,
+     [t].[TASK_NAME]  as Task
+     FROM [dbo].[PROJECTS] p
+     INNER JOIN [dbo].[TASKS] t 
+     ON [dbo].[PROJECTS].[IRN]= [dbo].[TASKS].[IRN]
+     WHERE [dbo].[PROJECTS].[IRN] = [dbo].[CASES].[IRN]
+     FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+  ) AS [tag_metadata],   
   [DATE_UPDATED] AS [sync_marker]
   FROM [dbo].[CASES]
   ORDER BY [DATE_UPDATED] ASC;
