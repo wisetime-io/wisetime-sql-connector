@@ -68,11 +68,7 @@ public class ConnectedDatabase {
     final TagSyncRecord tagSyncRecord = new TagSyncRecord();
     tagSyncRecord.setId(resultSet.getString("id"));
     tagSyncRecord.setTagName(resultSet.getString("tag_name"));
-    tagSyncRecord.setTagMetadata(
-        Optional.ofNullable(
-            Try.of(() -> resultSet.getString("tag_metadata")).getOrNull()
-        )
-    );
+    tagSyncRecord.setTagMetadata(Try.of(() -> resultSet.getString("tag_metadata")).getOrElse("{}"));
     tagSyncRecord.setAdditionalKeyword(resultSet.getString("additional_keyword"));
     tagSyncRecord.setTagDescription(resultSet.getString("tag_description"));
     tagSyncRecord.setSyncMarker(resultSet.getString("sync_marker"));

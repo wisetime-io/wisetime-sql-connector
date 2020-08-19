@@ -31,8 +31,7 @@ public class RandomEntities {
     tagSyncRecord.setId(faker.numerify("#####"));
     tagSyncRecord.setTagName(faker.bothify("??######??").toUpperCase());
     tagSyncRecord.setAdditionalKeyword(tagSyncRecord.getTagName());
-    tagSyncRecord.setTagMetadata(Optional.ofNullable(gson.toJson(
-        Map.of("name", faker.company().name(),"url",faker.company().url()))));
+    tagSyncRecord.setTagMetadata(gson.toJson(Map.of("name", faker.company().name(), "url", faker.company().url())));
     tagSyncRecord.setTagDescription(faker.lorem().characters(12, 35));
     tagSyncRecord.setSyncMarker(fixedTimeMinusMinutes(faker.random().nextInt(1, 120)));
     return tagSyncRecord;

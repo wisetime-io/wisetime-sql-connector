@@ -89,6 +89,7 @@ class ConnectedDatabaseTest {
     result.setTagName("P0100973");
     result.setTagDescription("Software for connecting SQL databse with timekeeping API");
     result.setAdditionalKeyword("P0100973");
+    result.setTagMetadata("{}");
     result.setId("P0100973");
     result.setSyncMarker("2019-08-06 00:00:00.0");
 
@@ -119,6 +120,7 @@ class ConnectedDatabaseTest {
     result.setTagName("P0070709");
     result.setTagDescription("Response");
     result.setAdditionalKeyword("FID80002");
+    result.setTagMetadata("{}");
     result.setId("80002");
     result.setSyncMarker("80002");
 
@@ -155,12 +157,10 @@ class ConnectedDatabaseTest {
     result.setTagName("P0100973");
     result.setTagDescription("Software for connecting SQL databse with timekeeping API");
     result.setAdditionalKeyword("P0100973");
+    result.setTagMetadata("{}");
     result.setId("P0100973");
     result.setSyncMarker("2019-08-06 00:00:00.0");
-    result.setTagMetadata(
-        Optional.of(
-            "{\"country\":\"Germany\","
-            + "\"location\":\"Berlin\"}"));
+    result.setTagMetadata("{\"country\":\"Germany\",\"location\":\"Berlin\"}");
 
     assertThat(tagSyncRecords)
         .as("Query should return one record")

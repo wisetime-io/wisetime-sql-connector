@@ -9,6 +9,7 @@ import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import io.vavr.control.Try;
 import io.wisetime.connector.api_client.ApiClient;
 import io.wisetime.connector.config.RuntimeConfig;
@@ -43,7 +44,9 @@ public class ConnectApi {
         .collect(Collectors.toList());
     if (!requests.isEmpty()) {
       Try.run(() -> apiClient.tagUpsertBatch(requests))
-          .onFailure(ioe -> new RuntimeException(ioe));
+          .onFailure(ioe -> {
+            throw new RuntimeException(ioe);
+          });
     }
   }
 
@@ -51,7 +54,7 @@ public class ConnectApi {
     final UpsertTagRequest request = new UpsertTagRequest()
         .name(tagSyncRecord.getTagName())
         .additionalKeywords(ImmutableList.of(tagSyncRecord.getAdditionalKeyword()))
-        .metadata(gson.fromJson(tagSyncRecord.getTagMetadata().orElse(null), Map.class))
+        .metadata(gson.fromJson(tagSyncRecord.getTagMetadata(), new TypeToken<Map<String, String>>() {}.getType()))
         .excludeTagNameKeyword(true)
         .path(path);
 

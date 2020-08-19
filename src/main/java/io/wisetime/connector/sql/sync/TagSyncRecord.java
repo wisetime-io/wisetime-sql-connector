@@ -21,7 +21,7 @@ public class TagSyncRecord {
   private String tagName;
   private String additionalKeyword;
   private String tagDescription;
-  private Optional<String> tagMetadata = Optional.empty();
+  private String tagMetadata;
   @NonNull
   private String syncMarker;
 }
