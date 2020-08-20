@@ -4,10 +4,6 @@
 
 package io.wisetime.connector.sql.sync;
 
-import static io.vavr.API.$;
-import static io.vavr.API.Case;
-import static io.vavr.API.Match;
-import static io.vavr.Predicates.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -17,7 +13,6 @@ import io.wisetime.test_docker.ContainerRuntimeSpec;
 import io.wisetime.test_docker.DockerLauncher;
 import io.wisetime.test_docker.containers.SqlServer;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
@@ -165,14 +160,6 @@ class ConnectedDatabaseTest {
     result.setId("P0100973");
     result.setSyncMarker("2019-08-06 00:00:00.0");
     result.setTagMetadata("{\"country\":\"Germany\",\"location\":\"Berlin\"}");
-
-    int value = 2;
-    String conditional = Match(value).of(
-        Case($(is(1)),i -> "one"),
-        Case($(is(2)),i -> "two"),
-        Case($(),"default")
-    );
-
 
     assertThat(tagSyncRecords)
         .as("Query should return one record")
