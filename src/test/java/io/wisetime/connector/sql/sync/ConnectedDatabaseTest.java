@@ -4,6 +4,10 @@
 
 package io.wisetime.connector.sql.sync;
 
+import static io.vavr.API.$;
+import static io.vavr.API.Case;
+import static io.vavr.API.Match;
+import static io.vavr.Predicates.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -142,7 +146,7 @@ class ConnectedDatabaseTest {
             + "     [COUNTRY] as [country], "
             + "     [LOCATION] as [location] "
             + "    FROM [dbo].[TEST_TAG_METADATA] "
-            + "    WHERE [dbo].[TEST_TAG_METADATA].[IRN]= [dbo].[TEST_CASES].[IRN] "
+            + "    WHERE [dbo].[TEST_TAG_METADATA].[IRN] = [dbo].[TEST_CASES].[IRN] "
             + "    FOR JSON PATH, WITHOUT_ARRAY_WRAPPER "
             + "   ) as [tag_metadata] "
             + "FROM [dbo].[TEST_CASES] "
@@ -161,6 +165,14 @@ class ConnectedDatabaseTest {
     result.setId("P0100973");
     result.setSyncMarker("2019-08-06 00:00:00.0");
     result.setTagMetadata("{\"country\":\"Germany\",\"location\":\"Berlin\"}");
+
+    int value = 2;
+    String conditional = Match(value).of(
+        Case($(is(1)),i -> "one"),
+        Case($(is(2)),i -> "two"),
+        Case($(),"default")
+    );
+
 
     assertThat(tagSyncRecords)
         .as("Query should return one record")
