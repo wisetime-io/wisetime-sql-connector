@@ -7,16 +7,22 @@ package io.wisetime.connector.sql.sync;
 import static io.wisetime.connector.sql.RandomEntities.randomTagSyncRecord;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableList;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import io.wisetime.connector.api_client.ApiClient;
 import io.wisetime.connector.config.RuntimeConfig;
 import io.wisetime.connector.sql.ConnectorLauncher.SqlConnectorConfigKey;
 import io.wisetime.generated.connect.UpsertTagRequest;
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -29,6 +35,7 @@ class ConnectApiTest {
 
   private static ApiClient mockApiClient = mock(ApiClient.class);
   private static ConnectApi connectApi;
+  private static final Gson gson = new Gson();
 
   @BeforeAll
   static void setUp() {
@@ -65,6 +72,7 @@ class ConnectApiTest {
     final UpsertTagRequest request1 = new UpsertTagRequest()
         .name(record1.getTagName())
         .additionalKeywords(ImmutableList.of(record1.getAdditionalKeyword()))
+        .metadata(gson.fromJson(record1.getTagMetadata(), new TypeToken<Map<String, String>>() {}.getType()))
         .description(record1.getTagDescription())
         .excludeTagNameKeyword(true)
         .path("/Connector/");
@@ -72,6 +80,7 @@ class ConnectApiTest {
     final UpsertTagRequest request2 = new UpsertTagRequest()
         .name(record2.getTagName())
         .additionalKeywords(ImmutableList.of(record2.getAdditionalKeyword()))
+        .metadata(gson.fromJson(record2.getTagMetadata(), new TypeToken<Map<String, String>>() {}.getType()))
         .description(record2.getTagDescription())
         .excludeTagNameKeyword(true)
         .path("/Connector/");
@@ -108,4 +117,12 @@ class ConnectApiTest {
         .as("Should not ask Connect API to overwrite description if empty")
         .isNull();
   }
+
+  @Test
+  void upsertWiseTimeTags_should_throw_runtime_exception() throws Exception {
+    TagSyncRecord record = randomTagSyncRecord();
+    doThrow(new IOException()).when(mockApiClient).tagUpsertBatch(anyList());
+    assertThrows(RuntimeException.class, () -> connectApi.upsertWiseTimeTags(ImmutableList.of(record)));
+  }
+
 }

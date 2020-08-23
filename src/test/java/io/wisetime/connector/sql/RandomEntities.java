@@ -5,6 +5,8 @@
 package io.wisetime.connector.sql;
 
 import com.github.javafaker.Faker;
+import com.google.common.collect.ImmutableMap;
+import com.google.gson.Gson;
 import io.wisetime.connector.sql.queries.TagQuery;
 import io.wisetime.connector.sql.sync.TagSyncRecord;
 import java.time.Instant;
@@ -21,12 +23,15 @@ public class RandomEntities {
 
   private static Faker faker = new Faker();
   public static Instant fixedInstant = Instant.now();
+  private static Gson gson = new Gson();
 
   public static TagSyncRecord randomTagSyncRecord() {
     final TagSyncRecord tagSyncRecord = new TagSyncRecord();
     tagSyncRecord.setId(faker.numerify("#####"));
     tagSyncRecord.setTagName(faker.bothify("??######??").toUpperCase());
     tagSyncRecord.setAdditionalKeyword(tagSyncRecord.getTagName());
+    tagSyncRecord.setTagMetadata(
+        gson.toJson(ImmutableMap.of("name", faker.company().name(), "url", faker.company().url())));
     tagSyncRecord.setTagDescription(faker.lorem().characters(12, 35));
     tagSyncRecord.setSyncMarker(fixedTimeMinusMinutes(faker.random().nextInt(1, 120)));
     return tagSyncRecord;
