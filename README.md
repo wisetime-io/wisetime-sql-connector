@@ -37,6 +37,13 @@ sql: >
   [IRN] AS [tag_name],
   [IRN] AS [additional_keyword],
   [TITLE] AS [tag_description],
+  (SELECT
+                 [CLIENT_NAME] as Client,
+                 [PROJECT_NAME] as Project
+               FROM [dbo].[PROJECTS] 
+               WHERE [dbo].[PROJECTS].[IRN] = [dbo].[CASES].[IRN]
+               FOR JSON PATH, WITHOUT_ARRAY_WRAPPER  
+  ) AS [tag_metadata],   
   [DATE_UPDATED] AS [sync_marker]
   FROM [dbo].[CASES]
   WHERE [DATE_UPDATED] >= :previous_sync_marker
@@ -53,6 +60,13 @@ sql: >
   [IRN] AS [tag_name],
   CONCAT('FID', [PRJ_ID]) AS [additional_keyword],
   [DESCRIPTION] AS [tag_description],
+  (SELECT 
+     [CLIENT_NAME] as Client,
+     [PROJECT_NAME] as Project
+      FROM [dbo].[META_STORE] 
+      WHERE [dbo].[META_STORE].[IRN] = [dbo].[PROJECTS].[IRN]
+      FOR JSON PATH, WITHOUT_ARRAY_WRAPPER    
+  ) AS [tag_metadata], 
   [PRJ_ID] AS [sync_marker]
   FROM [dbo].[PROJECTS]
   WHERE [PRJ_ID] >= :previous_sync_marker
@@ -80,6 +94,157 @@ The `TAG_SQL` must select the relevant information as `id`, `tag_name`, `additio
 | additional_keyword | Used as the keyword to **add** to the tag during upsert. Previous keywords are not removed if the tag already exists. |
 | tag_description | Used as the tag description when creating the tag. This description will be searchable in the WiseTime Console UI. If empty, will not overwrite an existing description when upserting tag. |
 | sync_marker | Used as the sync position marker so that the connector remembers which records it has already synced. Should be comparable. |
+| tag_metadata |  Used as the tag metadata. The metadata represents a map of key-value pairs that will be recorded against the tag, eg. {"url":"http://test.instance/P12012123GBT1", "tag type 1":"Patent", "tag type 2":"Great Britain", "tag type 3":"Divisional"}.  |
+
+#### Tag metadata
+
+The metadata represents a map of key-value pairs that will be recorded against the tag. 
+This is essentially a JSON object. In the examples above it is built using a select
+statement with FOR JSON PATH, WITHOUT_ARRAY_WRAPPER in the end.
+To understand how it works lets have a look at some more detailed examples.
+
+Let's assume that we have two tables: PROJECT and CASES.
+ 
+**PROJECTS** 
+
+| IRN | CLIENT_NAME | PROJECT_NAME | PROJECT_DESCRIPTION |
+--- | --- | --- | ----
+| P1000 | CLIENT 1 | PROJECT 1 | Project description 1 
+| P2000 | CLIENT 2 | PROJECT 2 | Project description 2 
+| P3000 | CLIENT 3 | PROJECT 3 | Project description 3
+| P4000 | CLIENT 4 | PROJECT 4 | Project description 4
+| P5000 | CLIENT 5 | PROJECT 5 | Project description 5
+
+**CASES**
+
+| IRN | TITLE | DESCRIPTION | DATE_UPDATED |
+--- | --- | --- | ---
+| P1000 | CASE 1 | DESCRIPTION 1 | 01.01.2020
+| P2000 | CASE 2 | DESCRIPTION 2 | 02.01.2020  
+| P3000 | CASE 3 | DESCRIPTION 3 | 03.01.2020
+| P4000 | CASE 4 | DESCRIPTION 4 | 04.01.2020
+| P5000 | CASE 5 | DESCRIPTION 5 | 05.01.2020
+
+
+```sql
+SELECT
+     [CLIENT_NAME] as Client,
+     [PROJECT_NAME] as Project,
+     [PROJECT_DESCRIPTION] as Description
+    FROM [PROJECTS] 
+    FOR JSON PATH, WITHOUT_ARRAY_WRAPPER     
+```
+This select will return a set of json string objects
+```json
+{ "Client": "CLIENT 1", "Project":"PROJECT 1", "Description":"Project description 1"},
+{ "Client": "CLIENT 2","Project":"PROJECT 2",  "Description":"Project description 2"},
+{ "Client": "CLIENT 3", "Project":"PROJECT 3", "Description":"Project description 3"},
+{ "Client": "CLIENT 4", "Project":"PROJECT 4", "Description":"Project description 4"},
+{ "Client": "CLIENT 5", "Project":"PROJECT 5", "Description":"Project description 5"},
+```
+These objects will be transformed into three metadata tags
+Client, Project, Description. But we have 5 records in database. It means that 4
+records will be overridden by the record retrieved last.
+To avoid such a situation we should clearly indicate which record should be used.
+
+For example  
+```sql
+SELECT TOP 100
+  [IRN] as [id],
+  [IRN] AS [tag_name],
+  [IRN] AS [additional_keyword],
+  [TITLE] AS [tag_description],
+  (SELECT
+      [CLIENT_NAME] as Client,
+      [PROJECT_NAME] as Project
+      FROM [dbo].[PROJECTS] 
+      WHERE [dbo].[PROJECTS].[IRN] = [dbo].[CASES].[IRN]
+      FOR JSON PATH, WITHOUT_ARRAY_WRAPPER  
+  ) AS [tag_metadata],   
+  [DATE_UPDATED] AS [sync_marker]
+  FROM [dbo].[CASES]
+  ORDER BY [DATE_UPDATED] ASC;
+```
+We will get the following set of values 
+
+
+| id | tag_name | additional_keyword | tag_description |tag_metadata | date_updated |
+--- | --- | --- | ---- | --- | ---
+| P1000 | P1000 | P1000 | CASE 1 | { "Client": "CLIENT 1", "Project":"PROJECT 1"}| 01.01.2020
+| P2000 | P2000 | P2000 | CASE 2 | { "Client": "CLIENT 2", "Project":"PROJECT 2"}| 02.01.2020
+| P3000 | P3000 | P3000 | CASE 3 | { "Client": "CLIENT 3", "Project":"PROJECT 3"}| 03.01.2020
+| P4000 | P4000 | P4000 | CASE 4 | { "Client": "CLIENT 4", "Project":"PROJECT 4"}| 04.01.2020
+| P5000 | P5000 | P5000 | CASE 5 | { "Client": "CLIENT 5", "Project":"PROJECT 5"}| 05.01.2020
+
+
+The similar approach can be used for Postgres database. The query below will return the exactly same result.
+```sql
+SELECT 
+  IRN as id,
+  IRN AS tag_name,
+  IRN AS additional_keyword,
+  TITLE AS tag_description,
+  (select row_to_json(t)
+      from (
+              SELECT
+                CLIENT_NAME as Client,
+                PROJECT_NAME as Project
+             FROM dbo.PROJECTS 
+             WHERE dbo.PROJECTS.IRN = dbo.CASES.IRN             
+           ) t 
+  ) AS tag_metadata,   
+  DATE_UPDATED AS sync_marker
+  FROM dbo.CASES
+  ORDER BY DATE_UPDATED ASC LIMIT 100;
+```
+
+The metadata can also be retrieved from multiple tables.
+Let's assume that we have another table called TASKS that also
+contains some tag metadata.
+
+| IRN | TEAM_NAME | TASK_NAME | TASK_DESCRIPTION | DATE
+--- | --- | --- | ---- | ---
+| P1000 | TEAM 1 | TASK 1 | DESCRIPTION 1 | 01.01.2020
+| P2000 | TEAM 2 | TASK 2 | DESCRIPTION 2 | 02.01.2020
+| P3000 | TEAM 3 | TASK 3 | DESCRIPTION 3 | 03.01.2020
+| P4000 | TEAM 4 | TASK 4 | DESCRIPTION 4 | 04.01.2020
+| P5000 | TEAM 5 | TASK 5 | DESCRIPTION 5 | 05.01.2020 
+ 
+Here is an example how we can build tag metadata from multiple tables using INNER JOIN
+
+```sql
+SELECT TOP 100
+  [IRN] as [id],
+  [IRN] AS [tag_name],
+  [IRN] AS [additional_keyword],
+  [TITLE] AS [tag_description],
+  (SELECT
+     [p].[CLIENT_NAME] as Client,
+     [p].[PROJECT_NAME] as Project,
+     [t].[TEAM_NAME] as Team,
+     [t].[TASK_NAME]  as Task
+     FROM [dbo].[PROJECTS] p
+     INNER JOIN [dbo].[TASKS] t 
+     ON [dbo].[PROJECTS].[IRN]= [dbo].[TASKS].[IRN]
+     WHERE [dbo].[PROJECTS].[IRN] = [dbo].[CASES].[IRN]
+     FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+  ) AS [tag_metadata],   
+  [DATE_UPDATED] AS [sync_marker]
+  FROM [dbo].[CASES]
+  ORDER BY [DATE_UPDATED] ASC;
+
+```
+
+This query will produce following results 
+
+| id | tag_name | additional_keyword | tag_description |tag_metadata | date_updated |
+--- | --- | --- | ---- | --- | ---
+| P1000 | P1000 | P1000 | CASE 1 | { "Client": "CLIENT 1", "Project":"PROJECT 1","Team":"TEAM 1","Task":"TASK 1"}| 01.01.2020
+| P2000 | P2000 | P2000 | CASE 2 | { "Client": "CLIENT 2", "Project":"PROJECT 2","Team":"TEAM 2","Task":"TASK 2"}| 02.01.2020
+| P3000 | P3000 | P3000 | CASE 3 | { "Client": "CLIENT 3", "Project":"PROJECT 3","Team":"TEAM 3","Task":"TASK 3"}| 03.01.2020
+| P4000 | P4000 | P4000 | CASE 4 | { "Client": "CLIENT 4", "Project":"PROJECT 4","Team":"TEAM 4","Task":"TASK 4"}| 04.01.2020
+| P5000 | P5000 | P5000 | CASE 5 | { "Client": "CLIENT 5", "Project":"PROJECT 5","Team":"TEAM 5","Task":"TASK 5"}| 05.01.2020
+
 
 #### Placeholder Parameters
 
