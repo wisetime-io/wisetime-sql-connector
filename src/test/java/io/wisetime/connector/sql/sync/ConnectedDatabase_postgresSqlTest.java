@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Practice Insight Pty Ltd. All Rights Reserved.
+ * Copyright (c) 2020 Practice Insight Pty Ltd. All Rights Reserved.
  */
 
 package io.wisetime.connector.sql.sync;
@@ -11,35 +11,34 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import io.wisetime.test_docker.ContainerRuntimeSpec;
 import io.wisetime.test_docker.DockerLauncher;
-import io.wisetime.test_docker.containers.SqlServer;
+import io.wisetime.test_docker.containers.Postgres;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.flywaydb.core.Flyway;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableList;
 
 /**
- * @author shane.xie
+ * @author dchandler
  */
-class ConnectedDatabaseTest {
+class ConnectedDatabase_postgresSqlTest {
 
   private static ConnectedDatabase database;
 
-  @BeforeEach
-  void setUp() {
+  @BeforeAll
+  static void init() {
     final DockerLauncher launcher = DockerLauncher.instance();
-    final SqlServer sqlServer = new SqlServer() {
-      @Override
-      public String getImageId() {
-        return super.getImageId() + ":2017-latest-ubuntu";
-      }
-    };
-    final ContainerRuntimeSpec container = launcher.createContainer(sqlServer);
+    final ContainerRuntimeSpec containerSpec = launcher.createContainer(new Postgres());
+    // stores the base url info from the docker container provided
+    final String baseJdbcUrl = String.format("jdbc:postgresql://%s:%d/dockerdb",
+        containerSpec.getContainerIpAddress(),
+        containerSpec.getRequiredMappedPort(5432));
+
     final HikariConfig hikariConfig = new HikariConfig();
-    hikariConfig.setJdbcUrl(sqlServer.getJdbcUrl(container));
-    hikariConfig.setUsername(sqlServer.getUsername());
-    hikariConfig.setPassword(sqlServer.getPassword());
+    hikariConfig.setJdbcUrl(baseJdbcUrl);
+    hikariConfig.setUsername("docker");
+    hikariConfig.setPassword("docker");
     hikariConfig.setConnectionTimeout(TimeUnit.MINUTES.toMillis(1));
     hikariConfig.setMaximumPoolSize(1);
     final HikariDataSource dataSource = new HikariDataSource(hikariConfig);
@@ -48,6 +47,7 @@ class ConnectedDatabaseTest {
 
     final Flyway flyway = Flyway.configure()
         .dataSource(dataSource)
+        .locations("db_schema/postgres")
         .load();
     flyway.migrate();
   }
@@ -69,47 +69,47 @@ class ConnectedDatabaseTest {
   @Test
   void getTagsToSync_testCase() {
     final List<TagSyncRecord> tagSyncRecords = database.getTagsToSync(
-        "SELECT TOP 50 "
-            + "[IRN] as [id], "
-            + "[IRN] AS [tag_name], "
-            + "[IRN] AS [additional_keyword], "
-            + "[TITLE] AS [tag_description], "
-            + "[DATE_UPDATED] AS [sync_marker] "
-            + "FROM [dbo].[TEST_CASES] "
-            + "WHERE [DATE_UPDATED] >= :previous_sync_marker "
-            + "AND [IRN] NOT IN (:skipped_ids) "
-            + "ORDER BY [DATE_UPDATED] ASC;",
-
+        "SELECT IRN as id, "
+            + " IRN AS tag_name, "
+            + " IRN AS additional_keyword, "
+            + " TITLE AS tag_description, "
+            + " DATE_UPDATED AS sync_marker "
+            + " FROM TEST_CASES "
+            + " WHERE DATE_UPDATED >= TO_DATE(:previous_sync_marker, 'YYYY-MM-DD') "
+            + " AND IRN NOT IN (:skipped_ids) "
+            + " ORDER BY DATE_UPDATED ASC "
+            + " LIMIT 50; ",
         "2019-07-21",
         ImmutableList.of("P0436021")
     );
 
     final TagSyncRecord result = new TagSyncRecord();
     result.setTagName("P0100973");
-    result.setTagDescription("Software for connecting SQL databse with timekeeping API");
+    result.setTagDescription("Software for connecting SQL database with timekeeping API");
     result.setAdditionalKeyword("P0100973");
     result.setTagMetadata("{}");
     result.setId("P0100973");
-    result.setSyncMarker("2019-08-06 00:00:00.0");
+    result.setSyncMarker("2019-08-06 00:00:00");
 
     assertThat(tagSyncRecords)
         .as("Query should return one record")
+        .hasSize(1)
         .containsExactly(result);
   }
 
   @Test
   void getTagsToSync_testProjects() {
     final List<TagSyncRecord> tagSyncRecords = database.getTagsToSync(
-        "SELECT TOP 50"
-            + "  [PRJ_ID] AS [id],"
-            + "  [IRN] AS [tag_name],"
-            + "  CONCAT('FID', [PRJ_ID]) AS [additional_keyword],"
-            + "  [DESCRIPTION] AS [tag_description],"
-            + "  [PRJ_ID] AS [sync_marker]"
-            + "  FROM [dbo].[TEST_PROJECTS]"
-            + "  WHERE [PRJ_ID] >= :previous_sync_marker"
-            + "  AND [PRJ_ID] NOT IN (:skipped_ids)"
-            + "  ORDER BY [PRJ_ID] ASC;",
+        "SELECT PRJ_ID AS id, "
+            + "  IRN AS tag_name, "
+            + "  'FID' || PRJ_ID AS additional_keyword, "
+            + "  DESCRIPTION AS tag_description, "
+            + "  PRJ_ID AS sync_marker "
+            + " FROM TEST_PROJECTS "
+            + " WHERE PRJ_ID >= :previous_sync_marker::int "
+            + " AND PRJ_ID NOT IN (:skipped_ids::int) "
+            + " ORDER BY PRJ_ID ASC "
+            + " LIMIT 50; ",
 
         "80001",
         ImmutableList.of("80001")
@@ -131,35 +131,33 @@ class ConnectedDatabaseTest {
   @Test
   void getTagsToSync_testProjectsWithTagMetadata() {
     final List<TagSyncRecord> tagSyncRecords = database.getTagsToSync(
-        "SELECT TOP 50 "
-            + "[IRN] as [id], "
-            + "[IRN] AS [tag_name], "
-            + "[IRN] AS [additional_keyword], "
-            + "[TITLE] AS [tag_description], "
-            + "[DATE_UPDATED] AS [sync_marker], "
-            + "   (SELECT"
-            + "     [COUNTRY] as [country], "
-            + "     [LOCATION] as [location] "
-            + "    FROM [dbo].[TEST_TAG_METADATA] "
-            + "    WHERE [dbo].[TEST_TAG_METADATA].[IRN] = [dbo].[TEST_CASES].[IRN] "
-            + "    FOR JSON PATH, WITHOUT_ARRAY_WRAPPER "
-            + "   ) as [tag_metadata] "
-            + "FROM [dbo].[TEST_CASES] "
-            + "WHERE [DATE_UPDATED] >= :previous_sync_marker "
-            + "AND [IRN] NOT IN (:skipped_ids) "
-            + "ORDER BY [DATE_UPDATED] ASC;",
+        "SELECT TEST_CASES.IRN as id, "
+            + "  TEST_CASES.IRN AS tag_name, "
+            + "  TEST_CASES.IRN AS additional_keyword, "
+            + "  TITLE AS tag_description, "
+            + "  DATE_UPDATED AS sync_marker, "
+            + "  JSON_BUILD_OBJECT("
+            + "    'country', TEST_TAG_METADATA.COUNTRY, "
+            + "    'location', TEST_TAG_METADATA.LOCATION "
+            + "  ) as tag_metadata "
+            + " FROM TEST_CASES "
+            + " JOIN TEST_TAG_METADATA ON TEST_CASES.IRN = TEST_TAG_METADATA.IRN"
+            + " WHERE DATE_UPDATED >= TO_DATE(:previous_sync_marker, 'YYYY-MM-DD') "
+            + " AND TEST_CASES.IRN NOT IN (:skipped_ids) "
+            + " ORDER BY DATE_UPDATED ASC "
+            + " LIMIT 50",
         "2019-07-21",
         ImmutableList.of("P0436021")
     );
 
     final TagSyncRecord result = new TagSyncRecord();
     result.setTagName("P0100973");
-    result.setTagDescription("Software for connecting SQL databse with timekeeping API");
+    result.setTagDescription("Software for connecting SQL database with timekeeping API");
     result.setAdditionalKeyword("P0100973");
     result.setTagMetadata("{}");
     result.setId("P0100973");
-    result.setSyncMarker("2019-08-06 00:00:00.0");
-    result.setTagMetadata("{\"country\":\"Germany\",\"location\":\"Berlin\"}");
+    result.setSyncMarker("2019-08-06 00:00:00");
+    result.setTagMetadata("{\"country\" : \"Germany\", \"location\" : \"Berlin\"}");
 
     assertThat(tagSyncRecords)
         .as("Query should return one record")

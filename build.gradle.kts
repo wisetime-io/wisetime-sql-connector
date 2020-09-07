@@ -47,6 +47,8 @@ dependencies {
     // Add more databases as we need to support them
     implementation("com.microsoft.sqlserver:mssql-jdbc:7.4.1.jre8")
     implementation("org.antlr:antlr4-runtime:4.8-1")  // For MS SQL Server useFmtOnly feature
+    implementation("mysql:mysql-connector-java:8.0.21")
+    implementation("org.postgresql:postgresql:42.2.16")
 
     compileOnly("org.projectlombok:lombok:1.18.8")
     annotationProcessor("org.projectlombok:lombok:1.18.8")
