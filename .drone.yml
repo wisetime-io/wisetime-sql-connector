@@ -41,6 +41,8 @@ steps:
       GRADLE_USER_HOME: .gcache
       GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
       MSSQL_TEST_HOST: mssql-service
+      POSTGRES_TEST_HOST: postgres-service
+      MYSQL_TEST_HOST: mysql-service
     commands:
       - ./gradlew test check
 
@@ -111,7 +113,17 @@ services:
     environment:
       SA_PASSWORD: A_Str0ng_Required_Password
       ACCEPT_EULA: Y
-
+  - name: postgres-service
+    image: registry.dev.wisetime.com/test/postgres:latest
+    pull: always
+  - name: mysql-service
+    image: mysql/mysql-server:latest
+    pull: always
+    environment:
+      MYSQL_DATABASE: docker
+      MYSQL_USER: docker
+      MYSQL_PASSWORD: docker
+      MYSQL_RANDOM_ROOT_PASSWORD: yes
 trigger:
   event:
     - push

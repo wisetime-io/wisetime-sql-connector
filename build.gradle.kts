@@ -47,6 +47,8 @@ dependencies {
     // Add more databases as we need to support them
     implementation("com.microsoft.sqlserver:mssql-jdbc:7.4.1.jre8")
     implementation("org.antlr:antlr4-runtime:4.8-1")  // For MS SQL Server useFmtOnly feature
+    implementation("mysql:mysql-connector-java:8.0.21")
+    implementation("org.postgresql:postgresql:42.2.16")
 
     compileOnly("org.projectlombok:lombok:1.18.8")
     annotationProcessor("org.projectlombok:lombok:1.18.8")
@@ -58,7 +60,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
     testRuntime("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
 
-    testImplementation("io.wisetime:wisetime-test-support:2.4.0-0")
+    testImplementation("io.wisetime:wisetime-test-support:2.4.1-1")
     testImplementation("org.flywaydb:flyway-core:5.2.4")
     testImplementation("com.github.javafaker:javafaker:1.0.1")
     testImplementation("org.mockito:mockito-core:3.0.0")
