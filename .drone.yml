@@ -119,6 +119,11 @@ services:
   - name: mysql-service
     image: mysql/mysql-server:latest
     pull: always
+    environment:
+      MYSQL_DATABASE: docker
+      MYSQL_USER: docker
+      MYSQL_PASSWORD: docker
+      MYSQL_RANDOM_ROOT_PASSWORD: yes
 trigger:
   event:
     - push
