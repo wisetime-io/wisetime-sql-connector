@@ -26,7 +26,7 @@ class TagQueryProviderIntegrationTest {
   @Test
   void getTagQueries_empty_if_file_not_found() {
     final TagQueryProvider tagQueryProvider = new TagQueryProvider(Paths.get("does_not_exist"), new EventBus());
-    assertThat(tagQueryProvider.getTagQueries())
+    assertThat(tagQueryProvider.getQueries())
         .as("There is nothing to parse")
         .isEmpty();
   }
@@ -35,7 +35,7 @@ class TagQueryProviderIntegrationTest {
   void getTagQueries_correctly_parsed() {
     final String fileLocation = getClass().getClassLoader().getResource("tag_sql.yaml").getPath();
     final TagQueryProvider tagQueryProvider = new TagQueryProvider(Paths.get(fileLocation), new EventBus());
-    final List tagQueries = tagQueryProvider.getTagQueries();
+    final List<TagQuery> tagQueries = tagQueryProvider.getQueries();
 
     assertThat(tagQueries.size())
         .as("The tag queries are parsed from YAML")
@@ -54,7 +54,7 @@ class TagQueryProviderIntegrationTest {
   void getTagQueries_continuous_resync_defaults_to_true() {
     final String fileLocation = getClass().getClassLoader().getResource("tag_sql.yaml").getPath();
     final TagQueryProvider tagQueryProvider = new TagQueryProvider(Paths.get(fileLocation), new EventBus());
-    final List tagQueries = tagQueryProvider.getTagQueries();
+    final List<TagQuery> tagQueries = tagQueryProvider.getQueries();
 
     final TagQuery invalidQuery = new TagQuery("default-continuous-resync",
         "SELECT 'default continuous resync is true';",

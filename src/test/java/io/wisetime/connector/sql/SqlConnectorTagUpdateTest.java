@@ -82,14 +82,14 @@ class SqlConnectorTagUpdateTest {
 
   @Test
   void performTagUpdate_no_configured_tag_queries() {
-    when(mockTagQueryProvider.getTagQueries()).thenReturn(ImmutableList.of());
+    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of());
     connector.performTagUpdate();
     verifyZeroInteractions(mockDatabase, mockApiClient, mockConnectorStore);
   }
 
   @Test
   void performTagUpdate_no_tags_to_sync() {
-    when(mockTagQueryProvider.getTagQueries())
+    when(mockTagQueryProvider.getQueries())
         .thenReturn(ImmutableList.of(new TagQuery("one", "SELECT 1", "",
             Collections.singletonList("0"), true)));
     when(mockDrainSyncStore.getSyncMarker(any(TagQuery.class))).thenReturn("");
@@ -105,7 +105,7 @@ class SqlConnectorTagUpdateTest {
 
   @Test
   void performTagUpdate_exception_does_not_prevent_next_run() {
-    when(mockTagQueryProvider.getTagQueries())
+    when(mockTagQueryProvider.getQueries())
         .thenReturn(ImmutableList.of(new TagQuery("one", "SELECT 1", "",
             Collections.singletonList("0"), true)));
 
@@ -135,7 +135,7 @@ class SqlConnectorTagUpdateTest {
   @Test
   void syncAllNewRecords_perform_sync_multiple_database_results() {
     TagQuery query = new TagQuery("cases", "SELECT 1", "1", Collections.singletonList("skipped1"), true);
-    when(mockTagQueryProvider.getTagQueries()).thenReturn(ImmutableList.of(query));
+    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(query));
     String marker = "10";
     when(mockDrainSyncStore.getSyncMarker(query)).thenReturn(marker);
     when(mockDrainSyncStore.getLastSyncedIds(query)).thenReturn(ImmutableList.of("synced1"));
@@ -219,7 +219,7 @@ class SqlConnectorTagUpdateTest {
   void refreshOneBatch_continuous_resync_turned_off() {
     final TagQuery query = randomTagQuery("cases");
     query.setContinuousResync(false);
-    when(mockTagQueryProvider.getTagQueries()).thenReturn(ImmutableList.of(query));
+    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(query));
     connector.performTagUpdateSlowLoop();
     verifyZeroInteractions(mockDrainSyncStore, mockDatabase, mockApiClient);
   }
@@ -228,7 +228,7 @@ class SqlConnectorTagUpdateTest {
   void refreshOneBatch_disallow_sync() {
     final TagQuery query = randomTagQuery("cases");
     query.setContinuousResync(true);
-    when(mockTagQueryProvider.getTagQueries())
+    when(mockTagQueryProvider.getQueries())
         .thenReturn(ImmutableList.of(query))
         .thenReturn(ImmutableList.of());
     connector.performTagUpdateSlowLoop();
@@ -239,7 +239,7 @@ class SqlConnectorTagUpdateTest {
   void refreshOneBatch_reset_sync() {
     TagQuery query = randomTagQuery("cases");
     query.setContinuousResync(true);
-    when(mockTagQueryProvider.getTagQueries())
+    when(mockTagQueryProvider.getQueries())
         .thenReturn(ImmutableList.of(query))
         .thenReturn(ImmutableList.of(query))
         .thenReturn(ImmutableList.of());
@@ -251,7 +251,7 @@ class SqlConnectorTagUpdateTest {
   @Test
   void refreshOneBatch_perform_sync() {
     TagQuery query = new TagQuery("cases", "SELECT 1", "1", Collections.singletonList("skipped1"), true);
-    when(mockTagQueryProvider.getTagQueries()).thenReturn(ImmutableList.of(query));
+    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(query));
     String marker = "10";
     when(mockRefreshSyncStore.getSyncMarker(query)).thenReturn(marker);
     when(mockRefreshSyncStore.getLastSyncedIds(query)).thenReturn(ImmutableList.of("synced1"));
