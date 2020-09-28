@@ -7,7 +7,6 @@ package io.wisetime.connector.sql;
 import static io.wisetime.connector.sql.format.LogFormatter.format;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.eventbus.Subscribe;
 import io.wisetime.connector.ConnectorModule;
 import io.wisetime.connector.WiseTimeConnector;
 import io.wisetime.connector.api_client.PostResult;
@@ -24,7 +23,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import lombok.Generated;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import spark.Request;
@@ -48,6 +46,7 @@ public class SqlConnector implements WiseTimeConnector {
   public SqlConnector(final ConnectedDatabase connectedDatabase, final TagQueryProvider tagQueryProvider) {
     database = connectedDatabase;
     this.tagQueryProvider = tagQueryProvider;
+    this.tagQueryProvider.setListener(this::performTagUpdate);
   }
 
   @Override
@@ -76,17 +75,15 @@ public class SqlConnector implements WiseTimeConnector {
 
     // Prevent possible concurrent runs of scheduled update and on query changed event
     if (isPerformingUpdate.compareAndSet(false, true)) {
-      tagQueries.forEach(query -> {
-        try {
+      try {
+        tagQueries.forEach(query -> {
           final Supplier<Boolean> allowSync = () -> !hasUpdatedQueries(tagQueries);
-
           // Drain everything
           syncAllNewRecords(query, allowSync);
-        } finally {
-          isPerformingUpdate.set(false);
-        }
-      });
-      isPerformingUpdate.set(false);
+        });
+      } finally {
+        isPerformingUpdate.set(false);
+      }
     }
   }
 
@@ -104,17 +101,15 @@ public class SqlConnector implements WiseTimeConnector {
 
     // Prevent possible concurrent runs of scheduled update and on query changed event
     if (isPerformingSlowResync.compareAndSet(false, true)) {
-      tagQueries.forEach(query -> {
-        try {
+      try {
+        tagQueries.forEach(query -> {
           final Supplier<Boolean> allowSync = () -> !hasUpdatedQueries(tagQueries);
-
           // slow resync mechanism that is separate from the main drain-everything mechanism.
           refreshOneBatch(query, allowSync);
-        } finally {
-          isPerformingSlowResync.set(false);
-        }
-      });
-      isPerformingSlowResync.set(false);
+        });
+      } finally {
+        isPerformingSlowResync.set(false);
+      }
     }
   }
 
@@ -132,12 +127,6 @@ public class SqlConnector implements WiseTimeConnector {
   public void shutdown() {
     database.close();
     tagQueryProvider.stopWatching();
-  }
-
-  @Subscribe
-  @Generated
-  public void onTagQueriesChanged(List<TagQuery> tagQueries) {
-    performTagUpdate(tagQueries);
   }
 
   @VisibleForTesting

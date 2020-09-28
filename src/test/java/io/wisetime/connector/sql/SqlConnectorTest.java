@@ -6,8 +6,10 @@ package io.wisetime.connector.sql;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,6 +44,9 @@ class SqlConnectorTest {
   static void setUp() {
     RuntimeConfig.setProperty(SqlConnectorConfigKey.TAG_UPSERT_PATH, "/connector/");
     connector = new SqlConnector(mockDatabase, mockTagQueryProvider);
+
+    // check that connector has set a listener to the tag query provider
+    verify(mockTagQueryProvider, times(1)).setListener(any());
   }
 
   @AfterEach

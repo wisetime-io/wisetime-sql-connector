@@ -23,7 +23,6 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.eventbus.EventBus;
 import io.wisetime.connector.api_client.ApiClient;
 import io.wisetime.connector.datastore.ConnectorStore;
 import io.wisetime.connector.sql.queries.TagQuery;
@@ -32,7 +31,6 @@ import io.wisetime.connector.sql.sync.ConnectApi;
 import io.wisetime.connector.sql.sync.ConnectedDatabase;
 import io.wisetime.connector.sql.sync.SyncStore;
 import io.wisetime.connector.sql.sync.TagSyncRecord;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -54,8 +52,6 @@ class SqlConnectorTagUpdateTest {
   private static SyncStore mockRefreshSyncStore = mock(SyncStore.class);
   private static ConnectApi mockConnectApi = mock(ConnectApi.class);
   private static SqlConnector connector;
-  private static SqlConnector mockConnector = mock(SqlConnector.class);
-  private static EventBus eventBus = new EventBus();
 
   @BeforeAll
   static void setUp() {
@@ -63,8 +59,6 @@ class SqlConnectorTagUpdateTest {
     connector.setDrainSyncStore(mockDrainSyncStore);
     connector.setRefreshSyncStore(mockRefreshSyncStore);
     connector.setConnectApi(mockConnectApi);
-
-    eventBus.register(mockConnector);
   }
 
   @AfterEach
@@ -308,12 +302,5 @@ class SqlConnectorTagUpdateTest {
     assertThat(syncRecordsArguments.get(0).get(1).getTagName())
         .as("Record matches per returned order")
         .isEqualTo(query1Record2.getTagName());
-  }
-
-  @Test
-  void performTagUpdate_send_event() {
-    List<TagQuery> tagQueries = Arrays.asList(randomTagQuery("cases"), randomTagQuery("projects"));
-    eventBus.post(tagQueries);
-    verify(mockConnector).onTagQueriesChanged(tagQueries);
   }
 }

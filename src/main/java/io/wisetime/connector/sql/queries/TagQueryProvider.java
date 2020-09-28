@@ -6,7 +6,6 @@ package io.wisetime.connector.sql.queries;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.eventbus.EventBus;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,8 +29,8 @@ import org.yaml.snakeyaml.constructor.Constructor;
 @Slf4j
 public class TagQueryProvider extends QueryProvider<TagQuery> {
 
-  public TagQueryProvider(final Path tagSqlPath, EventBus eventBus) {
-    super(tagSqlPath, eventBus);
+  public TagQueryProvider(final Path tagSqlPath) {
+    super(tagSqlPath);
   }
 
   @Override

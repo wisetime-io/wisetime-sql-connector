@@ -8,11 +8,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.zaxxer.hikari.HikariDataSource;
 import io.vavr.control.Try;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 import org.codejargon.fluentjdbc.api.FluentJdbc;
 import org.codejargon.fluentjdbc.api.FluentJdbcBuilder;
 import org.codejargon.fluentjdbc.api.mapper.Mappers;
@@ -51,7 +48,7 @@ public class ConnectedDatabase {
         .select(sql)
         .namedParam("previous_sync_marker", syncMarker)
         .namedParam("skipped_ids", skippedIds)
-        .iterateResult(resultSet -> results.add(toTagSyncRecord(resultSet)));
+        .iterateResult(TagSyncRecord.fluentJdbcMapper(), results::add);
     return results;
   }
 
@@ -62,16 +59,5 @@ public class ConnectedDatabase {
   @VisibleForTesting
   Query query() {
     return fluentJdbc.query();
-  }
-
-  private TagSyncRecord toTagSyncRecord(final ResultSet resultSet) throws SQLException {
-    final TagSyncRecord tagSyncRecord = new TagSyncRecord();
-    tagSyncRecord.setId(resultSet.getString("id"));
-    tagSyncRecord.setTagName(resultSet.getString("tag_name"));
-    tagSyncRecord.setTagMetadata(Try.of(() -> resultSet.getString("tag_metadata")).getOrElse("{}"));
-    tagSyncRecord.setAdditionalKeyword(resultSet.getString("additional_keyword"));
-    tagSyncRecord.setTagDescription(resultSet.getString("tag_description"));
-    tagSyncRecord.setSyncMarker(resultSet.getString("sync_marker"));
-    return tagSyncRecord;
   }
 }

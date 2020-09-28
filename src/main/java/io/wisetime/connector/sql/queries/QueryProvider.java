@@ -6,7 +6,6 @@ package io.wisetime.connector.sql.queries;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.eventbus.EventBus;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.nio.file.FileSystems;
@@ -33,10 +32,9 @@ abstract class QueryProvider<T> {
   private final ExecutorService fileWatchExecutor;
   private final CompletableFuture<Void> fileWatch;
   private final AtomicReference<List<T>> queries;
-  private final EventBus eventBus;
+  private final AtomicReference<Listener<T>> listener = new AtomicReference<>(Listener.noOp());
 
-  public QueryProvider(final Path sqlPath, EventBus eventBus) {
-    this.eventBus = eventBus;
+  public QueryProvider(final Path sqlPath) {
     queries = new AtomicReference<>(parseSqlFile(sqlPath));
     fileWatchExecutor = Executors.newSingleThreadExecutor(
         new ThreadFactoryBuilder()
@@ -48,6 +46,10 @@ abstract class QueryProvider<T> {
 
   public List<T> getQueries() {
     return queries.get();
+  }
+
+  public void setListener(Listener<T> listener) {
+    this.listener.set(listener);
   }
 
   public void stopWatching() {
@@ -86,11 +88,12 @@ abstract class QueryProvider<T> {
                 case "ENTRY_CREATE":
                 case "ENTRY_MODIFY":
                   queries.set(parseSqlFile(path));
-                  eventBus.post(queries.get());
+                  listener.get().onQueriesUpdated(queries.get());
                   break;
 
                 case "ENTRY_DELETE":
                   queries.set(ImmutableList.of());
+                  listener.get().onQueriesUpdated(queries.get());
                   break;
 
                 default:
@@ -108,4 +111,15 @@ abstract class QueryProvider<T> {
   }
 
   abstract List<T> parseSqlFile(Path path);
+
+  public interface Listener<T> {
+
+    void onQueriesUpdated(List<T> queries);
+
+    static <T> Listener<T> noOp() {
+      return queries -> {
+        // do nothing
+      };
+    }
+  }
 }
