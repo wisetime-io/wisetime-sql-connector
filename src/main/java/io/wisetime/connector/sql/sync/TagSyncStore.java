@@ -30,7 +30,7 @@ import org.apache.commons.lang3.StringUtils;
  * @author shane.xie
  */
 @Slf4j
-public class SyncStore {
+public class TagSyncStore {
 
   private static final String DELIMITER = "@@@";
   private final ConnectorStore connectorStore;
@@ -39,7 +39,7 @@ public class SyncStore {
   /**
    * Create a SyncStore with default key space.
    */
-  public SyncStore(final ConnectorStore connectorStore) {
+  public TagSyncStore(final ConnectorStore connectorStore) {
     // Do not change the default key space value. Doing so will cause existing stores that have
     // the default configuration to lose state.
     this(connectorStore, "");
@@ -48,7 +48,7 @@ public class SyncStore {
   /**
    * Create a SyncStore, providing a custom key space.
    */
-  public SyncStore(final ConnectorStore connectorStore, final String keySpace) {
+  public TagSyncStore(final ConnectorStore connectorStore, final String keySpace) {
     this.connectorStore = connectorStore;
     this.keySpace = keySpace;
   }

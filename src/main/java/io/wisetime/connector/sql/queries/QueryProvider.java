@@ -4,119 +4,51 @@
 
 package io.wisetime.connector.sql.queries;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
-import java.nio.file.WatchKey;
-import java.nio.file.WatchService;
-import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
-import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author shane.xie
  * @author yehor.lashkul
  */
-@Slf4j
-abstract class QueryProvider<T> {
+public interface QueryProvider<T> {
 
-  private final ExecutorService fileWatchExecutor;
-  private final CompletableFuture<Void> fileWatch;
-  private final AtomicReference<List<T>> queries;
-  private final AtomicReference<Listener<T>> listener = new AtomicReference<>(Listener.noOp());
+  List<T> getQueries();
 
-  public QueryProvider(final Path sqlPath) {
-    queries = new AtomicReference<>(parseSqlFile(sqlPath));
-    fileWatchExecutor = Executors.newSingleThreadExecutor(
-        new ThreadFactoryBuilder()
-            .setDaemon(true)
-            .setNameFormat("file-watch")
-            .build());
-    fileWatch = startWatchingFile(sqlPath);
-  }
+  void setListener(Listener<T> listener);
 
-  public List<T> getQueries() {
-    return queries.get();
-  }
+  void stop();
 
-  public void setListener(Listener<T> listener) {
-    this.listener.set(listener);
-  }
+  boolean isHealthy();
 
-  public void stopWatching() {
-    fileWatch.cancel(true);
-    fileWatchExecutor.shutdownNow();
-  }
-
-  // Blocking, only meant for use in tests
-  @VisibleForTesting
-  List<T> waitForQueryChange(final List<T> awaitedResult, Duration timeout) throws InterruptedException {
-    long stopTime = System.currentTimeMillis() + timeout.toMillis();
-    while (!queries.get().equals(awaitedResult)) {
-      if (System.currentTimeMillis() > stopTime) {
-        throw new RuntimeException("Timeout");
+  static <T> QueryProvider<T> noOp() {
+    return new QueryProvider<T>() {
+      @Override
+      public List<T> getQueries() {
+        return Collections.emptyList();
       }
-      Thread.sleep(50);
-    }
-    return queries.get();
-  }
 
-  private CompletableFuture<Void> startWatchingFile(final Path path) {
-    return CompletableFuture.supplyAsync(() -> {
-      try (final WatchService watchService = FileSystems.getDefault().newWatchService()) {
-
-        path.getParent().register(watchService,
-            StandardWatchEventKinds.ENTRY_CREATE,
-            StandardWatchEventKinds.ENTRY_DELETE,
-            StandardWatchEventKinds.ENTRY_MODIFY);
-
-        while (true) {
-          final WatchKey key = watchService.take();
-
-          for (WatchEvent<?> event : key.pollEvents()) {
-            if (path.endsWith((Path) event.context())) {
-              switch (event.kind().name()) {
-                case "ENTRY_CREATE":
-                case "ENTRY_MODIFY":
-                  queries.set(parseSqlFile(path));
-                  listener.get().onQueriesUpdated(queries.get());
-                  break;
-
-                case "ENTRY_DELETE":
-                  queries.set(ImmutableList.of());
-                  listener.get().onQueriesUpdated(queries.get());
-                  break;
-
-                default:
-                  log.warn("Unexpected file watch event: {}", event.kind());
-              }
-            }
-          }
-          key.reset();
-        }
-
-      } catch (IOException | InterruptedException e) {
-        throw new RuntimeException("Autoload failed for SQL configuration file", e);
+      @Override
+      public void setListener(Listener<T> listener) {
+        // nothing to listen to
       }
-    }, fileWatchExecutor);
+
+      @Override
+      public void stop() {
+        // nothing to stop
+      }
+
+      @Override
+      public boolean isHealthy() {
+        return true;
+      }
+    };
   }
 
-  abstract List<T> parseSqlFile(Path path);
-
-  public interface Listener<T> {
+  interface Listener<T> {
 
     void onQueriesUpdated(List<T> queries);
 
-    static <T> Listener<T> noOp() {
+    static <T> FileWatchQueryProvider.Listener<T> noOp() {
       return queries -> {
         // do nothing
       };

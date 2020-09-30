@@ -8,6 +8,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.zaxxer.hikari.HikariDataSource;
 import io.vavr.control.Try;
+import io.wisetime.connector.sql.queries.ActivityTypeQuery;
 import java.util.LinkedList;
 import java.util.List;
 import org.codejargon.fluentjdbc.api.FluentJdbc;
@@ -50,6 +51,14 @@ public class ConnectedDatabase {
         .namedParam("skipped_ids", skippedIds)
         .iterateResult(TagSyncRecord.fluentJdbcMapper(), results::add);
     return results;
+  }
+
+  public List<ActivityTypeRecord> getActivityTypes(final ActivityTypeQuery query) {
+    query.enforceValid();
+    return query()
+        .select(query.getSql())
+        .namedParam("skipped_codes", query.getSkippedCodes())
+        .listResult(ActivityTypeRecord.fluentJdbcMapper());
   }
 
   public void close() {

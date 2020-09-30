@@ -14,6 +14,8 @@ import io.vavr.control.Try;
 import io.wisetime.connector.api_client.ApiClient;
 import io.wisetime.connector.config.RuntimeConfig;
 import io.wisetime.connector.sql.ConnectorLauncher.SqlConnectorConfigKey;
+import io.wisetime.generated.connect.ActivityType;
+import io.wisetime.generated.connect.SyncActivityTypesRequest;
 import io.wisetime.generated.connect.UpsertTagRequest;
 import java.io.IOException;
 import java.util.Collection;
@@ -48,6 +50,19 @@ public class ConnectApi {
             throw new RuntimeException(ioe);
           });
     }
+  }
+
+  public void syncActivityTypes(Collection<ActivityTypeRecord> activityTypeRecords) {
+    final List<ActivityType> activityTypes = activityTypeRecords.stream()
+        .map(activityTypeRecord -> new ActivityType()
+            .code(activityTypeRecord.getCode())
+            .description(activityTypeRecord.getDescription()))
+        .collect(Collectors.toList());
+
+    Try.run(() -> apiClient.syncActivityTypes(new SyncActivityTypesRequest().activityTypes(activityTypes)))
+        .onFailure(ioe -> {
+          throw new RuntimeException(ioe);
+        });
   }
 
   private UpsertTagRequest toUpsertTagRequest(final TagSyncRecord tagSyncRecord, final String path) {

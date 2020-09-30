@@ -13,17 +13,15 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import io.wisetime.connector.ConnectorModule;
 import io.wisetime.connector.api_client.ApiClient;
 import io.wisetime.connector.config.RuntimeConfig;
 import io.wisetime.connector.datastore.ConnectorStore;
 import io.wisetime.connector.sql.ConnectorLauncher.SqlConnectorConfigKey;
-import io.wisetime.connector.sql.queries.TagQuery;
+import io.wisetime.connector.sql.queries.ActivityTypeQueryProvider;
 import io.wisetime.connector.sql.queries.TagQueryProvider;
 import io.wisetime.connector.sql.sync.ConnectedDatabase;
 import io.wisetime.generated.connect.TimeGroup;
-import java.util.Collections;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -36,6 +34,7 @@ class SqlConnectorTest {
 
   private static ConnectedDatabase mockDatabase = mock(ConnectedDatabase.class);
   private static TagQueryProvider mockTagQueryProvider = mock(TagQueryProvider.class);
+  private static ActivityTypeQueryProvider mockActivityTypeQueryProvider = mock(ActivityTypeQueryProvider.class);
   private static ApiClient mockApiClient = mock(ApiClient.class);
   private static ConnectorStore mockConnectorStore = mock(ConnectorStore.class);
   private static SqlConnector connector;
@@ -43,10 +42,12 @@ class SqlConnectorTest {
   @BeforeAll
   static void setUp() {
     RuntimeConfig.setProperty(SqlConnectorConfigKey.TAG_UPSERT_PATH, "/connector/");
-    connector = new SqlConnector(mockDatabase, mockTagQueryProvider);
+    connector = new SqlConnector(mockDatabase, mockTagQueryProvider, mockActivityTypeQueryProvider);
 
     // check that connector has set a listener to the tag query provider
     verify(mockTagQueryProvider, times(1)).setListener(any());
+    // check that connector has set a listener to the activity type query provider
+    verify(mockActivityTypeQueryProvider, times(1)).setListener(any());
   }
 
   @AfterEach
@@ -73,21 +74,26 @@ class SqlConnectorTest {
 
   @Test
   void isConnectorHealthy() {
-    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of());
-    when(mockDatabase.isAvailable()).thenReturn(false);
-    assertThat(connector.isConnectorHealthy()).isFalse();
-
-    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of());
+    // if at least one query provider is unhealthy or database is not available
+    // the whole connector is treated as unhealthy
+    when(mockTagQueryProvider.isHealthy()).thenReturn(false);
+    when(mockActivityTypeQueryProvider.isHealthy()).thenReturn(true);
     when(mockDatabase.isAvailable()).thenReturn(true);
     assertThat(connector.isConnectorHealthy()).isFalse();
 
-    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(
-        new TagQuery("name", "sql", "0", Collections.singletonList("0"), true)));
+    when(mockTagQueryProvider.isHealthy()).thenReturn(true);
+    when(mockActivityTypeQueryProvider.isHealthy()).thenReturn(false);
+    when(mockDatabase.isAvailable()).thenReturn(true);
+    assertThat(connector.isConnectorHealthy()).isFalse();
+
+    when(mockTagQueryProvider.isHealthy()).thenReturn(true);
+    when(mockActivityTypeQueryProvider.isHealthy()).thenReturn(true);
     when(mockDatabase.isAvailable()).thenReturn(false);
     assertThat(connector.isConnectorHealthy()).isFalse();
 
-    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(
-        new TagQuery("name", "sql", "0", Collections.singletonList("0"), true)));
+    // healthy only when both query providers are healthy and database is available
+    when(mockTagQueryProvider.isHealthy()).thenReturn(true);
+    when(mockActivityTypeQueryProvider.isHealthy()).thenReturn(true);
     when(mockDatabase.isAvailable()).thenReturn(true);
     assertThat(connector.isConnectorHealthy()).isTrue();
   }
@@ -96,6 +102,6 @@ class SqlConnectorTest {
   void shutdown() {
     connector.shutdown();
     verify(mockDatabase).close();
-    verify(mockTagQueryProvider).stopWatching();
+    verify(mockTagQueryProvider).stop();
   }
 }

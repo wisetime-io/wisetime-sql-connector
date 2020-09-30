@@ -10,13 +10,17 @@ import com.google.common.annotations.VisibleForTesting;
 import io.wisetime.connector.ConnectorModule;
 import io.wisetime.connector.WiseTimeConnector;
 import io.wisetime.connector.api_client.PostResult;
+import io.wisetime.connector.sql.queries.ActivityTypeQuery;
+import io.wisetime.connector.sql.queries.QueryProvider;
 import io.wisetime.connector.sql.queries.TagQuery;
-import io.wisetime.connector.sql.queries.TagQueryProvider;
+import io.wisetime.connector.sql.sync.ActivityTypeRecord;
+import io.wisetime.connector.sql.sync.ActivityTypeSyncStore;
 import io.wisetime.connector.sql.sync.ConnectApi;
 import io.wisetime.connector.sql.sync.ConnectedDatabase;
-import io.wisetime.connector.sql.sync.SyncStore;
 import io.wisetime.connector.sql.sync.TagSyncRecord;
+import io.wisetime.connector.sql.sync.TagSyncStore;
 import io.wisetime.generated.connect.TimeGroup;
+import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -34,25 +38,32 @@ import spark.Request;
 public class SqlConnector implements WiseTimeConnector {
 
   private final ConnectedDatabase database;
-  private final TagQueryProvider tagQueryProvider;
+  private final QueryProvider<TagQuery> tagQueryProvider;
+  private final QueryProvider<ActivityTypeQuery> activityTypeQueryProvider;
 
-  private SyncStore drainSyncStore;
-  private SyncStore refreshSyncStore;
+  private TagSyncStore tagDrainSyncStore;
+  private TagSyncStore tagRefreshSyncStore;
+  private ActivityTypeSyncStore activityTypeSyncStore;
 
   private ConnectApi connectApi;
-  private final AtomicBoolean isPerformingUpdate = new AtomicBoolean();
-  private final AtomicBoolean isPerformingSlowResync = new AtomicBoolean();
+  private final AtomicBoolean isPerformingTagUpdate = new AtomicBoolean();
+  private final AtomicBoolean isPerformingTagSlowResync = new AtomicBoolean();
+  private final AtomicBoolean isPerformingActivityTypeSync = new AtomicBoolean();
 
-  public SqlConnector(final ConnectedDatabase connectedDatabase, final TagQueryProvider tagQueryProvider) {
+  public SqlConnector(final ConnectedDatabase connectedDatabase,
+      final QueryProvider<TagQuery> tagQueryProvider, final QueryProvider<ActivityTypeQuery> activityTypeQueryProvider) {
     database = connectedDatabase;
     this.tagQueryProvider = tagQueryProvider;
     this.tagQueryProvider.setListener(this::performTagUpdate);
+    this.activityTypeQueryProvider = activityTypeQueryProvider;
+    this.activityTypeQueryProvider.setListener(this::performActivityTypeUpdate);
   }
 
   @Override
   public void init(ConnectorModule connectorModule) {
-    drainSyncStore = new SyncStore(connectorModule.getConnectorStore());
-    refreshSyncStore = new SyncStore(connectorModule.getConnectorStore(), "refresh");
+    tagDrainSyncStore = new TagSyncStore(connectorModule.getConnectorStore());
+    tagRefreshSyncStore = new TagSyncStore(connectorModule.getConnectorStore(), "refresh");
+    activityTypeSyncStore = new ActivityTypeSyncStore(connectorModule.getConnectorStore());
     connectApi = new ConnectApi(connectorModule.getApiClient());
   }
 
@@ -69,12 +80,12 @@ public class SqlConnector implements WiseTimeConnector {
   private void performTagUpdate(List<TagQuery> tagQueries) {
     if (tagQueries.isEmpty()) {
       log.warn("No tag SQL queries configured. Skipping tag sync.");
-      isPerformingUpdate.set(false);
+      isPerformingTagUpdate.set(false);
       return;
     }
 
     // Prevent possible concurrent runs of scheduled update and on query changed event
-    if (isPerformingUpdate.compareAndSet(false, true)) {
+    if (isPerformingTagUpdate.compareAndSet(false, true)) {
       try {
         tagQueries.forEach(query -> {
           final Supplier<Boolean> allowSync = () -> !hasUpdatedQueries(tagQueries);
@@ -82,7 +93,7 @@ public class SqlConnector implements WiseTimeConnector {
           syncAllNewRecords(query, allowSync);
         });
       } finally {
-        isPerformingUpdate.set(false);
+        isPerformingTagUpdate.set(false);
       }
     }
   }
@@ -95,12 +106,12 @@ public class SqlConnector implements WiseTimeConnector {
   private void performSlowResync(List<TagQuery> tagQueries) {
     if (tagQueries.isEmpty()) {
       log.warn("No tag SQL queries configured. Skipping tag sync.");
-      isPerformingSlowResync.set(false);
+      isPerformingTagSlowResync.set(false);
       return;
     }
 
     // Prevent possible concurrent runs of scheduled update and on query changed event
-    if (isPerformingSlowResync.compareAndSet(false, true)) {
+    if (isPerformingTagSlowResync.compareAndSet(false, true)) {
       try {
         tagQueries.forEach(query -> {
           final Supplier<Boolean> allowSync = () -> !hasUpdatedQueries(tagQueries);
@@ -108,8 +119,44 @@ public class SqlConnector implements WiseTimeConnector {
           refreshOneBatch(query, allowSync);
         });
       } finally {
-        isPerformingSlowResync.set(false);
+        isPerformingTagSlowResync.set(false);
       }
+    }
+  }
+
+  @Override
+  public void performActivityTypeUpdate() {
+    performActivityTypeUpdate(activityTypeQueryProvider.getQueries());
+  }
+
+  private void performActivityTypeUpdate(List<ActivityTypeQuery> activityTypeQueries) {
+    if (activityTypeQueries.isEmpty()) {
+      log.warn("No activity type SQL queries configured. Skipping activity types sync.");
+      isPerformingActivityTypeSync.set(false);
+      return;
+    }
+
+    // Prevent possible concurrent runs of scheduled update and on query changed event
+    if (isPerformingActivityTypeSync.compareAndSet(false, true)) {
+      try {
+        final List<ActivityTypeRecord> activityTypes = activityTypeQueries.stream()
+            .flatMap(query -> database.getActivityTypes(query).stream())
+            .collect(Collectors.toList());
+        syncActivityTypes(activityTypes);
+      } finally {
+        isPerformingActivityTypeSync.set(false);
+      }
+    }
+  }
+
+  private void syncActivityTypes(List<ActivityTypeRecord> activityTypes) {
+    final boolean isSynced = activityTypeSyncStore.isSynced(activityTypes);
+    final boolean syncedMoreThanDayAgo = activityTypeSyncStore.lastSyncedMoreThan(Duration.ofDays(1));
+
+    if (!isSynced || syncedMoreThanDayAgo) {
+      log.info("Sending {} activity types to sync", activityTypes.size());
+      connectApi.syncActivityTypes(activityTypes);
+      activityTypeSyncStore.markSynced(activityTypes);
     }
   }
 
@@ -120,21 +167,21 @@ public class SqlConnector implements WiseTimeConnector {
 
   @Override
   public boolean isConnectorHealthy() {
-    return !tagQueryProvider.getQueries().isEmpty() && database.isAvailable();
+    return tagQueryProvider.isHealthy() && activityTypeQueryProvider.isHealthy() && database.isAvailable();
   }
 
   @Override
   public void shutdown() {
     database.close();
-    tagQueryProvider.stopWatching();
+    tagQueryProvider.stop();
   }
 
   @VisibleForTesting
   void syncAllNewRecords(final TagQuery tagQuery, final Supplier<Boolean> allowSync) {
     LinkedList<TagSyncRecord> newTagSyncRecords;
-    while (allowSync.get() && (newTagSyncRecords = getUnsyncedRecords(tagQuery, drainSyncStore)).size() > 0) {
+    while (allowSync.get() && (newTagSyncRecords = getUnsyncedRecords(tagQuery, tagDrainSyncStore)).size() > 0) {
       connectApi.upsertWiseTimeTags(newTagSyncRecords);
-      drainSyncStore.markSyncPosition(tagQuery, newTagSyncRecords);
+      tagDrainSyncStore.markSyncPosition(tagQuery, newTagSyncRecords);
       log.info("New tag detection: " + format(newTagSyncRecords));
     }
   }
@@ -144,26 +191,31 @@ public class SqlConnector implements WiseTimeConnector {
     if (!tagQuery.getContinuousResync() || !allowSync.get()) {
       return;
     }
-    final LinkedList<TagSyncRecord> refreshTagSyncRecords = getUnsyncedRecords(tagQuery, refreshSyncStore);
+    final LinkedList<TagSyncRecord> refreshTagSyncRecords = getUnsyncedRecords(tagQuery, tagRefreshSyncStore);
     if (refreshTagSyncRecords.isEmpty()) {
       // Next refresh batch to start again from the beginning
       log.info("Resetting tag refresh to start from the beginning");
-      refreshSyncStore.resetSyncPosition(tagQuery);
+      tagRefreshSyncStore.resetSyncPosition(tagQuery);
       return;
     }
     connectApi.upsertWiseTimeTags(refreshTagSyncRecords);
-    refreshSyncStore.markSyncPosition(tagQuery, refreshTagSyncRecords);
+    tagRefreshSyncStore.markSyncPosition(tagQuery, refreshTagSyncRecords);
     log.info("Existing tag refresh: " + format(refreshTagSyncRecords));
   }
 
   @VisibleForTesting
-  void setDrainSyncStore(final SyncStore syncStore) {
-    this.drainSyncStore = syncStore;
+  void setTagDrainSyncStore(final TagSyncStore syncStore) {
+    this.tagDrainSyncStore = syncStore;
   }
 
   @VisibleForTesting
-  void setRefreshSyncStore(final SyncStore syncStore) {
-    this.refreshSyncStore = syncStore;
+  void setTagRefreshSyncStore(final TagSyncStore syncStore) {
+    this.tagRefreshSyncStore = syncStore;
+  }
+
+  @VisibleForTesting
+  void setActivityTypeSyncStore(final ActivityTypeSyncStore syncStore) {
+    this.activityTypeSyncStore = syncStore;
   }
 
   @VisibleForTesting
@@ -171,7 +223,7 @@ public class SqlConnector implements WiseTimeConnector {
     this.connectApi = connectApi;
   }
 
-  private LinkedList<TagSyncRecord> getUnsyncedRecords(final TagQuery query, final SyncStore syncStore) {
+  private LinkedList<TagSyncRecord> getUnsyncedRecords(final TagQuery query, final TagSyncStore syncStore) {
     final String syncMarker = syncStore.getSyncMarker(query);
 
     final List<String> idsToSkip = Stream

@@ -127,6 +127,7 @@ class TagQueryProviderIntegrationTest {
     Files.write(path, ImmutableList.of("name: cases", "sql: SELECT 'cases'", "initialSyncMarker: 0",
         "skippedIds: [0]", "continuousResync: true"));
     tagQueryProvider.waitForQueryChange(expectedQueriesUpdate, timeout);
+    assertThat(tagQueryProvider.isHealthy()).isTrue();
     verify(listener, times(1)).onQueriesUpdated(expectedQueriesUpdate);
     reset(listener);
 
@@ -134,6 +135,7 @@ class TagQueryProviderIntegrationTest {
     Files.delete(path);
     final List<TagQuery> expectedQueriesDeletion = ImmutableList.of();
     tagQueryProvider.waitForQueryChange(expectedQueriesDeletion, timeout);
+    assertThat(tagQueryProvider.isHealthy()).isFalse();
     verify(listener, times(1)).onQueriesUpdated(expectedQueriesDeletion);
     reset(listener);
 
@@ -144,11 +146,13 @@ class TagQueryProviderIntegrationTest {
     Files.write(path, ImmutableList.of("name: keywords", "sql: SELECT 'keywords'", "initialSyncMarker: 1",
         "skippedIds: [0]", "continuousResync: true"));
     tagQueryProvider.waitForQueryChange(expectedQueriesCreation, timeout);
+    assertThat(tagQueryProvider.isHealthy()).isTrue();
 
     // Verify stop watching
-    tagQueryProvider.stopWatching();
+    tagQueryProvider.stop();
     Files.delete(path);
     // Watching is stopped, no queries update (expect queries from the previous step)
     tagQueryProvider.waitForQueryChange(expectedQueriesCreation, timeout);
+    assertThat(tagQueryProvider.isHealthy()).isFalse();
   }
 }

@@ -1,0 +1,9 @@
+skippedCodes:
+  - 23456
+sql: >
+  SELECT
+  [ACTIVITYCODE] AS [code],
+  [ACTIVITYNAME] AS [description]
+  FROM [dbo].[TEST_ACTIVITYCODES]
+  WHERE [ACTIVITYCODE] NOT IN (:skipped_codes)
+  ORDER BY [code];

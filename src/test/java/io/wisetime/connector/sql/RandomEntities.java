@@ -8,6 +8,7 @@ import com.github.javafaker.Faker;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 import io.wisetime.connector.sql.queries.TagQuery;
+import io.wisetime.connector.sql.sync.ActivityTypeRecord;
 import io.wisetime.connector.sql.sync.TagSyncRecord;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -41,6 +42,12 @@ public class RandomEntities {
     final TagSyncRecord tagSyncRecord = randomTagSyncRecord();
     tagSyncRecord.setSyncMarker(syncMarker);
     return tagSyncRecord;
+  }
+
+  public static ActivityTypeRecord randomActivityTypeRecord() {
+    return new ActivityTypeRecord(
+        faker.numerify("code-###"),
+        faker.numerify("description-###"));
   }
 
   public static String fixedTime() {

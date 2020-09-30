@@ -25,12 +25,13 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.wisetime.connector.api_client.ApiClient;
 import io.wisetime.connector.datastore.ConnectorStore;
+import io.wisetime.connector.sql.queries.ActivityTypeQueryProvider;
 import io.wisetime.connector.sql.queries.TagQuery;
 import io.wisetime.connector.sql.queries.TagQueryProvider;
 import io.wisetime.connector.sql.sync.ConnectApi;
 import io.wisetime.connector.sql.sync.ConnectedDatabase;
-import io.wisetime.connector.sql.sync.SyncStore;
 import io.wisetime.connector.sql.sync.TagSyncRecord;
+import io.wisetime.connector.sql.sync.TagSyncStore;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -48,16 +49,16 @@ class SqlConnectorTagUpdateTest {
   private static TagQueryProvider mockTagQueryProvider = mock(TagQueryProvider.class);
   private static ApiClient mockApiClient = mock(ApiClient.class);
   private static ConnectorStore mockConnectorStore = mock(ConnectorStore.class);
-  private static SyncStore mockDrainSyncStore = mock(SyncStore.class);
-  private static SyncStore mockRefreshSyncStore = mock(SyncStore.class);
+  private static TagSyncStore mockDrainSyncStore = mock(TagSyncStore.class);
+  private static TagSyncStore mockRefreshSyncStore = mock(TagSyncStore.class);
   private static ConnectApi mockConnectApi = mock(ConnectApi.class);
   private static SqlConnector connector;
 
   @BeforeAll
   static void setUp() {
-    connector = new SqlConnector(mockDatabase, mockTagQueryProvider);
-    connector.setDrainSyncStore(mockDrainSyncStore);
-    connector.setRefreshSyncStore(mockRefreshSyncStore);
+    connector = new SqlConnector(mockDatabase, mockTagQueryProvider, mock(ActivityTypeQueryProvider.class));
+    connector.setTagDrainSyncStore(mockDrainSyncStore);
+    connector.setTagRefreshSyncStore(mockRefreshSyncStore);
     connector.setConnectApi(mockConnectApi);
   }
 

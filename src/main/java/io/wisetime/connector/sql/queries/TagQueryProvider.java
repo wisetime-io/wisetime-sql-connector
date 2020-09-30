@@ -27,7 +27,7 @@ import org.yaml.snakeyaml.constructor.Constructor;
  * @author shane.xie
  */
 @Slf4j
-public class TagQueryProvider extends QueryProvider<TagQuery> {
+public class TagQueryProvider extends FileWatchQueryProvider<TagQuery> {
 
   public TagQueryProvider(final Path tagSqlPath) {
     super(tagSqlPath);

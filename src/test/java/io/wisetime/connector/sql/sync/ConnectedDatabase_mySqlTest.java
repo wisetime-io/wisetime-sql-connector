@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import io.wisetime.connector.sql.queries.ActivityTypeQuery;
 import io.wisetime.test_docker.ContainerRuntimeSpec;
 import io.wisetime.test_docker.DockerLauncher;
 import io.wisetime.test_docker.containers.MySqlServer;
@@ -158,6 +159,35 @@ class ConnectedDatabase_mySqlTest {
     assertThat(tagSyncRecords)
         .as("Query should return one record")
         .containsExactly(result);
+  }
+
+  @Test
+  void getActivityTypes_noSkippedCodes() {
+    final ActivityTypeQuery query = new ActivityTypeQuery();
+    query.setSql("SELECT ACTIVITYCODE AS code, ACTIVITYNAME AS description"
+        + "  FROM TEST_ACTIVITYCODES");
+
+    assertThat(database.getActivityTypes(query))
+        .as("all records should be returned")
+        .containsExactlyInAnyOrder(
+            new ActivityTypeRecord("12345", "Billable"),
+            new ActivityTypeRecord("23456", "Non-Billable"),
+            new ActivityTypeRecord("34567", "Default"));
+  }
+
+  @Test
+  void getActivityTypes_withSkippedCodes() {
+    final ActivityTypeQuery query = new ActivityTypeQuery(
+        "SELECT ACTIVITYCODE AS code, ACTIVITYNAME AS description"
+            + "  FROM TEST_ACTIVITYCODES"
+            + "  WHERE ACTIVITYCODE NOT IN (:skipped_codes)",
+        ImmutableList.of("23456")); // code of Non-Billable activity type
+
+    assertThat(database.getActivityTypes(query))
+        .as("all records except excluded should be returned")
+        .containsExactlyInAnyOrder(
+            new ActivityTypeRecord("12345", "Billable"),
+            new ActivityTypeRecord("34567", "Default"));
   }
 }
 
