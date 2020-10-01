@@ -2,6 +2,8 @@
 
 The WiseTime SQL Connector connects [WiseTime](https://wisetime.io) to SQL databases and will upsert a new WiseTime tag whenever a new entity is discovered using the configured SQL.
 
+The WiseTime SQL Connector can also sync activity types to WiseTime if configured.
+
 In order to use the WiseTime SQL Connector, you will need a [WiseTime Connect](https://wisetime.io/docs/connect/) API key. The WiseTime SQL Connector runs as a Docker container and is easy to set up and operate.
 
 ## Database Permissions Requirements
@@ -274,8 +276,48 @@ The following configuration parameters are optional.
 
 | Environment Variable | Description |
 | ---  | --- |
+| ACTIVITY_TYPE_SQL_FILE | The path to a YAML configuration file containing the SQL queries to run to fetch all activity types to be propagated to WiseTime. The connector will watch the file for updates and is able to switch to the new queries as the file is updated, without restarting the connector. See below for file format. |
 | DATA_DIR | If set, the connector will use the directory as the location for storing data to keep track on the cases and projects it has synced. By default, WiseTime SQL Connector will create a temporary dir under /tmp as its data storage. |
 | LOG_LEVEL | Define log level. Available values are: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` and `OFF`. Default is `INFO`. |
+
+### `ACTIVITY_TYPE_SQL_FILE` Requirements
+
+The yaml configuration file expects single SQL query to be provided. Here's a sample `ACTIVITY_TYPE_SQL_FILE`:
+
+```yaml
+skippedCodes:
+  - 23456
+sql: >
+  SELECT
+  [ACTIVITYCODE] AS [code],
+  [ACTIVITYNAME] AS [description]
+  FROM [dbo].[TEST_ACTIVITYCODES]
+  WHERE [ACTIVITYCODE] NOT IN (:skipped_codes)
+  ORDER BY [code];
+```
+
+In the above example, we have provided a query that the connector will run and sync all the fetched activity types to WiseTime in one request if any of the activity type has been changed/created/deleted since previous sync. 
+
+Selecting an empty list will disable all the existing WiseTime activity types.
+
+`skippedCodes` is an optional property. You can omit it if there are no activity types you would like to avoid syncing. You must avoid using `skipped_codes` in your SQL in this case. Here's an example:
+```yaml
+sql: >
+  SELECT
+  [ACTIVITYCODE] AS [code],
+  [ACTIVITYNAME] AS [description]
+  FROM [dbo].[TEST_ACTIVITYCODES]
+  ORDER BY [code];
+```
+
+#### Selected Fields
+
+The `ACTIVITY_TYPE_SQL_FILE` must select the relevant information as `code` and `description` of the activity type.
+
+| Field | Explanation |
+--- | ---
+| code | Will be used as activity type code during time posting |
+| description | Used as the WiseTime console label of the created activity type |
 
 ## Running the WiseTime SQL Connector
 
@@ -287,6 +329,7 @@ docker run -d \
     -e API_KEY=yourwisetimeapikey \
     -e TAG_UPSERT_PATH=/My Connected System/ \
     -e TAG_SQL_FILE=/connector/tag_sql.yaml \
+    -e ACTIVITY_TYPE_SQL_FILE=/connector/activity_type_sql.yaml \
     -e JDBC_URL="jdbc:sqlserver://HOST:PORT;databaseName=DATABASE_NAME;ssl=request;useCursors=true" \
     -e JDBC_USER=dbuser \
     -e JDBC_PASSWORD=dbpass \
