@@ -7,16 +7,10 @@ package io.wisetime.connector.sql.queries;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
 
 /**
  * Reads tag queries from the provided file path.
@@ -36,13 +30,8 @@ public class TagQueryProvider extends FileWatchQueryProvider<TagQuery> {
   @Override
   List<TagQuery> parseSqlFile(Path path) {
     try {
-      final Stream<String> lines = Files.lines(path);
-      final String contents = lines.collect(Collectors.joining("\n"));
-      lines.close();
-
-      final Yaml yaml = new Yaml(new Constructor(TagQuery.class));
-      final ImmutableList<TagQuery> queries = StreamSupport.stream(yaml.loadAll(contents).spliterator(), false)
-          .map(query -> (TagQuery) query)
+      final ImmutableList<TagQuery> queries = new YamlFileParser<>(TagQuery.class)
+          .parse(path)
           .map(TagQueryProvider::enforceValid)
           .map(TagQueryProvider::applyDefaults)
           .map(TagQueryProvider::trimSql)

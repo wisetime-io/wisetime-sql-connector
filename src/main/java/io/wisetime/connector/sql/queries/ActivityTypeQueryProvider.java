@@ -7,15 +7,9 @@ package io.wisetime.connector.sql.queries;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import lombok.extern.slf4j.Slf4j;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
 
 /**
  * @author yehor.lashkul
@@ -30,13 +24,8 @@ public class ActivityTypeQueryProvider extends FileWatchQueryProvider<ActivityTy
   @Override
   List<ActivityTypeQuery> parseSqlFile(Path path) {
     try {
-      final Stream<String> lines = Files.lines(path);
-      final String contents = lines.collect(Collectors.joining("\n"));
-      lines.close();
-
-      final Yaml yaml = new Yaml(new Constructor(ActivityTypeQuery.class));
-      final ImmutableList<ActivityTypeQuery> queries = StreamSupport.stream(yaml.loadAll(contents).spliterator(), false)
-          .map(query -> (ActivityTypeQuery) query)
+      final ImmutableList<ActivityTypeQuery> queries = new YamlFileParser<>(ActivityTypeQuery.class)
+          .parse(path)
           .peek(ActivityTypeQuery::enforceValid)
           .map(this::trimSql)
           .collect(ImmutableList.toImmutableList());
