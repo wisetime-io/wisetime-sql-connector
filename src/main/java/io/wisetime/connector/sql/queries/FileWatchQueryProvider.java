@@ -40,7 +40,7 @@ abstract class FileWatchQueryProvider<T> implements QueryProvider<T> {
     fileWatchExecutor = Executors.newSingleThreadExecutor(
         new ThreadFactoryBuilder()
             .setDaemon(true)
-            .setNameFormat("file-watch")
+            .setNameFormat("file-watch-" + getClass().getSimpleName())
             .build());
     fileWatch = startWatchingFile(sqlPath);
   }

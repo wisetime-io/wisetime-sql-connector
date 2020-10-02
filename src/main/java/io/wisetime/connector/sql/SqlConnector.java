@@ -151,7 +151,7 @@ public class SqlConnector implements WiseTimeConnector {
 
   private void syncActivityTypes(List<ActivityTypeRecord> activityTypes) {
     final boolean isSynced = activityTypeSyncStore.isSynced(activityTypes);
-    final boolean syncedMoreThanDayAgo = activityTypeSyncStore.lastSyncedMoreThan(Duration.ofDays(1));
+    final boolean syncedMoreThanDayAgo = activityTypeSyncStore.lastSyncedOlderThan(Duration.ofDays(1));
 
     if (!isSynced || syncedMoreThanDayAgo) {
       log.info("Sending {} activity types to sync", activityTypes.size());

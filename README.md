@@ -296,7 +296,9 @@ sql: >
   ORDER BY [code];
 ```
 
-In the above example, we have provided a query that the connector will run and sync all the fetched activity types to WiseTime in one request if any of the activity type has been changed/created/deleted since previous sync. 
+In the above example, we have provided a query that the connector will run and sync all the fetched activity types to WiseTime in one request if any of the activity type has been changed/created/deleted since previous sync.
+
+It's highly recommended to use `ORDER BY` in your query to reduce the potential load on WiseTime as we use a caching mechanism that is order-dependent
 
 Selecting an empty list will disable all the existing WiseTime activity types.
 

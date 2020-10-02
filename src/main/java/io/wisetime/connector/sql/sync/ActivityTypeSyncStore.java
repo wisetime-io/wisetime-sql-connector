@@ -46,7 +46,7 @@ public class ActivityTypeSyncStore {
   /**
    * Returns true if there was no sync yet or it was more than a {@link Duration} ago.
    */
-  public boolean lastSyncedMoreThan(Duration duration) {
+  public boolean lastSyncedOlderThan(Duration duration) {
     return connectorStore.getLong(LAST_SYNC_KEY)
         .map(lastSync -> System.currentTimeMillis() - lastSync > duration.toMillis())
         .orElse(true);

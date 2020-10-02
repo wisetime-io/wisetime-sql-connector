@@ -82,7 +82,7 @@ class SqlConnectorActivityTypeUpdateTest {
         .thenReturn(activityTypeRecords);
     when(activityTypeSyncStoreMock.isSynced(activityTypeRecords))
         .thenReturn(Boolean.TRUE);
-    when(activityTypeSyncStoreMock.lastSyncedMoreThan(any()))
+    when(activityTypeSyncStoreMock.lastSyncedOlderThan(any()))
         .thenReturn(Boolean.TRUE);
 
     connector.performActivityTypeUpdate();
@@ -102,7 +102,7 @@ class SqlConnectorActivityTypeUpdateTest {
         .thenReturn(activityTypeRecords);
     when(activityTypeSyncStoreMock.isSynced(activityTypeRecords))
         .thenReturn(Boolean.TRUE);
-    when(activityTypeSyncStoreMock.lastSyncedMoreThan(any()))
+    when(activityTypeSyncStoreMock.lastSyncedOlderThan(any()))
         .thenReturn(Boolean.FALSE);
 
     connector.performActivityTypeUpdate();

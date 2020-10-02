@@ -63,26 +63,26 @@ class ActivityTypeSyncStoreTest {
   }
 
   @Test
-  void lastSyncedMoreThan_notSyncedYet() {
+  void lastSyncedOlderThan_notSyncedYet() {
     when(mockConnectorStore.getLong(ActivityTypeSyncStore.LAST_SYNC_KEY))
         .thenReturn(Optional.empty());
 
-    assertThat(activityTypeSyncStore.lastSyncedMoreThan(Duration.ofDays(100)))
+    assertThat(activityTypeSyncStore.lastSyncedOlderThan(Duration.ofDays(100)))
         .as("there was no any sync yet")
         .isTrue();
   }
 
   @Test
-  void lastSyncedMoreThan() {
+  void lastSyncedOlderThan() {
     when(mockConnectorStore.getLong(ActivityTypeSyncStore.LAST_SYNC_KEY))
         .thenReturn(Optional.of(Instant.now()
             .minus(1, ChronoUnit.DAYS)
             .minus(1, ChronoUnit.SECONDS)
             .toEpochMilli()));
 
-    assertThat(activityTypeSyncStore.lastSyncedMoreThan(Duration.ofDays(1)))
+    assertThat(activityTypeSyncStore.lastSyncedOlderThan(Duration.ofDays(1)))
         .isTrue();
-    assertThat(activityTypeSyncStore.lastSyncedMoreThan(Duration.ofDays(2)))
+    assertThat(activityTypeSyncStore.lastSyncedOlderThan(Duration.ofDays(2)))
         .isFalse();
   }
 
