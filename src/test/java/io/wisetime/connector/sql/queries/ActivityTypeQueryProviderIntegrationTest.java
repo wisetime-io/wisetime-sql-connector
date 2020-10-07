@@ -175,7 +175,7 @@ class ActivityTypeQueryProviderIntegrationTest {
     ));
     queryProvider.waitForQueryChange(ImmutableList.of(
         new ActivityTypeQuery(
-            "SELECT SELECT 'activitycodes' WHERE codes NOT IN (:skipped_codes)",
+            "SELECT 'activitycodes' WHERE codes NOT IN (:skipped_codes)",
             Collections.singletonList("123"))
     ), timeout);
     assertThat(queryProvider.isHealthy()).isTrue();
@@ -186,7 +186,7 @@ class ActivityTypeQueryProviderIntegrationTest {
     // Watching is stopped, no queries update (expect queries from the previous step)
     queryProvider.waitForQueryChange(ImmutableList.of(
         new ActivityTypeQuery(
-            "SELECT SELECT 'activitycodes' WHERE codes NOT IN (:skipped_codes)",
+            "SELECT 'activitycodes' WHERE codes NOT IN (:skipped_codes)",
             Collections.singletonList("123"))
     ), timeout);
     assertThat(queryProvider.isHealthy()).isFalse();

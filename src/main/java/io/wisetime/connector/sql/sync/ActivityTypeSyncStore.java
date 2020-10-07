@@ -8,9 +8,10 @@ import com.google.common.annotations.VisibleForTesting;
 import io.wisetime.connector.datastore.ConnectorStore;
 import java.time.Duration;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.Setter;
+import org.apache.commons.codec.digest.DigestUtils;
 
 /**
  * @author yehor.lashkul
@@ -29,7 +30,10 @@ public class ActivityTypeSyncStore {
 
   public ActivityTypeSyncStore(ConnectorStore connectorStore) {
     this.connectorStore = connectorStore;
-    hashFunction = activityTypes -> String.format("%d_%d", activityTypes.size(), Objects.hash(activityTypes.toArray()));
+    hashFunction = activityTypes -> DigestUtils.md5Hex(
+        activityTypes.stream()
+            .map(activityType -> activityType.getCode() + activityType.getDescription())
+            .collect(Collectors.joining()));
   }
 
   /**
