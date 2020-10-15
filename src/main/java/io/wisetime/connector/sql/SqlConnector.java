@@ -97,7 +97,7 @@ public class SqlConnector implements WiseTimeConnector {
 
   @Override
   public void performActivityTypeUpdate() {
-
+    // Activity type update is not performed in this connector
   }
 
   private void performSlowResync(List<TagQuery> tagQueries) {

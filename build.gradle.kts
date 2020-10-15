@@ -91,7 +91,7 @@ jib {
     if (targetArch == "arm64v8") {
         println("Building image with architecture: arm64v8")
         from {
-            image = "arm64v8/openjdk:8u201-jdk-alpine"
+            image = "arm64v8/openjdk:11.0.8-jdk-buster"
         }
         to {
             image = "wisetime/wisetime-sql-connector-arm64v8"
@@ -99,7 +99,7 @@ jib {
     } else {
         println("Building image with (default) architecture: amd64")
         from {
-            image = "wisetime/wisetime-java8-connector"
+            image = "wisetime/wisetime-java11-connector"
         }
         to {
             image = "wisetime/wisetime-sql-connector"
