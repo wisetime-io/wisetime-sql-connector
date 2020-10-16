@@ -12,7 +12,7 @@ plugins {
     `maven-publish`
     id("com.google.cloud.tools.jib") version "1.4.0"
     id("io.freefair.lombok") version "3.8.4"
-    id("io.wisetime.versionChecker").version("0.9.18")
+    id("io.wisetime.versionChecker").version("0.9.28")
     id("fr.brouillard.oss.gradle.jgitver").version("0.9.1")
     id("com.github.ben-manes.versions").version("0.21.0")
 }
@@ -30,9 +30,9 @@ repositories {
 }
 
 dependencies {
-    implementation("io.wisetime:wisetime-connector:2.4.0")
+    implementation("io.wisetime:wisetime-connector:2.5.1-1")
     implementation("io.vavr:vavr:0.10.3")
-    implementation("org.apache.commons:commons-configuration2:2.5") {
+    implementation("org.apache.commons:commons-configuration2:2.4") {
         exclude("commons-logging")
     }
     implementation("com.google.guava:guava:28.2-jre")
@@ -67,8 +67,8 @@ dependencies {
     testImplementation("org.assertj:assertj-core:3.13.2")
 }
 
-java.sourceCompatibility = JavaVersion.VERSION_1_8
-java.targetCompatibility = JavaVersion.VERSION_1_8
+java.sourceCompatibility = JavaVersion.VERSION_11
+java.targetCompatibility = JavaVersion.VERSION_11
 
 application {
     mainClassName = "ConnectorLauncher"
@@ -91,7 +91,7 @@ jib {
     if (targetArch == "arm64v8") {
         println("Building image with architecture: arm64v8")
         from {
-            image = "arm64v8/openjdk:8u201-jdk-alpine"
+            image = "arm64v8/openjdk:11.0.8-jdk-buster"
         }
         to {
             image = "wisetime/wisetime-sql-connector-arm64v8"
@@ -99,7 +99,7 @@ jib {
     } else {
         println("Building image with (default) architecture: amd64")
         from {
-            image = "wisetime/wisetime-java8-connector"
+            image = "wisetime/wisetime-java11-connector"
         }
         to {
             image = "wisetime/wisetime-sql-connector"

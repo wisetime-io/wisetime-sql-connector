@@ -95,6 +95,11 @@ public class SqlConnector implements WiseTimeConnector {
     performSlowResync(tagQueryProvider.getTagQueries());
   }
 
+  @Override
+  public void performActivityTypeUpdate() {
+    // Activity type update is not performed in this connector
+  }
+
   private void performSlowResync(List<TagQuery> tagQueries) {
     if (tagQueries.isEmpty()) {
       log.warn("No tag SQL queries configured. Skipping tag sync.");
