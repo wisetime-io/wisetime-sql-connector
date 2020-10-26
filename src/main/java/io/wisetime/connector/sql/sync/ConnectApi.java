@@ -49,7 +49,7 @@ public class ConnectApi {
     }
   }
 
-  UpsertTagRequest toUpsertTagRequest(final TagSyncRecord tagSyncRecord, final String path) {
+  private UpsertTagRequest toUpsertTagRequest(final TagSyncRecord tagSyncRecord, final String path) {
     final UpsertTagRequest request = new UpsertTagRequest()
         .name(tagSyncRecord.getTagName())
         .additionalKeywords(ImmutableList.of(tagSyncRecord.getAdditionalKeyword()))
