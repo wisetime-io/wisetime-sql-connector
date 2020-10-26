@@ -30,6 +30,7 @@ public class RandomEntities {
     tagSyncRecord.setId(faker.numerify("#####"));
     tagSyncRecord.setTagName(faker.bothify("??######??").toUpperCase());
     tagSyncRecord.setAdditionalKeyword(tagSyncRecord.getTagName());
+    tagSyncRecord.setUrl(faker.internet().url());
     tagSyncRecord.setTagMetadata(
         gson.toJson(ImmutableMap.of("name", faker.company().name(), "url", faker.company().url())));
     tagSyncRecord.setTagDescription(faker.lorem().characters(12, 35));

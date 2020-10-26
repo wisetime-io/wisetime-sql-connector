@@ -72,15 +72,19 @@ class ConnectApiTest {
     final UpsertTagRequest request1 = new UpsertTagRequest()
         .name(record1.getTagName())
         .additionalKeywords(ImmutableList.of(record1.getAdditionalKeyword()))
-        .metadata(gson.fromJson(record1.getTagMetadata(), new TypeToken<Map<String, String>>() {}.getType()))
+        .url(record1.getUrl())
+        .metadata(gson.fromJson(record1.getTagMetadata(), new TypeToken<Map<String, String>>() {
+        }.getType()))
         .description(record1.getTagDescription())
         .excludeTagNameKeyword(true)
         .path("/Connector/");
 
     final UpsertTagRequest request2 = new UpsertTagRequest()
         .name(record2.getTagName())
+        .url(record2.getUrl())
         .additionalKeywords(ImmutableList.of(record2.getAdditionalKeyword()))
-        .metadata(gson.fromJson(record2.getTagMetadata(), new TypeToken<Map<String, String>>() {}.getType()))
+        .metadata(gson.fromJson(record2.getTagMetadata(), new TypeToken<Map<String, String>>() {
+        }.getType()))
         .description(record2.getTagDescription())
         .excludeTagNameKeyword(true)
         .path("/Connector/");

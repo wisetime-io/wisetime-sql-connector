@@ -15,7 +15,6 @@ import io.wisetime.connector.api_client.ApiClient;
 import io.wisetime.connector.config.RuntimeConfig;
 import io.wisetime.connector.sql.ConnectorLauncher.SqlConnectorConfigKey;
 import io.wisetime.generated.connect.UpsertTagRequest;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -50,11 +49,14 @@ public class ConnectApi {
     }
   }
 
-  private UpsertTagRequest toUpsertTagRequest(final TagSyncRecord tagSyncRecord, final String path) {
+  UpsertTagRequest toUpsertTagRequest(final TagSyncRecord tagSyncRecord, final String path) {
     final UpsertTagRequest request = new UpsertTagRequest()
         .name(tagSyncRecord.getTagName())
         .additionalKeywords(ImmutableList.of(tagSyncRecord.getAdditionalKeyword()))
-        .metadata(gson.fromJson(tagSyncRecord.getTagMetadata(), new TypeToken<Map<String, String>>() {}.getType()))
+        .url(tagSyncRecord.getUrl())
+        .metadata(
+            gson.fromJson(tagSyncRecord.getTagMetadata(), new TypeToken<Map<String, String>>() {
+            }.getType()))
         .excludeTagNameKeyword(true)
         .path(path);
 

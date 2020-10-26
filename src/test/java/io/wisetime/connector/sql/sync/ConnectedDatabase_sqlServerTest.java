@@ -75,6 +75,7 @@ class ConnectedDatabase_sqlServerTest {
             + "[IRN] AS [tag_name], "
             + "[IRN] AS [additional_keyword], "
             + "[TITLE] AS [tag_description], "
+            + "[URL] AS [url], "
             + "[DATE_UPDATED] AS [sync_marker] "
             + "FROM [dbo].[TEST_CASES] "
             + "WHERE [DATE_UPDATED] >= :previous_sync_marker "
@@ -90,6 +91,7 @@ class ConnectedDatabase_sqlServerTest {
     result.setTagDescription("Software for connecting SQL database with timekeeping API");
     result.setAdditionalKeyword("P0100973");
     result.setTagMetadata("{}");
+    result.setUrl("http://www.google.com");
     result.setId("P0100973");
     result.setSyncMarker("2019-08-06 00:00:00.0");
 
@@ -137,6 +139,7 @@ class ConnectedDatabase_sqlServerTest {
             + "[IRN] AS [tag_name], "
             + "[IRN] AS [additional_keyword], "
             + "[TITLE] AS [tag_description], "
+            + "[URL] AS [url], "
             + "[DATE_UPDATED] AS [sync_marker], "
             + "   (SELECT"
             + "     [COUNTRY] as [country], "
@@ -158,6 +161,7 @@ class ConnectedDatabase_sqlServerTest {
     result.setTagDescription("Software for connecting SQL database with timekeeping API");
     result.setAdditionalKeyword("P0100973");
     result.setTagMetadata("{}");
+    result.setUrl("http://www.google.com");
     result.setId("P0100973");
     result.setSyncMarker("2019-08-06 00:00:00.0");
     result.setTagMetadata("{\"country\":\"Germany\",\"location\":\"Berlin\"}");

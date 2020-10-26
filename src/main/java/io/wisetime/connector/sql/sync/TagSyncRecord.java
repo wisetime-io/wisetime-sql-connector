@@ -15,12 +15,14 @@ import lombok.NonNull;
 @Data
 @NoArgsConstructor
 public class TagSyncRecord {
+
   @NonNull
   private String id;
   @NonNull
   private String tagName;
   private String additionalKeyword;
   private String tagDescription;
+  private String url;
   @NotNull
   private String tagMetadata;
   @NonNull
