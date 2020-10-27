@@ -63,6 +63,7 @@ public class ConnectedDatabase {
   Query query() {
     return fluentJdbc.query();
   }
+
   @VisibleForTesting
   TagSyncRecord toTagSyncRecord(final ResultSet resultSet) throws SQLException {
     final TagSyncRecord tagSyncRecord = new TagSyncRecord();
