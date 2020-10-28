@@ -73,6 +73,7 @@ class ConnectedDatabase_postgresSqlTest {
             + " IRN AS tag_name, "
             + " IRN AS additional_keyword, "
             + " TITLE AS tag_description, "
+            + " URL AS url,"
             + " DATE_UPDATED AS sync_marker "
             + " FROM TEST_CASES "
             + " WHERE DATE_UPDATED >= TO_DATE(:previous_sync_marker, 'YYYY-MM-DD') "
@@ -88,6 +89,7 @@ class ConnectedDatabase_postgresSqlTest {
     result.setTagDescription("Software for connecting SQL database with timekeeping API");
     result.setAdditionalKeyword("P0100973");
     result.setTagMetadata("{}");
+    result.setUrl("http://www.google.com");
     result.setId("P0100973");
     result.setSyncMarker("2019-08-06 00:00:00");
 
@@ -135,6 +137,7 @@ class ConnectedDatabase_postgresSqlTest {
             + "  TEST_CASES.IRN AS tag_name, "
             + "  TEST_CASES.IRN AS additional_keyword, "
             + "  TITLE AS tag_description, "
+            + "  URL AS url,"
             + "  DATE_UPDATED AS sync_marker, "
             + "  JSON_BUILD_OBJECT("
             + "    'country', TEST_TAG_METADATA.COUNTRY, "
@@ -155,6 +158,7 @@ class ConnectedDatabase_postgresSqlTest {
     result.setTagDescription("Software for connecting SQL database with timekeeping API");
     result.setAdditionalKeyword("P0100973");
     result.setTagMetadata("{}");
+    result.setUrl("http://www.google.com");
     result.setId("P0100973");
     result.setSyncMarker("2019-08-06 00:00:00");
     result.setTagMetadata("{\"country\" : \"Germany\", \"location\" : \"Berlin\"}");

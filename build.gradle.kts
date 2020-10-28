@@ -12,7 +12,7 @@ plugins {
     `maven-publish`
     id("com.google.cloud.tools.jib") version "1.4.0"
     id("io.freefair.lombok") version "3.8.4"
-    id("io.wisetime.versionChecker").version("0.9.28")
+    id("io.wisetime.versionChecker").version("0.9.29")
     id("fr.brouillard.oss.gradle.jgitver").version("0.9.1")
     id("com.github.ben-manes.versions").version("0.21.0")
 }
