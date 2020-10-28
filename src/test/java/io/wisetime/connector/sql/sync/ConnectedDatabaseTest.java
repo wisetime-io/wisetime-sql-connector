@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Practice Insight Pty Ltd. All Rights Reserved.
+ * Copyright (c) 2020 Practice Insight Pty Ltd. All Rights Reserved.
  */
 
 package io.wisetime.connector.sql.sync;
@@ -13,27 +13,19 @@ import com.zaxxer.hikari.HikariDataSource;
 import io.vavr.control.Try;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class ConnectedDatabaseTest {
 
   public static Faker FAKER = Faker.instance();
 
-  public Map<String, String> dataMap;
-
-  @BeforeEach
-  void beforeEach() {
-    dataMap = getTestDataMap();
-  }
-
   @Test
-  void toTagSyncRecordAllDataPresent() throws SQLException {
+  void toTagSyncRecord_allDataPresent() throws SQLException {
     HikariDataSource dataSource = mock(HikariDataSource.class);
     ConnectedDatabase connectedDatabase = new ConnectedDatabase(dataSource);
+    Map<String, String> dataMap = getTestDataMap();
     ResultSet resultSet = createMockResultSet(dataMap);
     TagSyncRecord tagSyncRecord = connectedDatabase.toTagSyncRecord(resultSet);
     assertThat(tagSyncRecord.getSyncMarker()).isEqualTo(dataMap.get("sync_marker"));
@@ -46,25 +38,11 @@ public class ConnectedDatabaseTest {
   }
 
   @Test
-  void toTagSyncRecordMissingMetadata() throws SQLException {
+  void toTagSyncRecord_missingOptionalData() throws SQLException {
     HikariDataSource dataSource = mock(HikariDataSource.class);
     ConnectedDatabase connectedDatabase = new ConnectedDatabase(dataSource);
+    Map<String, String> dataMap = getTestDataMap();
     dataMap.remove("tag_metadata");
-    ResultSet resultSet = createMockResultSet(dataMap);
-    TagSyncRecord tagSyncRecord = connectedDatabase.toTagSyncRecord(resultSet);
-    assertThat(tagSyncRecord.getSyncMarker()).isEqualTo(dataMap.get("sync_marker"));
-    assertThat(tagSyncRecord.getTagDescription()).isEqualTo(dataMap.get("tag_description"));
-    assertThat(tagSyncRecord.getUrl()).isEqualTo(dataMap.get("url"));
-    assertThat(tagSyncRecord.getTagName()).isEqualTo(dataMap.get("tag_name"));
-    assertThat(tagSyncRecord.getTagMetadata()).isEqualTo("{}");
-    assertThat(tagSyncRecord.getId()).isEqualTo(dataMap.get("id"));
-    assertThat(tagSyncRecord.getAdditionalKeyword()).isEqualTo(dataMap.get("additional_keyword"));
-  }
-
-  @Test
-  void toTagSyncRecordMissingUrl() throws SQLException {
-    HikariDataSource dataSource = mock(HikariDataSource.class);
-    ConnectedDatabase connectedDatabase = new ConnectedDatabase(dataSource);
     dataMap.remove("url");
     ResultSet resultSet = createMockResultSet(dataMap);
     TagSyncRecord tagSyncRecord = connectedDatabase.toTagSyncRecord(resultSet);
@@ -72,7 +50,7 @@ public class ConnectedDatabaseTest {
     assertThat(tagSyncRecord.getTagDescription()).isEqualTo(dataMap.get("tag_description"));
     assertThat(tagSyncRecord.getUrl()).isEqualTo(null);
     assertThat(tagSyncRecord.getTagName()).isEqualTo(dataMap.get("tag_name"));
-    assertThat(tagSyncRecord.getTagMetadata()).isEqualTo(dataMap.get("tag_metadata"));
+    assertThat(tagSyncRecord.getTagMetadata()).isEqualTo("{}");
     assertThat(tagSyncRecord.getId()).isEqualTo(dataMap.get("id"));
     assertThat(tagSyncRecord.getAdditionalKeyword()).isEqualTo(dataMap.get("additional_keyword"));
   }
