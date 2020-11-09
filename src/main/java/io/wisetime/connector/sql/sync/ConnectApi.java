@@ -54,6 +54,7 @@ public class ConnectApi {
         .name(tagSyncRecord.getTagName())
         .additionalKeywords(ImmutableList.of(tagSyncRecord.getAdditionalKeyword()))
         .url(tagSyncRecord.getUrl())
+        .externalId(tagSyncRecord.getExternalId())
         .metadata(
             gson.fromJson(tagSyncRecord.getTagMetadata(), new TypeToken<Map<String, String>>() {
             }.getType()))

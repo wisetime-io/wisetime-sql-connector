@@ -30,7 +30,7 @@ repositories {
 }
 
 dependencies {
-    implementation("io.wisetime:wisetime-connector:2.5.1-1")
+    implementation("io.wisetime:wisetime-connector:2.6.6")
     implementation("io.vavr:vavr:0.10.3")
     implementation("org.apache.commons:commons-configuration2:2.4") {
         exclude("commons-logging")

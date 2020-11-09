@@ -6,6 +6,7 @@ sql: >
   SELECT TOP 100
   [IRN] as [id],
   [IRN] AS [tag_name],
+  [IRN] AS [external_id],
   [IRN] AS [additional_keyword],
   [TITLE] AS [tag_description],
   [URL] AS [url],

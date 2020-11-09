@@ -35,6 +35,8 @@ sql: >
   SELECT TOP 100
   [IRN] as [id],
   [IRN] AS [tag_name],
+  [URL] AS [url],
+  [IRN] AS [external_id],
   [IRN] AS [additional_keyword],
   [TITLE] AS [tag_description],
   (SELECT
@@ -59,6 +61,8 @@ sql: >
   [PRJ_ID] AS [id],
   [IRN] AS [tag_name],
   CONCAT('FID', [PRJ_ID]) AS [additional_keyword],
+  [URL] AS [url],
+  [PRJ_ID] AS [external_id],
   [DESCRIPTION] AS [tag_description],
   (SELECT 
      [CLIENT_NAME] as Client,
@@ -91,10 +95,12 @@ The `TAG_SQL` must select the relevant information as `id`, `tag_name`, `additio
 --- | ---
 | id | Used to perform deduplication during sync when the sync_marker is not unique |
 | tag_name | Used as the tag name when creating a tag for the record |
+| url | Not Required. If present will be used by Wisetime frontend  as a link to the external system |
+| external_id | Not required. id of the activity in the external system |
 | additional_keyword | Used as the keyword to **add** to the tag during upsert. Previous keywords are not removed if the tag already exists. |
 | tag_description | Used as the tag description when creating the tag. This description will be searchable in the WiseTime Console UI. If empty, will not overwrite an existing description when upserting tag. |
 | sync_marker | Used as the sync position marker so that the connector remembers which records it has already synced. Should be comparable. |
-| tag_metadata |  Used as the tag metadata. The metadata represents a map of key-value pairs that will be recorded against the tag, eg. {"url":"http://test.instance/P12012123GBT1", "tag type 1":"Patent", "tag type 2":"Great Britain", "tag type 3":"Divisional"}.  |
+| tag_metadata | Not Required. Used as the tag metadata. The metadata represents a map of key-value pairs that will be recorded against the tag, eg. {"url":"http://test.instance/P12012123GBT1", "tag type 1":"Patent", "tag type 2":"Great Britain", "tag type 3":"Divisional"}.  |
 
 #### Tag metadata
 
@@ -107,13 +113,13 @@ Let's assume that we have two tables: PROJECT and CASES.
  
 **PROJECTS** 
 
-| IRN | CLIENT_NAME | PROJECT_NAME | PROJECT_DESCRIPTION |
---- | --- | --- | ----
-| P1000 | CLIENT 1 | PROJECT 1 | Project description 1 
-| P2000 | CLIENT 2 | PROJECT 2 | Project description 2 
-| P3000 | CLIENT 3 | PROJECT 3 | Project description 3
-| P4000 | CLIENT 4 | PROJECT 4 | Project description 4
-| P5000 | CLIENT 5 | PROJECT 5 | Project description 5
+| IRN | CLIENT_NAME | PROJECT_NAME | PROJECT_DESCRIPTION | URL |
+--- | --- | --- | ---- | ----
+| P1000 | CLIENT 1 | PROJECT 1 | Project description 1 | http://www.google.com 
+| P2000 | CLIENT 2 | PROJECT 2 | Project description 2 | http://www.google.com
+| P3000 | CLIENT 3 | PROJECT 3 | Project description 3 | http://www.google.com
+| P4000 | CLIENT 4 | PROJECT 4 | Project description 4 | http://www.google.com
+| P5000 | CLIENT 5 | PROJECT 5 | Project description 5 | http://www.google.com
 
 **CASES**
 
@@ -152,6 +158,7 @@ For example
 SELECT TOP 100
   [IRN] as [id],
   [IRN] AS [tag_name],
+  [IRN] AS [external_id],
   [IRN] AS [additional_keyword],
   [TITLE] AS [tag_description],
   (SELECT
@@ -168,13 +175,13 @@ SELECT TOP 100
 We will get the following set of values 
 
 
-| id | tag_name | additional_keyword | tag_description |tag_metadata | date_updated |
---- | --- | --- | ---- | --- | ---
-| P1000 | P1000 | P1000 | CASE 1 | { "Client": "CLIENT 1", "Project":"PROJECT 1"}| 01.01.2020
-| P2000 | P2000 | P2000 | CASE 2 | { "Client": "CLIENT 2", "Project":"PROJECT 2"}| 02.01.2020
-| P3000 | P3000 | P3000 | CASE 3 | { "Client": "CLIENT 3", "Project":"PROJECT 3"}| 03.01.2020
-| P4000 | P4000 | P4000 | CASE 4 | { "Client": "CLIENT 4", "Project":"PROJECT 4"}| 04.01.2020
-| P5000 | P5000 | P5000 | CASE 5 | { "Client": "CLIENT 5", "Project":"PROJECT 5"}| 05.01.2020
+| id | tag_name | external_id | additional_keyword | tag_description |tag_metadata | date_updated |
+--- | --- | --- | ---- | --- | --- | ---
+| P1000 | P1000 | P1000 | P1000 | CASE 1 | { "Client": "CLIENT 1", "Project":"PROJECT 1"}| 01.01.2020
+| P2000 | P2000 | P2000 | P1000 | CASE 2 | { "Client": "CLIENT 2", "Project":"PROJECT 2"}| 02.01.2020
+| P3000 | P3000 | P3000 | P1000 | CASE 3 | { "Client": "CLIENT 3", "Project":"PROJECT 3"}| 03.01.2020
+| P4000 | P4000 | P4000 | P1000 | CASE 4 | { "Client": "CLIENT 4", "Project":"PROJECT 4"}| 04.01.2020
+| P5000 | P5000 | P5000 | P1000 | CASE 5 | { "Client": "CLIENT 5", "Project":"PROJECT 5"}| 05.01.2020
 
 
 The similar approach can be used for Postgres database. The query below will return the exactly same result.
@@ -182,6 +189,8 @@ The similar approach can be used for Postgres database. The query below will ret
 SELECT 
   IRN as id,
   IRN AS tag_name,
+  IRN AS external_id,
+  URL AS url,
   IRN AS additional_keyword,
   TITLE AS tag_description,
   (select row_to_json(t)
@@ -216,6 +225,8 @@ Here is an example how we can build tag metadata from multiple tables using INNE
 SELECT TOP 100
   [IRN] as [id],
   [IRN] AS [tag_name],
+  [IRN] AS [external_id],
+  [URL] AS [url],
   [IRN] AS [additional_keyword],
   [TITLE] AS [tag_description],
   (SELECT
@@ -237,13 +248,13 @@ SELECT TOP 100
 
 This query will produce following results 
 
-| id | tag_name | additional_keyword | tag_description |tag_metadata | date_updated |
---- | --- | --- | ---- | --- | ---
-| P1000 | P1000 | P1000 | CASE 1 | { "Client": "CLIENT 1", "Project":"PROJECT 1","Team":"TEAM 1","Task":"TASK 1"}| 01.01.2020
-| P2000 | P2000 | P2000 | CASE 2 | { "Client": "CLIENT 2", "Project":"PROJECT 2","Team":"TEAM 2","Task":"TASK 2"}| 02.01.2020
-| P3000 | P3000 | P3000 | CASE 3 | { "Client": "CLIENT 3", "Project":"PROJECT 3","Team":"TEAM 3","Task":"TASK 3"}| 03.01.2020
-| P4000 | P4000 | P4000 | CASE 4 | { "Client": "CLIENT 4", "Project":"PROJECT 4","Team":"TEAM 4","Task":"TASK 4"}| 04.01.2020
-| P5000 | P5000 | P5000 | CASE 5 | { "Client": "CLIENT 5", "Project":"PROJECT 5","Team":"TEAM 5","Task":"TASK 5"}| 05.01.2020
+| id | tag_name | external_id | url | additional_keyword | tag_description |tag_metadata | date_updated |
+--- | --- | --- | ---- | --- | --- | --- | ---
+| P1000 | P1000 | P1000 | http://www.google.com | P1000 | CASE 1 | { "Client": "CLIENT 1", "Project":"PROJECT 1","Team":"TEAM 1","Task":"TASK 1"}| 01.01.2020
+| P2000 | P2000 | P2000 | http://www.google.com | P1000 | CASE 2 | { "Client": "CLIENT 2", "Project":"PROJECT 2","Team":"TEAM 2","Task":"TASK 2"}| 02.01.2020
+| P3000 | P3000 | P3000 | http://www.google.com | P1000 | CASE 3 | { "Client": "CLIENT 3", "Project":"PROJECT 3","Team":"TEAM 3","Task":"TASK 3"}| 03.01.2020
+| P4000 | P4000 | P4000 | http://www.google.com | P1000 |CASE 4 | { "Client": "CLIENT 4", "Project":"PROJECT 4","Team":"TEAM 4","Task":"TASK 4"}| 04.01.2020
+| P5000 | P5000 | P5000 | http://www.google.com | P1000 |CASE 5 | { "Client": "CLIENT 5", "Project":"PROJECT 5","Team":"TEAM 5","Task":"TASK 5"}| 05.01.2020
 
 
 #### Placeholder Parameters

@@ -70,6 +70,7 @@ public class ConnectedDatabase {
     tagSyncRecord.setId(resultSet.getString("id"));
     tagSyncRecord.setTagName(resultSet.getString("tag_name"));
     tagSyncRecord.setUrl(Try.of(() -> resultSet.getString("url")).getOrNull());
+    tagSyncRecord.setExternalId(Try.of(() -> resultSet.getString("external_id")).getOrNull());
     tagSyncRecord.setTagMetadata(
         Try.of(() -> Optional.ofNullable(resultSet.getString("tag_metadata")).orElse("{}"))
             .getOrElse("{}"));
