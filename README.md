@@ -36,7 +36,7 @@ sql: >
   [IRN] as [id],
   [IRN] AS [tag_name],
   [URL] AS [url],
-  [IRN] AS [external_id],
+  [EBILLREF] AS [external_id],
   [IRN] AS [additional_keyword],
   [TITLE] AS [tag_description],
   (SELECT
@@ -62,7 +62,7 @@ sql: >
   [IRN] AS [tag_name],
   CONCAT('FID', [PRJ_ID]) AS [additional_keyword],
   [URL] AS [url],
-  [PRJ_ID] AS [external_id],
+  [EBILLREF] AS [external_id],
   [DESCRIPTION] AS [tag_description],
   (SELECT 
      [CLIENT_NAME] as Client,
@@ -158,7 +158,7 @@ For example
 SELECT TOP 100
   [IRN] as [id],
   [IRN] AS [tag_name],
-  [IRN] AS [external_id],
+  [EBILLREF] AS [external_id],
   [IRN] AS [additional_keyword],
   [TITLE] AS [tag_description],
   (SELECT
@@ -177,11 +177,11 @@ We will get the following set of values
 
 | id | tag_name | external_id | additional_keyword | tag_description |tag_metadata | date_updated |
 --- | --- | --- | ---- | --- | --- | ---
-| P1000 | P1000 | P1000 | P1000 | CASE 1 | { "Client": "CLIENT 1", "Project":"PROJECT 1"}| 01.01.2020
-| P2000 | P2000 | P2000 | P1000 | CASE 2 | { "Client": "CLIENT 2", "Project":"PROJECT 2"}| 02.01.2020
-| P3000 | P3000 | P3000 | P1000 | CASE 3 | { "Client": "CLIENT 3", "Project":"PROJECT 3"}| 03.01.2020
-| P4000 | P4000 | P4000 | P1000 | CASE 4 | { "Client": "CLIENT 4", "Project":"PROJECT 4"}| 04.01.2020
-| P5000 | P5000 | P5000 | P1000 | CASE 5 | { "Client": "CLIENT 5", "Project":"PROJECT 5"}| 05.01.2020
+| P1000 | P1000 | E1000 | P1000 | CASE 1 | { "Client": "CLIENT 1", "Project":"PROJECT 1"}| 01.01.2020
+| P2000 | P2000 | E2000 | P1000 | CASE 2 | { "Client": "CLIENT 2", "Project":"PROJECT 2"}| 02.01.2020
+| P3000 | P3000 | E3000 | P1000 | CASE 3 | { "Client": "CLIENT 3", "Project":"PROJECT 3"}| 03.01.2020
+| P4000 | P4000 | E4000 | P1000 | CASE 4 | { "Client": "CLIENT 4", "Project":"PROJECT 4"}| 04.01.2020
+| P5000 | P5000 | E5000 | P1000 | CASE 5 | { "Client": "CLIENT 5", "Project":"PROJECT 5"}| 05.01.2020
 
 
 The similar approach can be used for Postgres database. The query below will return the exactly same result.
@@ -225,7 +225,7 @@ Here is an example how we can build tag metadata from multiple tables using INNE
 SELECT TOP 100
   [IRN] as [id],
   [IRN] AS [tag_name],
-  [IRN] AS [external_id],
+  [EBILLREF] AS [external_id],
   [URL] AS [url],
   [IRN] AS [additional_keyword],
   [TITLE] AS [tag_description],
@@ -250,11 +250,11 @@ This query will produce following results
 
 | id | tag_name | external_id | url | additional_keyword | tag_description |tag_metadata | date_updated |
 --- | --- | --- | ---- | --- | --- | --- | ---
-| P1000 | P1000 | P1000 | http://www.google.com | P1000 | CASE 1 | { "Client": "CLIENT 1", "Project":"PROJECT 1","Team":"TEAM 1","Task":"TASK 1"}| 01.01.2020
-| P2000 | P2000 | P2000 | http://www.google.com | P1000 | CASE 2 | { "Client": "CLIENT 2", "Project":"PROJECT 2","Team":"TEAM 2","Task":"TASK 2"}| 02.01.2020
-| P3000 | P3000 | P3000 | http://www.google.com | P1000 | CASE 3 | { "Client": "CLIENT 3", "Project":"PROJECT 3","Team":"TEAM 3","Task":"TASK 3"}| 03.01.2020
-| P4000 | P4000 | P4000 | http://www.google.com | P1000 |CASE 4 | { "Client": "CLIENT 4", "Project":"PROJECT 4","Team":"TEAM 4","Task":"TASK 4"}| 04.01.2020
-| P5000 | P5000 | P5000 | http://www.google.com | P1000 |CASE 5 | { "Client": "CLIENT 5", "Project":"PROJECT 5","Team":"TEAM 5","Task":"TASK 5"}| 05.01.2020
+| P1000 | P1000 | E1000 | http://www.google.com | P1000 | CASE 1 | { "Client": "CLIENT 1", "Project":"PROJECT 1","Team":"TEAM 1","Task":"TASK 1"}| 01.01.2020
+| P2000 | P2000 | E2000 | http://www.google.com | P1000 | CASE 2 | { "Client": "CLIENT 2", "Project":"PROJECT 2","Team":"TEAM 2","Task":"TASK 2"}| 02.01.2020
+| P3000 | P3000 | E3000 | http://www.google.com | P1000 | CASE 3 | { "Client": "CLIENT 3", "Project":"PROJECT 3","Team":"TEAM 3","Task":"TASK 3"}| 03.01.2020
+| P4000 | P4000 | E4000 | http://www.google.com | P1000 |CASE 4 | { "Client": "CLIENT 4", "Project":"PROJECT 4","Team":"TEAM 4","Task":"TASK 4"}| 04.01.2020
+| P5000 | P5000 | E5000 | http://www.google.com | P1000 |CASE 5 | { "Client": "CLIENT 5", "Project":"PROJECT 5","Team":"TEAM 5","Task":"TASK 5"}| 05.01.2020
 
 
 #### Placeholder Parameters
