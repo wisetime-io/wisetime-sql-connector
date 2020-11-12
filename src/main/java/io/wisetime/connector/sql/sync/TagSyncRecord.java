@@ -23,6 +23,7 @@ public class TagSyncRecord {
   private String additionalKeyword;
   private String tagDescription;
   private String url;
+  private String externalId;
   @NotNull
   private String tagMetadata;
   @NonNull

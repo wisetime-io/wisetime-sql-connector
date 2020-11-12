@@ -6,6 +6,8 @@ sql: >
   SELECT TOP 100
   [CASEID] as [id],
   [IRN] AS [tag_name],
+  [IRN] AS [external_id],
+  [URL] AS [url],
   [IRN] AS [additional_keyword],
   [TITLE] AS [tag_description],
   [DATE_UPDATED] AS [sync_marker]

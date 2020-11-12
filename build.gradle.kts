@@ -12,7 +12,7 @@ plugins {
     `maven-publish`
     id("com.google.cloud.tools.jib") version "1.4.0"
     id("io.freefair.lombok") version "3.8.4"
-    id("io.wisetime.versionChecker").version("0.9.29")
+    id("io.wisetime.versionChecker").version("0.9.40")
     id("fr.brouillard.oss.gradle.jgitver").version("0.9.1")
     id("com.github.ben-manes.versions").version("0.21.0")
 }
@@ -30,7 +30,7 @@ repositories {
 }
 
 dependencies {
-    implementation("io.wisetime:wisetime-connector:2.5.1-1")
+    implementation("io.wisetime:wisetime-connector:2.6.8")
     implementation("io.vavr:vavr:0.10.3")
     implementation("org.apache.commons:commons-configuration2:2.4") {
         exclude("commons-logging")
@@ -47,7 +47,9 @@ dependencies {
     // Add more databases as we need to support them
     implementation("com.microsoft.sqlserver:mssql-jdbc:7.4.1.jre8")
     implementation("org.antlr:antlr4-runtime:4.8-1")  // For MS SQL Server useFmtOnly feature
-    implementation("mysql:mysql-connector-java:8.0.21")
+    implementation("mysql:mysql-connector-java:8.0.22"){
+        exclude(group = "com.google.protobuf", module = "protobuf-java")
+    }
     implementation("org.postgresql:postgresql:42.2.16")
 
     compileOnly("org.projectlombok:lombok:1.18.8")
