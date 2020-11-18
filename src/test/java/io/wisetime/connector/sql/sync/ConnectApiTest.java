@@ -14,6 +14,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.github.javafaker.Faker;
 import com.google.gson.Gson;
@@ -24,6 +25,7 @@ import io.wisetime.connector.sql.ConnectorLauncher.SqlConnectorConfigKey;
 import io.wisetime.connector.sql.sync.activity_type.ActivityTypeRecord;
 import io.wisetime.generated.connect.ActivityType;
 import io.wisetime.generated.connect.SyncActivityTypesRequest;
+import io.wisetime.generated.connect.SyncSession;
 import io.wisetime.generated.connect.UpsertTagRequest;
 import java.io.IOException;
 import java.util.List;
@@ -136,6 +138,29 @@ class ConnectApiTest {
     TagSyncRecord record = randomTagSyncRecord();
     doThrow(new IOException()).when(mockApiClient).tagUpsertBatch(anyList());
     assertThrows(RuntimeException.class, () -> connectApi.upsertWiseTimeTags(List.of(record)));
+  }
+
+  @Test
+  void startSyncSession() throws Exception {
+    final String syncSessionId = faker.numerify("sync-session-###");
+    when(mockApiClient.activityTypesStartSyncSession())
+        .thenReturn(new SyncSession().syncSessionId(syncSessionId));
+
+    final String result = connectApi.startSyncSession();
+
+    assertThat(result).isEqualTo(syncSessionId);
+    verify(mockApiClient, times(1)).activityTypesStartSyncSession();
+  }
+
+  @Test
+  void completeSyncSession() throws Exception {
+    final String syncSessionId = faker.numerify("sync-session-###");
+
+    connectApi.completeSyncSession(syncSessionId);
+
+    verify(mockApiClient, times(1)).activityTypesCompleteSyncSession(
+        new SyncSession()
+            .syncSessionId(syncSessionId));
   }
 
   @Test
