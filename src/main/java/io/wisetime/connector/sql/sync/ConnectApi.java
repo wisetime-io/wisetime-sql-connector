@@ -78,20 +78,24 @@ public class ConnectApi {
             .description(activityTypeRecord.getDescription()))
         .collect(Collectors.toList());
 
-    Try.run(() -> apiClient.syncActivityTypes(new SyncActivityTypesRequest()
-        .syncSessionId(sessionId)
-        .activityTypes(activityTypes)))
-        .onFailure(ioe -> {
-          throw new RuntimeException(ioe);
-        });
+    try {
+      apiClient.syncActivityTypes(new SyncActivityTypesRequest()
+          .syncSessionId(sessionId)
+          .activityTypes(activityTypes));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private UpsertTagRequest toUpsertTagRequest(final TagSyncRecord tagSyncRecord, final String path) {
     final UpsertTagRequest request = new UpsertTagRequest()
         .name(tagSyncRecord.getTagName())
         .additionalKeywords(ImmutableList.of(tagSyncRecord.getAdditionalKeyword()))
-        .metadata(gson.fromJson(tagSyncRecord.getTagMetadata(), new TypeToken<Map<String, String>>() {
-        }.getType()))
+        .url(tagSyncRecord.getUrl())
+        .externalId(tagSyncRecord.getExternalId())
+        .metadata(
+            gson.fromJson(tagSyncRecord.getTagMetadata(), new TypeToken<Map<String, String>>() {
+            }.getType()))
         .excludeTagNameKeyword(true)
         .path(path);
 

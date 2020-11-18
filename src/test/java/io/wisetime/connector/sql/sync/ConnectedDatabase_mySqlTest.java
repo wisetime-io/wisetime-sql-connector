@@ -70,6 +70,8 @@ class ConnectedDatabase_mySqlTest {
             + "  IRN AS tag_name, "
             + "  IRN AS additional_keyword, "
             + "  TITLE AS tag_description, "
+            + "  URL AS url,"
+            + "  IRN AS external_id,"
             + "  DATE_UPDATED AS sync_marker "
             + " FROM TEST_CASES "
             + " WHERE DATE_UPDATED >= :previous_sync_marker "
@@ -86,6 +88,8 @@ class ConnectedDatabase_mySqlTest {
     result.setTagDescription("Software for connecting SQL database with timekeeping API");
     result.setAdditionalKeyword("P0100973");
     result.setTagMetadata("{}");
+    result.setUrl("http://www.google.com");
+    result.setExternalId("P0100973");
     result.setId("P0100973");
     result.setSyncMarker("2019-08-06 00:00:00");
 
@@ -132,6 +136,8 @@ class ConnectedDatabase_mySqlTest {
             + "  TEST_CASES.IRN AS tag_name, "
             + "  TEST_CASES.IRN AS additional_keyword, "
             + "  TITLE AS tag_description, "
+            + "  URL AS url,"
+            + "  TEST_CASES.IRN AS external_id, "
             + "  DATE_UPDATED AS sync_marker, "
             + "  JSON_OBJECT("
             + "    'country', TEST_TAG_METADATA.COUNTRY, "
@@ -152,6 +158,8 @@ class ConnectedDatabase_mySqlTest {
     result.setTagDescription("Software for connecting SQL database with timekeeping API");
     result.setAdditionalKeyword("P0100973");
     result.setTagMetadata("{}");
+    result.setUrl("http://www.google.com");
+    result.setExternalId("P0100973");
     result.setId("P0100973");
     result.setSyncMarker("2019-08-06 00:00:00");
     result.setTagMetadata("{\"country\": \"Germany\", \"location\": \"Berlin\"}");

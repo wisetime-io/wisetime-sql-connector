@@ -79,6 +79,8 @@ class ConnectApiTest {
     final UpsertTagRequest request1 = new UpsertTagRequest()
         .name(record1.getTagName())
         .additionalKeywords(List.of(record1.getAdditionalKeyword()))
+        .url(record1.getUrl())
+        .externalId(record1.getExternalId())
         .metadata(gson.fromJson(record1.getTagMetadata(), new TypeToken<Map<String, String>>() {
         }.getType()))
         .description(record1.getTagDescription())
@@ -87,6 +89,8 @@ class ConnectApiTest {
 
     final UpsertTagRequest request2 = new UpsertTagRequest()
         .name(record2.getTagName())
+        .url(record2.getUrl())
+        .externalId(record2.getExternalId())
         .additionalKeywords(List.of(record2.getAdditionalKeyword()))
         .metadata(gson.fromJson(record2.getTagMetadata(), new TypeToken<Map<String, String>>() {
         }.getType()))

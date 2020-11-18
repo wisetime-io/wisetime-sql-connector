@@ -22,7 +22,7 @@ steps:
         path: /cache
 
   - name: check-versions
-    image: openjdk:8-jdk
+    image: openjdk:11-jdk
     environment:
       GRADLE_USER_HOME: .gcache
       GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
@@ -36,7 +36,7 @@ steps:
         - push
 
   - name: unit-test
-    image: openjdk:8-jdk-slim
+    image: openjdk:11-jdk-slim
     environment:
       GRADLE_USER_HOME: .gcache
       GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
@@ -59,7 +59,7 @@ steps:
         path: /cache
 
   - name: publish-to-s3
-    image: openjdk:8-jdk
+    image: openjdk:11-jdk
     environment:
       GRADLE_USER_HOME: .gcache
       GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
@@ -75,7 +75,7 @@ steps:
         - refs/tags/*
 
   - name: cascade-to-bamboo
-    image: quay.io/wt-build-support/alpine-git-bash
+    image: registry.dev.wisetime.com/git
     environment:
       BAMBOO_USER:
         from_secret: bamboo-user
@@ -137,7 +137,7 @@ depends_on:
 
 steps:
   - name: github-push
-    image: quay.io/wt-build-support/alpine-git-bash
+    image: registry.dev.wisetime.com/git
     pull: true
     environment:
       GITHUB_SSH_KEY_B64:

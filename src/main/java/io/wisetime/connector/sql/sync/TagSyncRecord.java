@@ -5,6 +5,7 @@
 package io.wisetime.connector.sql.sync;
 
 import io.vavr.control.Try;
+import java.util.Optional;
 import javax.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,6 +27,8 @@ public class TagSyncRecord {
   private String tagName;
   private String additionalKeyword;
   private String tagDescription;
+  private String url;
+  private String externalId;
   @NotNull
   private String tagMetadata;
   @NonNull
@@ -35,7 +38,12 @@ public class TagSyncRecord {
     return resultSet -> new TagSyncRecord()
         .setId(resultSet.getString("id"))
         .setTagName(resultSet.getString("tag_name"))
+        .setUrl(Try.of(() -> resultSet.getString("url")).getOrNull())
         .setTagMetadata(Try.of(() -> resultSet.getString("tag_metadata")).getOrElse("{}"))
+        .setExternalId(Try.of(() -> resultSet.getString("external_id")).getOrNull())
+        .setTagMetadata(
+            Try.of(() -> Optional.ofNullable(resultSet.getString("tag_metadata")).orElse("{}"))
+                .getOrElse("{}"))
         .setAdditionalKeyword(resultSet.getString("additional_keyword"))
         .setTagDescription(resultSet.getString("tag_description"))
         .setSyncMarker(resultSet.getString("sync_marker"));
