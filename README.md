@@ -285,41 +285,55 @@ The following configuration parameters are optional.
 The yaml configuration file expects single SQL query to be provided. Here's a sample `ACTIVITY_TYPE_SQL_FILE`:
 
 ```yaml
+initialSyncMarker: 0
 skippedCodes:
   - 23456
 sql: >
-  SELECT
+  SELECT TOP 100
   [ACTIVITYCODE] AS [code],
-  [ACTIVITYNAME] AS [description]
+  [ACTIVITYCODE] AS [sync_marker],
+  [ACTIVITYNAME] AS [label]
+  [ACTIVITYDESCRIPTION] AS [description]
   FROM [dbo].[TEST_ACTIVITYCODES]
-  WHERE [ACTIVITYCODE] NOT IN (:skipped_codes)
-  ORDER BY [code];
+  WHERE [ACTIVITYCODE] NOT IN (:skipped_codes) AND [ACTIVITYCODE] > :previous_sync_marker
+  ORDER BY [sync_marker];
 ```
 
-In the above example, we have provided a query that the connector will run and sync all the fetched activity types to WiseTime in one request if any of the activity type has been changed/created/deleted since previous sync.
+In the above example, we have provided a query that the connector will use for both regular and slow loop sync.
 
-It's highly recommended to use `ORDER BY` in your query to reduce the potential load on WiseTime as we use a caching mechanism that is order-dependent
+If `sync_marker` is used the query must be sorted by it (e.g. `ORDER BY [sync_marker]`). A column that is used as `sync_marker` must be not updatable.
+
+The `initialSyncMarker` configuration is required and specifies the first value to be used for `:previous_sync_marker`.
 
 Selecting an empty list will disable all the existing WiseTime activity types.
 
-`skippedCodes` is an optional property. You can omit it if there are no activity types you would like to avoid syncing. You must avoid using `skipped_codes` in your SQL in this case. Here's an example:
+`skippedCodes` is an optional property. You can omit it if there are no activity types you would like to avoid syncing. You must avoid using `skipped_codes` in your SQL in this case.
+
+If there's no column you can use as `sync_marker` you should avoid it. You should also avoid using `TOP`/`LIMIT` in your query so connector will fetch all the activity types on each run and sync them if any has been changed/created/deleted since previous sync.
+
+It's highly recommended to use `ORDER BY` in your query to reduce the potential load on WiseTime as we use a caching mechanism that is order-dependent
+ 
+Here's an example:
 ```yaml
 sql: >
   SELECT
   [ACTIVITYCODE] AS [code],
-  [ACTIVITYNAME] AS [description]
-  FROM [dbo].[TEST_ACTIVITYCODES]
+  [ACTIVITYNAME] AS [label]
+  [ACTIVITYDESCRIPTION] AS [description]
+  FROM [dbo].[TEST_ACTIVITYCODES];
   ORDER BY [code];
 ```
 
 #### Selected Fields
 
-The `ACTIVITY_TYPE_SQL_FILE` must select the relevant information as `code` and `description` of the activity type.
+The `ACTIVITY_TYPE_SQL_FILE` must select the relevant information as `code`, `label` and `description` of the activity type.
 
 | Field | Explanation |
 --- | ---
 | code | Will be used as activity type code during time posting |
-| description | Used as the WiseTime console label of the created activity type |
+| label | Used as the WiseTime console label of the created activity type |
+| description | Used as the WiseTime console description of the created activity type |
+| sync_marker | Used as the sync position marker so that the connector remembers which records it has already synced. Should be comparable. Should NOT be updatable if it's not a date. |
 
 ## Running the WiseTime SQL Connector
 

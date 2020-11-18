@@ -6,10 +6,10 @@ package io.wisetime.connector.sql.queries;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -34,7 +34,8 @@ class YamlFileParserTest {
             .as("properly parsed")
             .isEqualTo(new ActivityTypeQuery(
                 "SELECT 'activitycodes' WHERE codes NOT IN (:skipped_codes)",
-                ImmutableList.of("123")
+                null,
+                List.of("123")
             )));
   }
 
@@ -43,7 +44,7 @@ class YamlFileParserTest {
     final Path path = Files.createTempFile("tag_query_test_deletes", ".yaml");
     final YamlFileParser<TagQuery> yamlParser = new YamlFileParser<>(TagQuery.class);
 
-    Files.write(path, ImmutableList.of(
+    Files.write(path, List.of(
         "name: cases",
         "initialSyncMarker: 1",
         "skippedIds: [1]",
@@ -62,8 +63,8 @@ class YamlFileParserTest {
         .hasSize(2)
         .as("properly parsed")
         .containsExactly(
-            new TagQuery("cases", "SELECT 1", "1", ImmutableList.of("1"), true),
-            new TagQuery("cases", "SELECT 2", "2", ImmutableList.of("2"), false));
+            new TagQuery("cases", "SELECT 1", "1", List.of("1"), true),
+            new TagQuery("cases", "SELECT 2", "2", List.of("2"), false));
   }
 
   private Path writeToFile(Path path, String content) {

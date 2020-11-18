@@ -2,7 +2,7 @@
  * Copyright (c) 2020 Practice Insight Pty Ltd. All Rights Reserved.
  */
 
-package io.wisetime.connector.sql.sync;
+package io.wisetime.connector.sql.sync.activity_type.hash;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
@@ -14,6 +14,8 @@ import static org.mockito.Mockito.when;
 
 import io.wisetime.connector.datastore.ConnectorStore;
 import io.wisetime.connector.sql.RandomEntities;
+import io.wisetime.connector.sql.sync.activity_type.ActivityTypeRecord;
+import io.wisetime.connector.sql.sync.activity_type.hash.ActivityTypeSyncStore;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;

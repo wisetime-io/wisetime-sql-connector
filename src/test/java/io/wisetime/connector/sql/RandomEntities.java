@@ -7,13 +7,15 @@ package io.wisetime.connector.sql;
 import com.github.javafaker.Faker;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
+import io.wisetime.connector.sql.queries.ActivityTypeQuery;
 import io.wisetime.connector.sql.queries.TagQuery;
-import io.wisetime.connector.sql.sync.ActivityTypeRecord;
+import io.wisetime.connector.sql.sync.activity_type.ActivityTypeRecord;
 import io.wisetime.connector.sql.sync.TagSyncRecord;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Generate random entities for tests.
@@ -47,7 +49,9 @@ public class RandomEntities {
   public static ActivityTypeRecord randomActivityTypeRecord() {
     return new ActivityTypeRecord(
         faker.numerify("code-###"),
-        faker.numerify("description-###"));
+        faker.numerify("label-###"),
+        faker.numerify("description-###"),
+        faker.numerify("sync-marker-###"));
   }
 
   public static String fixedTime() {
@@ -70,5 +74,12 @@ public class RandomEntities {
     tagQuery.setSkippedIds(Collections.emptyList());
     tagQuery.setContinuousResync(faker.random().nextBoolean());
     return tagQuery;
+  }
+
+  public static ActivityTypeQuery randomActivityTypeQuery() {
+    return new ActivityTypeQuery(
+        "SELECT '" + faker.lorem().sentence() + "'",
+        faker.numerify("sync-marker-###"),
+        List.of());
   }
 }

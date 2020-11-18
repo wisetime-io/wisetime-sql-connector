@@ -5,23 +5,22 @@
 package io.wisetime.connector.sql;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import io.wisetime.connector.sql.queries.ActivityTypeQuery;
 import io.wisetime.connector.sql.queries.ActivityTypeQueryProvider;
 import io.wisetime.connector.sql.queries.TagQueryProvider;
-import io.wisetime.connector.sql.sync.ActivityTypeRecord;
-import io.wisetime.connector.sql.sync.ActivityTypeSyncStore;
 import io.wisetime.connector.sql.sync.ConnectApi;
 import io.wisetime.connector.sql.sync.ConnectedDatabase;
+import io.wisetime.connector.sql.sync.activity_type.ActivityTypeSyncService;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -32,105 +31,143 @@ class SqlConnectorActivityTypeUpdateTest {
 
   private final ConnectedDatabase databaseMock = mock(ConnectedDatabase.class);
   private final ActivityTypeQueryProvider activityTypeQueryProvider = mock(ActivityTypeQueryProvider.class);
-  private final ActivityTypeSyncStore activityTypeSyncStoreMock = mock(ActivityTypeSyncStore.class);
+  private final ActivityTypeSyncService activityTypeSyncWithHashServiceMock = mock(ActivityTypeSyncService.class);
+  private final ActivityTypeSyncService activityTypeSyncWithMarkerServiceMock = mock(ActivityTypeSyncService.class);
   private final ConnectApi connectApiMock = mock(ConnectApi.class);
   private SqlConnector connector;
 
   @BeforeEach
   void init() {
     connector = new SqlConnector(databaseMock, mock(TagQueryProvider.class), activityTypeQueryProvider);
-    connector.setActivityTypeSyncStore(activityTypeSyncStoreMock);
+    connector.setActivityTypeSyncWithHashService(activityTypeSyncWithHashServiceMock);
+    connector.setActivityTypeSyncWithMarkerService(activityTypeSyncWithMarkerServiceMock);
     connector.setConnectApi(connectApiMock);
   }
 
   @Test
   void performActivityTypeUpdate_noQueries() {
     when(activityTypeQueryProvider.getQueries())
-        .thenReturn(ImmutableList.of());
+        .thenReturn(List.of());
 
     connector.performActivityTypeUpdate();
 
-    verifyZeroInteractions(databaseMock, activityTypeSyncStoreMock, connectApiMock);
+    verifyZeroInteractions(
+        databaseMock, activityTypeSyncWithHashServiceMock, activityTypeSyncWithMarkerServiceMock, connectApiMock);
   }
 
   @Test
-  void performActivityTypeUpdate_noActivityTypes() {
+  void performActivityTypeUpdateSlowLoop_noQueries() {
     when(activityTypeQueryProvider.getQueries())
-        .thenReturn(ImmutableList.of(new ActivityTypeQuery("SELECT 1", ImmutableList.of())));
+        .thenReturn(List.of());
 
-    final ImmutableList<ActivityTypeRecord> activityTypeRecords = ImmutableList.of();
-    when(databaseMock.getActivityTypes(any()))
-        .thenReturn(activityTypeRecords);
-    when(activityTypeSyncStoreMock.isSynced(activityTypeRecords))
-        .thenReturn(Boolean.FALSE);
+    connector.performActivityTypeUpdateSlowLoop();
 
-    connector.performActivityTypeUpdate();
-
-    // empty activity types should be synced
-    verify(connectApiMock, times(1)).syncActivityTypes(activityTypeRecords);
-    verify(activityTypeSyncStoreMock, times(1)).markSynced(activityTypeRecords);
+    verifyZeroInteractions(
+        databaseMock, activityTypeSyncWithHashServiceMock, activityTypeSyncWithMarkerServiceMock, connectApiMock);
   }
 
   @Test
-  void performActivityTypeUpdate_syncedLongTimeAgo() {
+  void performActivityTypeUpdate_usingHash() {
+    // query without sync_marker, hashing method should be used
+    final ActivityTypeQuery activityTypeQuery = RandomEntities.randomActivityTypeQuery();
     when(activityTypeQueryProvider.getQueries())
-        .thenReturn(ImmutableList.of(new ActivityTypeQuery("SELECT 1", ImmutableList.of())));
+        .thenReturn(List.of(activityTypeQuery));
 
-    final ImmutableList<ActivityTypeRecord> activityTypeRecords = ImmutableList.of(
-        RandomEntities.randomActivityTypeRecord());
-    when(databaseMock.getActivityTypes(any()))
-        .thenReturn(activityTypeRecords);
-    when(activityTypeSyncStoreMock.isSynced(activityTypeRecords))
-        .thenReturn(Boolean.TRUE);
-    when(activityTypeSyncStoreMock.lastSyncedOlderThan(any()))
-        .thenReturn(Boolean.TRUE);
-
+    // check regular update
     connector.performActivityTypeUpdate();
+    // service with hashing should be used
+    verify(activityTypeSyncWithHashServiceMock, times(1)).performActivityTypeUpdate(activityTypeQuery);
+    verifyNoMoreInteractions(activityTypeSyncWithHashServiceMock);
+    reset(activityTypeSyncWithHashServiceMock);
 
-    verify(connectApiMock, times(1)).syncActivityTypes(activityTypeRecords);
-    verify(activityTypeSyncStoreMock, times(1)).markSynced(activityTypeRecords);
+    // check slow loop
+    connector.performActivityTypeUpdateSlowLoop();
+    // service with hashing should be used
+    verify(activityTypeSyncWithHashServiceMock, times(1)).performActivityTypeUpdateSlowLoop(activityTypeQuery);
+    verifyNoMoreInteractions(activityTypeSyncWithHashServiceMock);
+
+    verifyZeroInteractions(activityTypeSyncWithMarkerServiceMock);
   }
 
   @Test
-  void performActivityTypeUpdate_alreadySyncedRecently() {
+  void performActivityTypeUpdate_usingSyncMarker() {
+    // query with sync_marker, marker method should be used
+    final ActivityTypeQuery activityTypeQuery = queryWithSyncMarker();
+
     when(activityTypeQueryProvider.getQueries())
-        .thenReturn(ImmutableList.of(new ActivityTypeQuery("SELECT 1", ImmutableList.of())));
+        .thenReturn(List.of(activityTypeQuery));
 
-    final ImmutableList<ActivityTypeRecord> activityTypeRecords = ImmutableList.of(
-        RandomEntities.randomActivityTypeRecord());
-    when(databaseMock.getActivityTypes(any()))
-        .thenReturn(activityTypeRecords);
-    when(activityTypeSyncStoreMock.isSynced(activityTypeRecords))
-        .thenReturn(Boolean.TRUE);
-    when(activityTypeSyncStoreMock.lastSyncedOlderThan(any()))
-        .thenReturn(Boolean.FALSE);
-
+    // check regular update
     connector.performActivityTypeUpdate();
+    // service with marker should be used
+    verify(activityTypeSyncWithMarkerServiceMock, times(1)).performActivityTypeUpdate(activityTypeQuery);
+    verifyNoMoreInteractions(activityTypeSyncWithMarkerServiceMock);
+    reset(activityTypeSyncWithMarkerServiceMock);
 
-    verify(connectApiMock, never()).syncActivityTypes(anyList());
-    verify(activityTypeSyncStoreMock, never()).markSynced(anyList());
+    // check slow loop
+    connector.performActivityTypeUpdateSlowLoop();
+    // service with marker should be used
+    verify(activityTypeSyncWithMarkerServiceMock, times(1)).performActivityTypeUpdateSlowLoop(activityTypeQuery);
+    verifyNoMoreInteractions(activityTypeSyncWithMarkerServiceMock);
+
+    verifyZeroInteractions(activityTypeSyncWithHashServiceMock);
   }
 
   @Test
   void performActivityTypeUpdate_exceptionShouldNotPreventNextRun() {
-    when(activityTypeQueryProvider.getQueries())
-        .thenReturn(ImmutableList.of(new ActivityTypeQuery("SELECT 1", ImmutableList.of())));
+    final ActivityTypeQuery activityTypeQuery = RandomEntities.randomActivityTypeQuery();
 
-    final ImmutableList<ActivityTypeRecord> activityTypeRecords = ImmutableList.of(
-        RandomEntities.randomActivityTypeRecord());
-    when(databaseMock.getActivityTypes(any()))
-        .thenThrow(new RuntimeException("First call throws"))
-        .thenReturn(activityTypeRecords);
+    when(activityTypeQueryProvider.getQueries())
+        .thenReturn(List.of(activityTypeQuery));
+
+    doThrow(new RuntimeException("First call throws"))
+        .doNothing()
+        .when(activityTypeSyncWithHashServiceMock).performActivityTypeUpdate(activityTypeQuery);
 
     // first call does nothing as throws exception
     assertThrows(RuntimeException.class, () -> connector.performActivityTypeUpdate());
-    verify(connectApiMock, never()).syncActivityTypes(anyList());
-    verify(activityTypeSyncStoreMock, never()).markSynced(anyList());
+    verify(activityTypeSyncWithHashServiceMock, times(1)).performActivityTypeUpdate(activityTypeQuery);
+    verifyZeroInteractions(connectApiMock, databaseMock, activityTypeSyncWithMarkerServiceMock);
+    reset(activityTypeSyncWithHashServiceMock);
 
     // second call should proceed normally
     connector.performActivityTypeUpdate();
-    verify(connectApiMock, times(1)).syncActivityTypes(activityTypeRecords);
-    verify(activityTypeSyncStoreMock, times(1)).markSynced(activityTypeRecords);
+    verify(activityTypeSyncWithHashServiceMock, times(1)).performActivityTypeUpdate(activityTypeQuery);
+  }
+
+  @Test
+  void performActivityTypeUpdateSlowLoop_exceptionShouldNotPreventNextRun() {
+    final ActivityTypeQuery activityTypeQuery = queryWithSyncMarker();
+
+    when(activityTypeQueryProvider.getQueries())
+        .thenReturn(List.of(activityTypeQuery));
+
+    doThrow(new RuntimeException("First call throws"))
+        .doNothing()
+        .when(activityTypeSyncWithMarkerServiceMock).performActivityTypeUpdateSlowLoop(activityTypeQuery);
+
+    // first call does nothing as throws exception
+    assertThrows(RuntimeException.class, () -> connector.performActivityTypeUpdateSlowLoop());
+    verify(activityTypeSyncWithMarkerServiceMock, times(1)).performActivityTypeUpdateSlowLoop(activityTypeQuery);
+    verifyZeroInteractions(connectApiMock, databaseMock, activityTypeSyncWithHashServiceMock);
+    reset(activityTypeSyncWithMarkerServiceMock);
+
+    // second call should proceed normally
+    connector.performActivityTypeUpdateSlowLoop();
+    verify(activityTypeSyncWithMarkerServiceMock, times(1)).performActivityTypeUpdateSlowLoop(activityTypeQuery);
+  }
+
+  private ActivityTypeQuery queryWithSyncMarker() {
+    return new ActivityTypeQuery(
+        "SELECT TOP 100"
+            + "  [ACTIVITYCODE] AS [code],"
+            + "  [ACTIVITYCODE] AS [sync_marker],"
+            + "  [ACTIVITYNAME] AS [label]"
+            + "  [ACTIVITYDESCRIPTION] AS [description]"
+            + "  FROM [dbo].[TEST_ACTIVITYCODES]"
+            + "  WHERE [ACTIVITYCODE] > :previous_sync_marker"
+            + "  ORDER BY [sync_marker]",
+        "0", List.of());
   }
 
 }

@@ -9,8 +9,10 @@ import com.google.common.base.Preconditions;
 import com.zaxxer.hikari.HikariDataSource;
 import io.vavr.control.Try;
 import io.wisetime.connector.sql.queries.ActivityTypeQuery;
+import io.wisetime.connector.sql.sync.activity_type.ActivityTypeRecord;
 import java.util.LinkedList;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 import org.codejargon.fluentjdbc.api.FluentJdbc;
 import org.codejargon.fluentjdbc.api.FluentJdbcBuilder;
 import org.codejargon.fluentjdbc.api.mapper.Mappers;
@@ -54,11 +56,16 @@ public class ConnectedDatabase {
   }
 
   public List<ActivityTypeRecord> getActivityTypes(final ActivityTypeQuery query) {
+    return getActivityTypes(query, StringUtils.EMPTY);
+  }
+
+  public List<ActivityTypeRecord> getActivityTypes(final ActivityTypeQuery query, final String syncMarker) {
     query.enforceValid();
     return query()
         .select(query.getSql())
         .namedParam("skipped_codes", query.getSkippedCodes())
-        .listResult(ActivityTypeRecord.fluentJdbcMapper());
+        .namedParam("previous_sync_marker", syncMarker)
+        .listResult(ActivityTypeRecord.fluentJdbcMapper(query.hasSyncMarker()));
   }
 
   public void close() {

@@ -57,7 +57,7 @@ class SqlConnectorTest {
 
   @Test
   void init_without_error() {
-    connector.init(new ConnectorModule(mockApiClient, mockConnectorStore, 5));
+    connector.init(new ConnectorModule(mockApiClient, mockConnectorStore, 5, 15));
   }
 
   @Test

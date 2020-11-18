@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 public class ActivityTypeQuery {
 
   private String sql;
+  private String initialSyncMarker;
   private List<String> skippedCodes = Collections.emptyList();
 
   public void enforceValid() {
@@ -38,5 +39,20 @@ public class ActivityTypeQuery {
       Preconditions.checkArgument(hasSkippedCodesInSql,
           "To skip provided codes your activity type query SQL must contain `:skipped_codes` parameter.");
     }
+    final boolean hasInitialSyncMarker = StringUtils.isNotEmpty(initialSyncMarker);
+    final boolean hasSyncMarkerInSql = hasSyncMarker();
+    if (hasSyncMarkerInSql) {
+      Preconditions.checkArgument(hasInitialSyncMarker,
+          "Sync marker is used in SQL. Initial sync marker should be defined.");
+    }
+    if (hasInitialSyncMarker) {
+      Preconditions.checkArgument(hasSyncMarkerInSql,
+          "Initial sync marker is found while SQL doesn't contain required 'sync_marker' "
+              + "field and/or ':previous_sync_marker' parameter.");
+    }
+  }
+
+  public boolean hasSyncMarker() {
+    return sql.contains("sync_marker") && sql.contains(":previous_sync_marker");
   }
 }

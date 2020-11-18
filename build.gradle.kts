@@ -30,7 +30,7 @@ repositories {
 }
 
 dependencies {
-    implementation("io.wisetime:wisetime-connector:2.5.0")
+    implementation("io.wisetime:wisetime-connector:2.6.0")
     implementation("io.vavr:vavr:0.10.3")
     implementation("org.apache.commons:commons-configuration2:2.5") {
         exclude("commons-logging")
@@ -67,8 +67,8 @@ dependencies {
     testImplementation("org.assertj:assertj-core:3.13.2")
 }
 
-java.sourceCompatibility = JavaVersion.VERSION_1_8
-java.targetCompatibility = JavaVersion.VERSION_1_8
+java.sourceCompatibility = JavaVersion.VERSION_11
+java.targetCompatibility = JavaVersion.VERSION_11
 
 application {
     mainClassName = "ConnectorLauncher"

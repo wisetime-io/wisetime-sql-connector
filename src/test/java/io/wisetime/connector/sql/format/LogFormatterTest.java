@@ -5,7 +5,7 @@
 package io.wisetime.connector.sql.format;
 
 import static io.wisetime.connector.sql.RandomEntities.randomTagSyncRecord;
-import static io.wisetime.connector.sql.format.LogFormatter.format;
+import static io.wisetime.connector.sql.format.LogFormatter.formatTags;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
@@ -19,13 +19,13 @@ class LogFormatterTest {
 
   @Test
   void format_no_records_synced() {
-    assertThat(format(ImmutableList.of())).isEqualTo("Synced 0 tag|keyword pairs");
+    assertThat(formatTags(ImmutableList.of())).isEqualTo("Synced 0 tag|keyword pairs");
   }
 
   @Test
   void format_one_record_synced() {
     final TagSyncRecord record = randomTagSyncRecord();
-    assertThat(format(ImmutableList.of(record)))
+    assertThat(formatTags(ImmutableList.of(record)))
         .isEqualTo("Synced 1 tag|keyword pair " + record.getTagName() + "|" + record.getAdditionalKeyword());
   }
 
@@ -34,7 +34,7 @@ class LogFormatterTest {
     final TagSyncRecord record1 = randomTagSyncRecord();
     final TagSyncRecord record2 = randomTagSyncRecord();
 
-    assertThat(format(ImmutableList.of(record1, record2)))
+    assertThat(formatTags(ImmutableList.of(record1, record2)))
         .isEqualTo("Synced 2 tag|keyword pairs " + record1.getTagName() + "|"
             + record1.getAdditionalKeyword()
             + ", " + record2.getTagName() + "|" + record2.getAdditionalKeyword());
@@ -45,7 +45,7 @@ class LogFormatterTest {
     final TagSyncRecord first = randomTagSyncRecord();
     final TagSyncRecord last = randomTagSyncRecord();
 
-    assertThat(format(ImmutableList.of(
+    assertThat(formatTags(ImmutableList.of(
         first,
         randomTagSyncRecord(),
         randomTagSyncRecord(),

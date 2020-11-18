@@ -1,9 +1,12 @@
+initialSyncMarker: 0
 skippedCodes:
   - 23456
 sql: >
-  SELECT
+  SELECT TOP 100
   [ACTIVITYCODE] AS [code],
-  [ACTIVITYNAME] AS [description]
+  [ACTIVITYCODE] AS [sync_marker],
+  [ACTIVITYNAME] AS [label]
+  [ACTIVITYDESCRIPTION] AS [description]
   FROM [dbo].[TEST_ACTIVITYCODES]
-  WHERE [ACTIVITYCODE] NOT IN (:skipped_codes)
-  ORDER BY [code];
+  WHERE [ACTIVITYCODE] NOT IN (:skipped_codes) AND [ACTIVITYCODE] > :previous_sync_marker
+  ORDER BY [sync_marker];

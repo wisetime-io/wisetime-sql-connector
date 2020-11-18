@@ -11,7 +11,6 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -35,6 +34,7 @@ class ActivityTypeQueryProviderIntegrationTest {
   }
 
   @Test
+  @SuppressWarnings("ConstantConditions")
   void getQueries_correctlyParsed() {
     final String fileLocation = getClass().getClassLoader().getResource("activity_types_sql.yaml").getPath();
     final ActivityTypeQueryProvider queryProvider = new ActivityTypeQueryProvider(Paths.get(fileLocation));
@@ -45,12 +45,15 @@ class ActivityTypeQueryProviderIntegrationTest {
         .isEqualTo(1);
 
     final ActivityTypeQuery expectedQuery = new ActivityTypeQuery(
-        "SELECT"
+        "SELECT TOP 100"
             + " [ACTIVITYCODE] AS [code],"
-            + " [ACTIVITYNAME] AS [description]"
+            + " [ACTIVITYCODE] AS [sync_marker],"
+            + " [ACTIVITYNAME] AS [label]"
+            + " [ACTIVITYDESCRIPTION] AS [description]"
             + " FROM [dbo].[TEST_ACTIVITYCODES]"
-            + " WHERE [ACTIVITYCODE] NOT IN (:skipped_codes)"
-            + " ORDER BY [code];",
+            + " WHERE [ACTIVITYCODE] NOT IN (:skipped_codes) AND [ACTIVITYCODE] > :previous_sync_marker"
+            + " ORDER BY [sync_marker];",
+        "0",
         Collections.singletonList("23456"));
 
     assertThat(queries.get(0))
@@ -59,9 +62,9 @@ class ActivityTypeQueryProviderIntegrationTest {
   }
 
   @Test
-  void getQueries_correctlyParsed_noSkippedCodes() throws Exception {
+  void getQueries_correctlyParsed_noSkippedCodes_noInitialMarker() throws Exception {
     final Path path = Files.createTempFile("activity_type_query_test_no_field", ".yaml");
-    Files.write(path, ImmutableList.of("sql: SELECT * FROM activitytypes"));
+    Files.write(path, List.of("sql: SELECT * FROM activitytypes"));
 
     final List<ActivityTypeQuery> queries = new ActivityTypeQueryProvider(path).getQueries();
 
@@ -71,6 +74,7 @@ class ActivityTypeQueryProviderIntegrationTest {
 
     final ActivityTypeQuery expectedQuery = new ActivityTypeQuery(
         "SELECT * FROM activitytypes",
+        null,
         Collections.emptyList());
 
     assertThat(queries.get(0))
@@ -81,7 +85,7 @@ class ActivityTypeQueryProviderIntegrationTest {
   @Test
   void getQueries_fail_multipleQueries() throws Exception {
     final Path path = Files.createTempFile("activity_type_query_test_multiple_queries", ".yaml");
-    Files.write(path, ImmutableList.of(
+    Files.write(path, List.of(
         "sql: SELECT 1",
         "---",
         "sql: SELECT 2"
@@ -94,7 +98,7 @@ class ActivityTypeQueryProviderIntegrationTest {
   @Test
   void getQueries_fail_emptyRequiredField() throws Exception {
     final Path path = Files.createTempFile("activity_type_query_test_empty", ".yaml");
-    Files.write(path, ImmutableList.of(
+    Files.write(path, List.of(
         "skippedCodes: [0]",
         "sql: "
     ));
@@ -106,7 +110,7 @@ class ActivityTypeQueryProviderIntegrationTest {
   @Test
   void getQueries_fail_missingRequiredField() throws Exception {
     final Path path = Files.createTempFile("activity_type_query_test_empty", ".yaml");
-    Files.write(path, ImmutableList.of("skippedCodes: [0]"));
+    Files.write(path, List.of("skippedCodes: [0]"));
     assertThatThrownBy(() -> new ActivityTypeQueryProvider(path))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("SQL is required");
@@ -115,7 +119,7 @@ class ActivityTypeQueryProviderIntegrationTest {
   @Test
   void getQueries_fail_missingRequiredSkippedCodes() throws Exception {
     final Path path = Files.createTempFile("activity_type_query_test_no_field", ".yaml");
-    Files.write(path, ImmutableList.of("sql: SELECT * FROM activitytypes WHERE code NOT IN (:skipped_codes)"));
+    Files.write(path, List.of("sql: SELECT * FROM activitytypes WHERE code NOT IN (:skipped_codes)"));
     assertThatThrownBy(() -> new ActivityTypeQueryProvider(path))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Skipped CODE list is required");
@@ -124,13 +128,31 @@ class ActivityTypeQueryProviderIntegrationTest {
   @Test
   void getQueries_fail_missingRequiredSkippedCodesParameter() throws Exception {
     final Path path = Files.createTempFile("activity_type_query_test_no_field", ".yaml");
-    Files.write(path, ImmutableList.of(
+    Files.write(path, List.of(
         "skippedCodes: [1]",
         "sql: Select 1" // sql doesn't use :skipped_codes parameter while skippedCodes are provided
     ));
     assertThatThrownBy(() -> new ActivityTypeQueryProvider(path))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("SQL must contain `:skipped_codes` parameter");
+  }
+
+  @Test
+  void getQueries_fail_missingRequiredInitialSyncMarker() throws Exception {
+    final Path path = Files.createTempFile("activity_type_query_test_no_field", ".yaml");
+    Files.write(path, List.of("sql: SELECT sync_marker FROM activitytypes WHERE sync_marker > (:previous_sync_marker)"));
+    assertThatThrownBy(() -> new ActivityTypeQueryProvider(path))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Initial sync marker should be defined");
+  }
+
+  @Test
+  void getQueries_fail_missingRequiredSyncMarkerParameters() throws Exception {
+    final Path path = Files.createTempFile("activity_type_query_test_no_field", ".yaml");
+    Files.write(path, List.of("initialSyncMarker: 0", "sql: SELECT * FROM activitytypes"));
+    assertThatThrownBy(() -> new ActivityTypeQueryProvider(path))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("SQL doesn't contain required");
   }
 
   /**
@@ -151,16 +173,16 @@ class ActivityTypeQueryProviderIntegrationTest {
     Thread.sleep(100);
 
     // Verify file update
-    final List<ActivityTypeQuery> expectedQueriesUpdate = ImmutableList.of(
-        new ActivityTypeQuery("SELECT 'activitycodes'", Collections.emptyList()));
-    Files.write(path, ImmutableList.of("sql: SELECT 'activitycodes'"));
+    final List<ActivityTypeQuery> expectedQueriesUpdate = List.of(
+        new ActivityTypeQuery("SELECT 'activitycodes'", null, Collections.emptyList()));
+    Files.write(path, List.of("sql: SELECT 'activitycodes'"));
     queryProvider.waitForQueryChange(expectedQueriesUpdate, timeout);
     assertThat(queryProvider.isHealthy()).isTrue();
     verify(listener, times(1)).onQueriesUpdated(expectedQueriesUpdate);
     reset(listener);
 
     // Verify file deletion
-    final List<ActivityTypeQuery> expectedQueriesDeletion = ImmutableList.of();
+    final List<ActivityTypeQuery> expectedQueriesDeletion = List.of();
     Files.delete(path);
     queryProvider.waitForQueryChange(expectedQueriesDeletion, timeout);
     assertThat(queryProvider.isHealthy()).isFalse();
@@ -169,13 +191,14 @@ class ActivityTypeQueryProviderIntegrationTest {
 
     // Verify file creation
     Files.createFile(path);
-    Files.write(path, ImmutableList.of(
+    Files.write(path, List.of(
         "sql: SELECT 'activitycodes' WHERE codes NOT IN (:skipped_codes)",
         "skippedCodes: [123]"
     ));
-    queryProvider.waitForQueryChange(ImmutableList.of(
+    queryProvider.waitForQueryChange(List.of(
         new ActivityTypeQuery(
             "SELECT 'activitycodes' WHERE codes NOT IN (:skipped_codes)",
+            null,
             Collections.singletonList("123"))
     ), timeout);
     assertThat(queryProvider.isHealthy()).isTrue();
@@ -184,9 +207,10 @@ class ActivityTypeQueryProviderIntegrationTest {
     queryProvider.stop();
     Files.delete(path);
     // Watching is stopped, no queries update (expect queries from the previous step)
-    queryProvider.waitForQueryChange(ImmutableList.of(
+    queryProvider.waitForQueryChange(List.of(
         new ActivityTypeQuery(
             "SELECT 'activitycodes' WHERE codes NOT IN (:skipped_codes)",
+            null,
             Collections.singletonList("123"))
     ), timeout);
     assertThat(queryProvider.isHealthy()).isFalse();

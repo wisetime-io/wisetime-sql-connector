@@ -4,29 +4,32 @@
 
 package io.wisetime.connector.sql;
 
-import static io.wisetime.connector.sql.format.LogFormatter.format;
+import static io.wisetime.connector.sql.format.LogFormatter.formatTags;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import io.wisetime.connector.ConnectorModule;
 import io.wisetime.connector.WiseTimeConnector;
 import io.wisetime.connector.api_client.PostResult;
 import io.wisetime.connector.sql.queries.ActivityTypeQuery;
 import io.wisetime.connector.sql.queries.QueryProvider;
 import io.wisetime.connector.sql.queries.TagQuery;
-import io.wisetime.connector.sql.sync.ActivityTypeRecord;
-import io.wisetime.connector.sql.sync.ActivityTypeSyncStore;
 import io.wisetime.connector.sql.sync.ConnectApi;
 import io.wisetime.connector.sql.sync.ConnectedDatabase;
 import io.wisetime.connector.sql.sync.TagSyncRecord;
 import io.wisetime.connector.sql.sync.TagSyncStore;
+import io.wisetime.connector.sql.sync.activity_type.ActivityTypeSyncService;
+import io.wisetime.connector.sql.sync.activity_type.hash.ActivityTypeSyncWithHashService;
+import io.wisetime.connector.sql.sync.activity_type.marker.ActivityTypeSyncWithMarkerService;
 import io.wisetime.generated.connect.TimeGroup;
-import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import lombok.AccessLevel;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import spark.Request;
@@ -41,14 +44,25 @@ public class SqlConnector implements WiseTimeConnector {
   private final QueryProvider<TagQuery> tagQueryProvider;
   private final QueryProvider<ActivityTypeQuery> activityTypeQueryProvider;
 
+  @VisibleForTesting
+  @Setter(AccessLevel.PACKAGE)
   private TagSyncStore tagDrainSyncStore;
+  @VisibleForTesting
+  @Setter(AccessLevel.PACKAGE)
   private TagSyncStore tagRefreshSyncStore;
-  private ActivityTypeSyncStore activityTypeSyncStore;
+
+  @VisibleForTesting
+  @Setter(AccessLevel.PACKAGE)
+  private ActivityTypeSyncService activityTypeSyncWithHashService;
+  @VisibleForTesting
+  @Setter(AccessLevel.PACKAGE)
+  private ActivityTypeSyncService activityTypeSyncWithMarkerService;
 
   private ConnectApi connectApi;
   private final AtomicBoolean isPerformingTagUpdate = new AtomicBoolean();
   private final AtomicBoolean isPerformingTagSlowResync = new AtomicBoolean();
   private final AtomicBoolean isPerformingActivityTypeSync = new AtomicBoolean();
+  private final AtomicBoolean isPerformingActivityTypeSlowSync = new AtomicBoolean();
 
   public SqlConnector(final ConnectedDatabase connectedDatabase,
       final QueryProvider<TagQuery> tagQueryProvider, final QueryProvider<ActivityTypeQuery> activityTypeQueryProvider) {
@@ -63,8 +77,11 @@ public class SqlConnector implements WiseTimeConnector {
   public void init(ConnectorModule connectorModule) {
     tagDrainSyncStore = new TagSyncStore(connectorModule.getConnectorStore());
     tagRefreshSyncStore = new TagSyncStore(connectorModule.getConnectorStore(), "refresh");
-    activityTypeSyncStore = new ActivityTypeSyncStore(connectorModule.getConnectorStore());
     connectApi = new ConnectApi(connectorModule.getApiClient());
+    activityTypeSyncWithHashService =
+        new ActivityTypeSyncWithHashService(connectorModule.getConnectorStore(), connectApi, database);
+    activityTypeSyncWithMarkerService =
+        new ActivityTypeSyncWithMarkerService(connectorModule.getConnectorStore(), connectApi, database);
   }
 
   @Override
@@ -80,7 +97,6 @@ public class SqlConnector implements WiseTimeConnector {
   private void performTagUpdate(List<TagQuery> tagQueries) {
     if (tagQueries.isEmpty()) {
       log.warn("No tag SQL queries configured. Skipping tag sync.");
-      isPerformingTagUpdate.set(false);
       return;
     }
 
@@ -106,7 +122,6 @@ public class SqlConnector implements WiseTimeConnector {
   private void performSlowResync(List<TagQuery> tagQueries) {
     if (tagQueries.isEmpty()) {
       log.warn("No tag SQL queries configured. Skipping tag sync.");
-      isPerformingTagSlowResync.set(false);
       return;
     }
 
@@ -132,32 +147,48 @@ public class SqlConnector implements WiseTimeConnector {
   private void performActivityTypeUpdate(List<ActivityTypeQuery> activityTypeQueries) {
     if (activityTypeQueries.isEmpty()) {
       log.warn("No activity type SQL queries configured. Skipping activity types sync.");
-      isPerformingActivityTypeSync.set(false);
       return;
     }
+    Preconditions.checkArgument(activityTypeQueries.size() == 1, "At most one activity type SQL query must be provided");
+    final ActivityTypeQuery query = activityTypeQueries.get(0);
 
     // Prevent possible concurrent runs of scheduled update and on query changed event
     if (isPerformingActivityTypeSync.compareAndSet(false, true)) {
       try {
-        final List<ActivityTypeRecord> activityTypes = activityTypeQueries.stream()
-            .flatMap(query -> database.getActivityTypes(query).stream())
-            .collect(Collectors.toList());
-        syncActivityTypes(activityTypes);
+        getActivityTypeSyncService(query)
+            .performActivityTypeUpdate(query);
       } finally {
         isPerformingActivityTypeSync.set(false);
       }
     }
   }
 
-  private void syncActivityTypes(List<ActivityTypeRecord> activityTypes) {
-    final boolean isSynced = activityTypeSyncStore.isSynced(activityTypes);
-    final boolean syncedMoreThanDayAgo = activityTypeSyncStore.lastSyncedOlderThan(Duration.ofDays(1));
+  @Override
+  public void performActivityTypeUpdateSlowLoop() {
+    performActivityTypeUpdateSlowLoop(activityTypeQueryProvider.getQueries());
+  }
 
-    if (!isSynced || syncedMoreThanDayAgo) {
-      log.info("Sending {} activity types to sync", activityTypes.size());
-      connectApi.syncActivityTypes(activityTypes);
-      activityTypeSyncStore.markSynced(activityTypes);
+  private void performActivityTypeUpdateSlowLoop(List<ActivityTypeQuery> activityTypeQueries) {
+    if (activityTypeQueries.isEmpty()) {
+      log.warn("No activity type SQL queries configured. Skipping activity types slow loop sync.");
+      return;
     }
+    Preconditions.checkArgument(activityTypeQueries.size() == 1, "At most one activity type SQL query must be provided");
+    final ActivityTypeQuery query = activityTypeQueries.get(0);
+
+    // Prevent possible concurrent runs of scheduled update and on query changed event
+    if (isPerformingActivityTypeSlowSync.compareAndSet(false, true)) {
+      try {
+        getActivityTypeSyncService(query)
+            .performActivityTypeUpdateSlowLoop(query);
+      } finally {
+        isPerformingActivityTypeSlowSync.set(false);
+      }
+    }
+  }
+
+  private ActivityTypeSyncService getActivityTypeSyncService(ActivityTypeQuery query) {
+    return query.hasSyncMarker() ? activityTypeSyncWithMarkerService : activityTypeSyncWithHashService;
   }
 
   @Override
@@ -182,7 +213,7 @@ public class SqlConnector implements WiseTimeConnector {
     while (allowSync.get() && (newTagSyncRecords = getUnsyncedRecords(tagQuery, tagDrainSyncStore)).size() > 0) {
       connectApi.upsertWiseTimeTags(newTagSyncRecords);
       tagDrainSyncStore.markSyncPosition(tagQuery, newTagSyncRecords);
-      log.info("New tag detection: " + format(newTagSyncRecords));
+      log.info("New tag detection: " + formatTags(newTagSyncRecords));
     }
   }
 
@@ -200,22 +231,7 @@ public class SqlConnector implements WiseTimeConnector {
     }
     connectApi.upsertWiseTimeTags(refreshTagSyncRecords);
     tagRefreshSyncStore.markSyncPosition(tagQuery, refreshTagSyncRecords);
-    log.info("Existing tag refresh: " + format(refreshTagSyncRecords));
-  }
-
-  @VisibleForTesting
-  void setTagDrainSyncStore(final TagSyncStore syncStore) {
-    this.tagDrainSyncStore = syncStore;
-  }
-
-  @VisibleForTesting
-  void setTagRefreshSyncStore(final TagSyncStore syncStore) {
-    this.tagRefreshSyncStore = syncStore;
-  }
-
-  @VisibleForTesting
-  void setActivityTypeSyncStore(final ActivityTypeSyncStore syncStore) {
-    this.activityTypeSyncStore = syncStore;
+    log.info("Existing tag refresh: " + formatTags(refreshTagSyncRecords));
   }
 
   @VisibleForTesting
