@@ -57,6 +57,6 @@ public class ActivityTypeSyncWithHashService implements ActivityTypeSyncService 
 
   @Override
   public void performActivityTypeUpdateSlowLoop(ActivityTypeQuery activityTypeQuery) {
-    log.warn("There is no slow loop for activity type sync using hashing. Should not be called");
+    log.info("There is no slow loop for activity type sync using hashing. Skipping...");
   }
 }
