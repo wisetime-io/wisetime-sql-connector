@@ -18,7 +18,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 /**
  * @author yehor.lashkul
  */
-class ActivityTypeSyncStore {
+class ActivityTypeSyncWithHashStore {
 
   @VisibleForTesting
   static final String LAST_SYNC_KEY = "ACTIVITY_TYPES_LAST_SYNC";
@@ -31,7 +31,7 @@ class ActivityTypeSyncStore {
   @Setter(AccessLevel.PACKAGE)
   private Function<List<ActivityTypeRecord>, String> hashFunction;
 
-  public ActivityTypeSyncStore(ConnectorStore connectorStore) {
+  public ActivityTypeSyncWithHashStore(ConnectorStore connectorStore) {
     this.connectorStore = connectorStore;
     hashFunction = activityTypes -> DigestUtils.md5Hex(
         activityTypes.stream()

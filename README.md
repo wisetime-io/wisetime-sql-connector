@@ -293,8 +293,24 @@ The following configuration parameters are optional.
 
 ### `ACTIVITY_TYPE_SQL_FILE` Requirements
 
-The yaml configuration file expects single SQL query to be provided. Here's a sample `ACTIVITY_TYPE_SQL_FILE`:
+The yaml configuration file expects single SQL query to be provided.
 
+Selecting an empty list will disable all the existing WiseTime activity types.
+
+If there are any activity types you would like to skip syncing, you can use `skippedCodes` property. It's optional so can be omitted. You must avoid using `skipped_codes` in your SQL in this case.
+
+WiseTime supports 2 ways of activity types sync:
+- Using `sync_marker`
+- All in one sync
+
+#### Activity type sync using `sync_marker` 
+
+This is a preferable way of activity type sync as it allows syncing activity types in batches, and do a slow loop sync.
+It can be used if there is any NOT updatable column with unique values that can be used as `sync_marker` (e.g. `ID`).
+The query must be sorted by `sync_marker` (e.g. `ORDER BY [sync_marker]`).
+The `initialSyncMarker` is required and specifies the first value to be used for `:previous_sync_marker`.
+
+Here's an example:
 ```yaml
 initialSyncMarker: 0
 skippedCodes:
@@ -310,15 +326,7 @@ sql: >
   ORDER BY [sync_marker];
 ```
 
-In the above example, we have provided a query that the connector will use for both regular and slow loop sync.
-
-If `sync_marker` is used the query must be sorted by it (e.g. `ORDER BY [sync_marker]`). A column that is used as `sync_marker` must be not updatable.
-
-The `initialSyncMarker` configuration is required and specifies the first value to be used for `:previous_sync_marker`.
-
-Selecting an empty list will disable all the existing WiseTime activity types.
-
-`skippedCodes` is an optional property. You can omit it if there are no activity types you would like to avoid syncing. You must avoid using `skipped_codes` in your SQL in this case.
+#### All in one sync
 
 If there's no column you can use as `sync_marker` you should avoid it. You should also avoid using `TOP`/`LIMIT` in your query so connector will fetch all the activity types on each run and sync them if any has been changed/created/deleted since previous sync.
 

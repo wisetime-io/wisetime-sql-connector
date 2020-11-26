@@ -29,13 +29,13 @@ public class ActivityTypeSyncWithHashService implements ActivityTypeSyncService 
 
   @VisibleForTesting
   @Setter(AccessLevel.PACKAGE)
-  private ActivityTypeSyncStore activityTypeSyncStore;
+  private ActivityTypeSyncWithHashStore activityTypeSyncStore;
 
   public ActivityTypeSyncWithHashService(
       ConnectorStore connectorStore,
       ConnectApi connectApi,
       ConnectedDatabase database) {
-    activityTypeSyncStore = new ActivityTypeSyncStore(connectorStore);
+    activityTypeSyncStore = new ActivityTypeSyncWithHashStore(connectorStore);
     this.connectApi = connectApi;
     this.database = database;
   }
@@ -46,6 +46,8 @@ public class ActivityTypeSyncWithHashService implements ActivityTypeSyncService 
     final boolean isSynced = activityTypeSyncStore.isSynced(activityTypes);
     final boolean syncedMoreThanDayAgo = activityTypeSyncStore.lastSyncedOlderThan(Duration.ofDays(1));
 
+    // We sync activity types once a day even if they already were synced
+    // In such a manner, we defend against hash collisions
     if (!isSynced || syncedMoreThanDayAgo) {
       final String syncSessionId = connectApi.startSyncSession();
       log.info("Sending {} activity types to sync", activityTypes.size());

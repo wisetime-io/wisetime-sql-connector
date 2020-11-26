@@ -35,7 +35,7 @@ class ActivityTypeSyncWithHashServiceTest {
 
   private final ConnectedDatabase databaseMock = mock(ConnectedDatabase.class);
   private final ConnectApi connectApiMock = mock(ConnectApi.class);
-  private final ActivityTypeSyncStore activityTypeSyncStoreMock = mock(ActivityTypeSyncStore.class);
+  private final ActivityTypeSyncWithHashStore activityTypeSyncStoreMock = mock(ActivityTypeSyncWithHashStore.class);
 
   private ActivityTypeSyncWithHashService activityTypeSyncWithHashService;
 

@@ -15,11 +15,11 @@ import java.util.Optional;
 /**
  * @author yehor.lashkul
  */
-class ActivityTypeSyncStore {
+class ActivityTypeSyncWithMarkerStore {
 
   private final ConnectorStore connectorStore;
 
-  public ActivityTypeSyncStore(ConnectorStore connectorStore) {
+  public ActivityTypeSyncWithMarkerStore(ConnectorStore connectorStore) {
     this.connectorStore = connectorStore;
   }
 

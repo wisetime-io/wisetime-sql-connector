@@ -35,7 +35,7 @@ class ActivityTypeSyncWithMarkerServiceTest {
 
   private final ConnectedDatabase databaseMock = mock(ConnectedDatabase.class);
   private final ConnectApi connectApiMock = mock(ConnectApi.class);
-  private final ActivityTypeSyncStore activityTypeSyncStoreMock = mock(ActivityTypeSyncStore.class);
+  private final ActivityTypeSyncWithMarkerStore activityTypeSyncStoreMock = mock(ActivityTypeSyncWithMarkerStore.class);
 
   private ActivityTypeSyncWithMarkerService activityTypeSyncWithMarkerService;
 

@@ -30,13 +30,13 @@ public class ActivityTypeSyncWithMarkerService implements ActivityTypeSyncServic
 
   @VisibleForTesting
   @Setter(AccessLevel.PACKAGE)
-  private ActivityTypeSyncStore activityTypeSyncStore;
+  private ActivityTypeSyncWithMarkerStore activityTypeSyncStore;
 
   public ActivityTypeSyncWithMarkerService(
       ConnectorStore connectorStore,
       ConnectApi connectApi,
       ConnectedDatabase database) {
-    activityTypeSyncStore = new ActivityTypeSyncStore(connectorStore);
+    activityTypeSyncStore = new ActivityTypeSyncWithMarkerStore(connectorStore);
     this.connectApi = connectApi;
     this.database = database;
   }

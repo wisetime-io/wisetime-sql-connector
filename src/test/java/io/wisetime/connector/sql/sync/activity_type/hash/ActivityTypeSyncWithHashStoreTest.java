@@ -15,7 +15,6 @@ import static org.mockito.Mockito.when;
 import io.wisetime.connector.datastore.ConnectorStore;
 import io.wisetime.connector.sql.RandomEntities;
 import io.wisetime.connector.sql.sync.activity_type.ActivityTypeRecord;
-import io.wisetime.connector.sql.sync.activity_type.hash.ActivityTypeSyncStore;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -29,14 +28,14 @@ import org.testcontainers.shaded.com.google.common.collect.ImmutableList;
 /**
  * @author yehor.lashkul
  */
-class ActivityTypeSyncStoreTest {
+class ActivityTypeSyncWithHashStoreTest {
 
   private final ConnectorStore mockConnectorStore = mock(ConnectorStore.class);
-  private final ActivityTypeSyncStore activityTypeSyncStore = new ActivityTypeSyncStore(mockConnectorStore);
+  private final ActivityTypeSyncWithHashStore activityTypeSyncStore = new ActivityTypeSyncWithHashStore(mockConnectorStore);
 
   @Test
   void isSynced_notSyncedYet() {
-    when(mockConnectorStore.getString(ActivityTypeSyncStore.HASH_KEY))
+    when(mockConnectorStore.getString(ActivityTypeSyncWithHashStore.HASH_KEY))
         .thenReturn(Optional.empty());
 
     assertThat(activityTypeSyncStore.isSynced(Collections.emptyList()))
@@ -51,13 +50,13 @@ class ActivityTypeSyncStoreTest {
   void isSynced() {
     activityTypeSyncStore.setHashFunction(records -> "same hash");
 
-    when(mockConnectorStore.getString(ActivityTypeSyncStore.HASH_KEY))
+    when(mockConnectorStore.getString(ActivityTypeSyncWithHashStore.HASH_KEY))
         .thenReturn(Optional.of("same hash"));
     assertThat(activityTypeSyncStore.isSynced(randomActivityTypesLis()))
         .as("same hash -> synced")
         .isTrue();
 
-    when(mockConnectorStore.getString(ActivityTypeSyncStore.HASH_KEY))
+    when(mockConnectorStore.getString(ActivityTypeSyncWithHashStore.HASH_KEY))
         .thenReturn(Optional.of("another hash"));
     assertThat(activityTypeSyncStore.isSynced(randomActivityTypesLis()))
         .as("another hash -> not synced")
@@ -66,7 +65,7 @@ class ActivityTypeSyncStoreTest {
 
   @Test
   void lastSyncedOlderThan_notSyncedYet() {
-    when(mockConnectorStore.getLong(ActivityTypeSyncStore.LAST_SYNC_KEY))
+    when(mockConnectorStore.getLong(ActivityTypeSyncWithHashStore.LAST_SYNC_KEY))
         .thenReturn(Optional.empty());
 
     assertThat(activityTypeSyncStore.lastSyncedOlderThan(Duration.ofDays(100)))
@@ -76,7 +75,7 @@ class ActivityTypeSyncStoreTest {
 
   @Test
   void lastSyncedOlderThan() {
-    when(mockConnectorStore.getLong(ActivityTypeSyncStore.LAST_SYNC_KEY))
+    when(mockConnectorStore.getLong(ActivityTypeSyncWithHashStore.LAST_SYNC_KEY))
         .thenReturn(Optional.of(Instant.now()
             .minus(1, ChronoUnit.DAYS)
             .minus(1, ChronoUnit.SECONDS)
@@ -95,10 +94,10 @@ class ActivityTypeSyncStoreTest {
     activityTypeSyncStore.markSynced(randomActivityTypesLis());
 
     // check that hash has been saved
-    verify(mockConnectorStore, times(1)).putString(ActivityTypeSyncStore.HASH_KEY, "hash");
+    verify(mockConnectorStore, times(1)).putString(ActivityTypeSyncWithHashStore.HASH_KEY, "hash");
     // check that current time has been saved
     ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class);
-    verify(mockConnectorStore, times(1)).putLong(eq(ActivityTypeSyncStore.LAST_SYNC_KEY), captor.capture());
+    verify(mockConnectorStore, times(1)).putLong(eq(ActivityTypeSyncWithHashStore.LAST_SYNC_KEY), captor.capture());
     assertThat(Instant.ofEpochMilli(captor.getValue()))
         .isCloseTo(Instant.now(), within(1, ChronoUnit.SECONDS));
   }

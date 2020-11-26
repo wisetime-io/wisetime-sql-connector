@@ -27,12 +27,12 @@ import org.junit.jupiter.api.Test;
 /**
  * @author yehor.lashkul
  */
-class ActivityTypeSyncStoreTest {
+class ActivityTypeSyncWithMarkerStoreTest {
 
   private final Faker faker = Faker.instance();
 
   private final ConnectorStore mockConnectorStore = mock(ConnectorStore.class);
-  private final ActivityTypeSyncStore activityTypeSyncStore = new ActivityTypeSyncStore(mockConnectorStore);
+  private final ActivityTypeSyncWithMarkerStore activityTypeSyncStore = new ActivityTypeSyncWithMarkerStore(mockConnectorStore);
 
   @Test
   void getSyncMarker_noMarker() {
