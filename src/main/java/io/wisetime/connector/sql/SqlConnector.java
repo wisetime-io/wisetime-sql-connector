@@ -12,6 +12,7 @@ import io.wisetime.connector.ConnectorModule;
 import io.wisetime.connector.WiseTimeConnector;
 import io.wisetime.connector.api_client.PostResult;
 import io.wisetime.connector.sql.queries.ActivityTypeQuery;
+import io.wisetime.connector.sql.queries.DrainRun;
 import io.wisetime.connector.sql.queries.QueryProvider;
 import io.wisetime.connector.sql.queries.TagQuery;
 import io.wisetime.connector.sql.sync.ConnectApi;
@@ -209,12 +210,15 @@ public class SqlConnector implements WiseTimeConnector {
 
   @VisibleForTesting
   void syncAllNewRecords(final TagQuery tagQuery, final Supplier<Boolean> allowSync) {
-    LinkedList<TagSyncRecord> newTagSyncRecords;
-    while (allowSync.get() && (newTagSyncRecords = getUnsyncedRecords(tagQuery, tagDrainSyncStore)).size() > 0) {
-      connectApi.upsertWiseTimeTags(newTagSyncRecords);
-      tagDrainSyncStore.markSyncPosition(tagQuery, newTagSyncRecords);
-      log.info("New tag detection: " + formatTags(newTagSyncRecords));
-    }
+    new DrainRun<>(
+        allowSync,
+        () -> getUnsyncedRecords(tagQuery, tagDrainSyncStore),
+        newBatch -> {
+          Preconditions.checkArgument(newBatch instanceof LinkedList);
+          connectApi.upsertWiseTimeTags(newBatch);
+          tagDrainSyncStore.markSyncPosition(tagQuery, (LinkedList<TagSyncRecord>) newBatch);
+          log.info("New tag detection: " + formatTags(newBatch));
+        }).run();
   }
 
   @VisibleForTesting

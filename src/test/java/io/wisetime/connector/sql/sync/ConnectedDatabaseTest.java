@@ -9,7 +9,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 import com.github.javafaker.Faker;
-import com.zaxxer.hikari.HikariDataSource;
 import io.vavr.control.Try;
 import java.sql.ResultSet;
 import java.sql.SQLException;

@@ -32,7 +32,8 @@ class ActivityTypeSyncWithMarkerStoreTest {
   private final Faker faker = Faker.instance();
 
   private final ConnectorStore mockConnectorStore = mock(ConnectorStore.class);
-  private final ActivityTypeSyncWithMarkerStore activityTypeSyncStore = new ActivityTypeSyncWithMarkerStore(mockConnectorStore);
+  private final ActivityTypeSyncWithMarkerStore activityTypeSyncStore =
+      new ActivityTypeSyncWithMarkerStore(mockConnectorStore);
 
   @Test
   void getSyncMarker_noMarker() {

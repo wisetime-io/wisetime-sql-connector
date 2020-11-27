@@ -9,11 +9,13 @@ import static io.wisetime.connector.sql.format.LogFormatter.formatActivityTypes;
 import com.google.common.annotations.VisibleForTesting;
 import io.wisetime.connector.datastore.ConnectorStore;
 import io.wisetime.connector.sql.queries.ActivityTypeQuery;
+import io.wisetime.connector.sql.queries.DrainRun;
 import io.wisetime.connector.sql.sync.ConnectApi;
 import io.wisetime.connector.sql.sync.ConnectedDatabase;
 import io.wisetime.connector.sql.sync.activity_type.ActivityTypeRecord;
 import io.wisetime.connector.sql.sync.activity_type.ActivityTypeSyncService;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.AccessLevel;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -43,17 +45,19 @@ public class ActivityTypeSyncWithMarkerService implements ActivityTypeSyncServic
 
   @Override
   public void performActivityTypeUpdate(ActivityTypeQuery query) {
-    String syncMarker = activityTypeSyncStore.getSyncMarker(query);
-    final boolean isFirstSync = syncMarker.equals(query.getInitialSyncMarker());
+    final AtomicReference<String> syncMarker = new AtomicReference<>(activityTypeSyncStore.getSyncMarker(query));
+    final boolean isFirstSync = syncMarker.get().equals(query.getInitialSyncMarker());
 
     final String syncSessionId = isFirstSync ? getOrStartSyncSession(query) : StringUtils.EMPTY;
 
-    List<ActivityTypeRecord> activityTypes;
-    while ((activityTypes = database.getActivityTypes(query, syncMarker)).size() > 0) {
-      connectApi.syncActivityTypes(activityTypes, syncSessionId);
-      syncMarker = activityTypeSyncStore.saveSyncMarker(query, activityTypes);
-      log.info("New activity type detection: " + formatActivityTypes(activityTypes));
-    }
+    new DrainRun<>(
+        () -> database.getActivityTypes(query, syncMarker.get()),
+        newBatch -> {
+          connectApi.syncActivityTypes(newBatch, syncSessionId);
+          syncMarker.set(activityTypeSyncStore.saveSyncMarker(query, newBatch));
+          log.info("New activity type detection: " + formatActivityTypes(newBatch));
+        }
+    ).run();
 
     if (isFirstSync) {
       connectApi.completeSyncSession(syncSessionId);

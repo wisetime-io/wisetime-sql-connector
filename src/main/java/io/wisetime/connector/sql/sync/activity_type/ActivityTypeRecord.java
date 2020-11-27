@@ -28,10 +28,7 @@ public class ActivityTypeRecord {
   private final String syncMarker;
 
   public ActivityTypeRecord(@NonNull String code, @NonNull String label, @NonNull String description) {
-    this.code = code;
-    this.label = label;
-    this.description = description;
-    syncMarker = null;
+    this(code, label, description, null);
   }
 
   public static Mapper<ActivityTypeRecord> fluentJdbcMapper(boolean withSyncMarker) {

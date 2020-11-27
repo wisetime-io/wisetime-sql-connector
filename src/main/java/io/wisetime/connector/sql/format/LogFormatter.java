@@ -4,8 +4,8 @@
 
 package io.wisetime.connector.sql.format;
 
-import io.wisetime.connector.sql.sync.activity_type.ActivityTypeRecord;
 import io.wisetime.connector.sql.sync.TagSyncRecord;
+import io.wisetime.connector.sql.sync.activity_type.ActivityTypeRecord;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
