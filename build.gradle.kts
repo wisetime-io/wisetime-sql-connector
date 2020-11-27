@@ -79,7 +79,6 @@ application {
             "-Xms128m",
             "-Xmx256m",
             "-XX:+UseConcMarkSweepGC",
-            "-XX:MetaspaceSize=128m",
             "-XX:MaxMetaspaceSize=256m")
 }
 
