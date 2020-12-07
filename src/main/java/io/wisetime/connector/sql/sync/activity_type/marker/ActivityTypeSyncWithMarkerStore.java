@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * @author yehor.lashkul
@@ -43,17 +44,21 @@ class ActivityTypeSyncWithMarkerStore {
     connectorStore.putString(lastSyncedCodesKey(query), latestSyncedCodes);
   }
 
-  String getSyncMarker(ActivityTypeQuery query) {
-    return connectorStore.getString(syncMarkerKey(query))
-        .orElse(query.getInitialSyncMarker());
+  void resetSyncPosition(ActivityTypeQuery query) {
+    connectorStore.putString(syncMarkerKey(query), query.getInitialSyncMarker());
+    connectorStore.putString(syncSessionKey(query), "");
+    connectorStore.putString(lastSyncedCodesKey(query), "");
   }
 
-  void clearSyncMarker(ActivityTypeQuery query) {
-    connectorStore.putString(syncMarkerKey(query), null);
+  String getSyncMarker(ActivityTypeQuery query) {
+    return connectorStore.getString(syncMarkerKey(query))
+        .filter(StringUtils::isNotEmpty)
+        .orElse(query.getInitialSyncMarker());
   }
 
   List<String> getLastSyncedCodes(ActivityTypeQuery query) {
     return connectorStore.getString(lastSyncedCodesKey(query))
+        .filter(StringUtils::isNotEmpty)
         .map(refs -> refs.split(CODES_DELIMITER))
         .map(Arrays::asList)
         .orElse(List.of());
@@ -64,11 +69,8 @@ class ActivityTypeSyncWithMarkerStore {
   }
 
   Optional<String> getSyncSession(ActivityTypeQuery query) {
-    return connectorStore.getString(syncSessionKey(query));
-  }
-
-  void clearSyncSession(ActivityTypeQuery query) {
-    connectorStore.putString(syncSessionKey(query), null);
+    return connectorStore.getString(syncSessionKey(query))
+        .filter(StringUtils::isNotEmpty);
   }
 
   @VisibleForTesting

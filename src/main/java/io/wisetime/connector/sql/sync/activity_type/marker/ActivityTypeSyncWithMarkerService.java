@@ -74,14 +74,12 @@ public class ActivityTypeSyncWithMarkerService implements ActivityTypeSyncServic
       connectApi.completeSyncSession(syncSessionId);
       // Next refresh batch to start again from the beginning
       log.info("Resetting activity types refresh to start from the beginning");
-      activityTypeRefreshSyncStore.clearSyncMarker(query);
-      activityTypeRefreshSyncStore.clearSyncSession(query);
+      activityTypeRefreshSyncStore.resetSyncPosition(query);
     }
   }
 
   private String getOrStartSyncSession(ActivityTypeSyncWithMarkerStore store, ActivityTypeQuery query) {
     return store.getSyncSession(query)
-        .filter(StringUtils::isNotEmpty)
         .orElseGet(() -> {
           final String syncSessionId = connectApi.startSyncSession();
           store.saveSyncSession(query, syncSessionId);

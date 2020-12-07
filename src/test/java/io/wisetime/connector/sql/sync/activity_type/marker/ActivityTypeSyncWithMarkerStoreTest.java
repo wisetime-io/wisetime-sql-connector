@@ -43,7 +43,13 @@ class ActivityTypeSyncWithMarkerStoreTest {
     assertThat(activityTypeSyncStore.getSyncMarker(query))
         .as("should return initial sync marker from the query")
         .isEqualTo(query.getInitialSyncMarker());
-    verify(mockConnectorStore, times(1)).getString(syncMarkerKey(query));
+
+    when(mockConnectorStore.getString(anyString()))
+        .thenReturn(Optional.of(""));
+
+    assertThat(activityTypeSyncStore.getSyncMarker(query))
+        .as("should return initial sync marker from the query")
+        .isEqualTo(query.getInitialSyncMarker());
   }
 
   @Test
@@ -69,6 +75,13 @@ class ActivityTypeSyncWithMarkerStoreTest {
     assertThat(activityTypeSyncStore.getLastSyncedCodes(query))
         .as("should return empty list")
         .isEqualTo(List.of());
+
+    when(mockConnectorStore.getString(lastSyncedCodesKey(query)))
+        .thenReturn(Optional.of(""));
+
+    assertThat(activityTypeSyncStore.getLastSyncedCodes(query))
+        .as("should return empty list")
+        .isEqualTo(List.of());
   }
 
   @Test
@@ -84,6 +97,17 @@ class ActivityTypeSyncWithMarkerStoreTest {
     assertThat(activityTypeSyncStore.getLastSyncedCodes(query))
         .as("should return from the store parsed by delimiter")
         .isEqualTo(List.of(code1, code2));
+  }
+
+  @Test
+  void resetSyncPosition() {
+    final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
+
+    activityTypeSyncStore.resetSyncPosition(query);
+
+    verify(mockConnectorStore, times(1)).putString(syncMarkerKey(query), query.getInitialSyncMarker());
+    verify(mockConnectorStore, times(1)).putString(lastSyncedCodesKey(query), "");
+    verify(mockConnectorStore, times(1)).putString(syncSessionKey(query), "");
   }
 
   @Test
@@ -123,15 +147,6 @@ class ActivityTypeSyncWithMarkerStoreTest {
   }
 
   @Test
-  void clearSyncMarker() {
-    final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
-
-    activityTypeSyncStore.clearSyncMarker(query);
-
-    verify(mockConnectorStore, times(1)).putString(syncMarkerKey(query), null);
-  }
-
-  @Test
   void saveSyncSession() {
     final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
     final String syncSessionId = faker.numerify("sync-session-###");
@@ -145,18 +160,21 @@ class ActivityTypeSyncWithMarkerStoreTest {
   void getSyncSession() {
     final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
 
-    activityTypeSyncStore.getSyncSession(query);
+    when(mockConnectorStore.getString(syncSessionKey(query)))
+        .thenReturn(Optional.empty());
+    assertThat(activityTypeSyncStore.getSyncSession(query))
+        .isEmpty();
 
-    verify(mockConnectorStore, times(1)).getString(syncSessionKey(query));
-  }
+    when(mockConnectorStore.getString(syncSessionKey(query)))
+        .thenReturn(Optional.of(""));
+    assertThat(activityTypeSyncStore.getSyncSession(query))
+        .isEmpty();
 
-  @Test
-  void clearSyncSession() {
-    final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
-
-    activityTypeSyncStore.clearSyncSession(query);
-
-    verify(mockConnectorStore, times(1)).putString(syncSessionKey(query), null);
+    final String syncSession = faker.numerify("sync-session-###");
+    when(mockConnectorStore.getString(syncSessionKey(query)))
+        .thenReturn(Optional.of(syncSession));
+    assertThat(activityTypeSyncStore.getSyncSession(query))
+        .contains(syncSession);
   }
 
   @Test

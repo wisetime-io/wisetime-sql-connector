@@ -244,8 +244,7 @@ class ActivityTypeSyncWithMarkerServiceTest {
     // slow loop is finished, sync session should be completed
     verify(connectApiMock, times(1)).completeSyncSession(syncSessionId);
     // syncMarker and syncSession should be cleared for slow loop
-    verify(activityTypeRefreshSyncStore, times(1)).clearSyncMarker(query);
-    verify(activityTypeRefreshSyncStore, times(1)).clearSyncSession(query);
+    verify(activityTypeRefreshSyncStore, times(1)).resetSyncPosition(query);
 
     // nothing to sync
     verify(connectApiMock, never()).syncActivityTypes(any(), any());
