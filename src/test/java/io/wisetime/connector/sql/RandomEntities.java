@@ -82,6 +82,6 @@ public class RandomEntities {
     return new ActivityTypeQuery(
         "SELECT '" + faker.lorem().sentence() + "'",
         faker.numerify("sync-marker-###"),
-        List.of());
+        faker.bool().bool() ? List.of() : List.of("code-###"));
   }
 }

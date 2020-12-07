@@ -4,6 +4,7 @@
 
 package io.wisetime.connector.sql.sync.activity_type;
 
+import lombok.Builder;
 import lombok.Data;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import org.codejargon.fluentjdbc.api.query.Mapper;
  * @author yehor.lashkul
  */
 @Data
+@Builder(toBuilder = true)
 @RequiredArgsConstructor
 public class ActivityTypeRecord {
 

@@ -209,12 +209,12 @@ class ConnectedDatabase_postgresSqlTest {
     final ActivityTypeQuery query = new ActivityTypeQuery(
         "SELECT ACTIVITYCODE AS code, ACTIVITYCODE AS sync_marker, ACTIVITYNAME AS label, ACTIVITYDESCRIPTION AS description"
             + "  FROM TEST_ACTIVITYCODES"
-            + "  WHERE ACTIVITYCODE > :previous_sync_marker",
+            + "  WHERE ACTIVITYCODE >= :previous_sync_marker AND ACTIVITYCODE NOT IN (:skipped_codes)",
         "0",
-        List.of());
+        List.of("0"));
 
     assertThat(database.getActivityTypes(query))
-        .as("all records except excluded should be returned")
+        .as("all records should be returned")
         .containsExactlyInAnyOrder(
             new ActivityTypeRecord("12345", "Billable", "Billable description", "12345"),
             new ActivityTypeRecord("23456", "Non-Billable", "Non-Billable description", "23456"),

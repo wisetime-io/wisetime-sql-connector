@@ -44,6 +44,8 @@ public class ActivityTypeQuery {
     if (hasSyncMarkerInSql) {
       Preconditions.checkArgument(hasInitialSyncMarker,
           "Sync marker is used in SQL. Initial sync marker should be defined.");
+      Preconditions.checkArgument(hasSkippedCodesInQuery,
+          "Sync marker is used in SQL. Query must define skipped codes list and SQL must contain :skipped_codes parameter");
     }
     if (hasInitialSyncMarker) {
       Preconditions.checkArgument(hasSyncMarkerInSql,

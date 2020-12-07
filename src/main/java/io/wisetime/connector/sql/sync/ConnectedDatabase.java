@@ -12,6 +12,8 @@ import io.wisetime.connector.sql.queries.ActivityTypeQuery;
 import io.wisetime.connector.sql.sync.activity_type.ActivityTypeRecord;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.codejargon.fluentjdbc.api.FluentJdbc;
 import org.codejargon.fluentjdbc.api.FluentJdbcBuilder;
@@ -56,14 +58,21 @@ public class ConnectedDatabase {
   }
 
   public List<ActivityTypeRecord> getActivityTypes(final ActivityTypeQuery query) {
-    return getActivityTypes(query, StringUtils.EMPTY);
+    return getActivityTypes(query, StringUtils.EMPTY, List.of());
   }
 
-  public List<ActivityTypeRecord> getActivityTypes(final ActivityTypeQuery query, final String syncMarker) {
+  public List<ActivityTypeRecord> getActivityTypes(
+      final ActivityTypeQuery query, final String syncMarker, final List<String> lastSyncedCodesToSkip) {
     query.enforceValid();
+
+    final List<String> codesToSkip = Stream
+        .concat(query.getSkippedCodes().stream(), lastSyncedCodesToSkip.stream())
+        .filter(StringUtils::isNotEmpty)
+        .collect(Collectors.toList());
+
     return query()
         .select(query.getSql())
-        .namedParam("skipped_codes", query.getSkippedCodes())
+        .namedParam("skipped_codes", codesToSkip)
         .namedParam("previous_sync_marker", syncMarker)
         .listResult(ActivityTypeRecord.fluentJdbcMapper(query.hasSyncMarker()));
   }

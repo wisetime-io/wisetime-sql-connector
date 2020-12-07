@@ -20,8 +20,6 @@ import io.wisetime.connector.sql.queries.ActivityTypeQuery;
 import io.wisetime.connector.sql.sync.activity_type.ActivityTypeRecord;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -62,65 +60,37 @@ class ActivityTypeSyncWithMarkerStoreTest {
   }
 
   @Test
-  void saveSyncMarker_empty() {
+  void getLastSyncedCodes_empty() {
     final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
 
-    assertThatThrownBy(() -> activityTypeSyncStore.saveSyncMarker(query, List.of()))
-        .as("empty list is not allowed")
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("can't be empty");
-    verifyZeroInteractions(mockConnectorStore);
-  }
-
-  @Test
-  void saveSyncMarker() {
-    final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
-
-    final List<ActivityTypeRecord> activityTypes = IntStream.range(0, faker.number().numberBetween(1, 5))
-        .mapToObj(idx -> RandomEntities.randomActivityTypeRecord())
-        .collect(Collectors.toList());
-
-    final String savedSyncMarker = activityTypeSyncStore.saveSyncMarker(query, activityTypes);
-
-    final String latestSyncMarker = activityTypes.get(activityTypes.size() - 1).getSyncMarker();
-    assertThat(savedSyncMarker)
-        .as("saved marker should be returned")
-        .isEqualTo(latestSyncMarker);
-    // check that the latest marker was saved with proper key
-    verify(mockConnectorStore, times(1)).putString(syncMarkerKey(query), latestSyncMarker);
-  }
-
-  @Test
-  void getRefreshMarker_noMarker() {
-    final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
-
-    when(mockConnectorStore.getString(anyString()))
+    when(mockConnectorStore.getString(lastSyncedCodesKey(query)))
         .thenReturn(Optional.empty());
 
-    assertThat(activityTypeSyncStore.getRefreshMarker(query))
-        .as("should return initial sync marker from the query")
-        .isEqualTo(query.getInitialSyncMarker());
-    verify(mockConnectorStore, times(1)).getString(refreshMarkerKey(query));
+    assertThat(activityTypeSyncStore.getLastSyncedCodes(query))
+        .as("should return empty list")
+        .isEqualTo(List.of());
   }
 
   @Test
-  void getRefreshMarker() {
+  void getLastSyncedCodes() {
     final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
+    final String code1 = faker.numerify("code-###");
+    final String code2 = faker.numerify("code-###");
 
-    final String savedSyncMarker = faker.numerify("syncMarker-###");
-    when(mockConnectorStore.getString(refreshMarkerKey(query)))
-        .thenReturn(Optional.of(savedSyncMarker));
+    final String savedLatestCodes = code1 + "@@@" + code2;
+    when(mockConnectorStore.getString(lastSyncedCodesKey(query)))
+        .thenReturn(Optional.of(savedLatestCodes));
 
-    assertThat(activityTypeSyncStore.getRefreshMarker(query))
-        .as("should return from the store")
-        .isEqualTo(savedSyncMarker);
+    assertThat(activityTypeSyncStore.getLastSyncedCodes(query))
+        .as("should return from the store parsed by delimiter")
+        .isEqualTo(List.of(code1, code2));
   }
 
   @Test
-  void saveRefreshMarker_empty() {
+  void markSyncPosition_empty() {
     final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
 
-    assertThatThrownBy(() -> activityTypeSyncStore.saveRefreshMarker(query, List.of()))
+    assertThatThrownBy(() -> activityTypeSyncStore.markSyncPosition(query, List.of()))
         .as("empty list is not allowed")
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("can't be empty");
@@ -128,30 +98,37 @@ class ActivityTypeSyncWithMarkerStoreTest {
   }
 
   @Test
-  void saveRefreshMarker() {
+  void markSyncPosition() {
     final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
 
-    final List<ActivityTypeRecord> activityTypes = IntStream.range(0, faker.number().numberBetween(1, 5))
-        .mapToObj(idx -> RandomEntities.randomActivityTypeRecord())
-        .collect(Collectors.toList());
+    final ActivityTypeRecord activityTypeRecord1 = RandomEntities.randomActivityTypeRecord().toBuilder()
+        .syncMarker("111")
+        .build();
+    final ActivityTypeRecord activityTypeRecord2 = RandomEntities.randomActivityTypeRecord().toBuilder()
+        .syncMarker("222")
+        .build();
+    final ActivityTypeRecord activityTypeRecord3 = RandomEntities.randomActivityTypeRecord().toBuilder()
+        .syncMarker("222")
+        .build();
 
-    final String savedRefreshMarker = activityTypeSyncStore.saveRefreshMarker(query, activityTypes);
+    final List<ActivityTypeRecord> activityTypes = List.of(activityTypeRecord1, activityTypeRecord2, activityTypeRecord3);
 
-    final String latestSyncMarker = activityTypes.get(activityTypes.size() - 1).getSyncMarker();
-    assertThat(savedRefreshMarker)
-        .as("saved marker should be returned")
-        .isEqualTo(latestSyncMarker);
+    activityTypeSyncStore.markSyncPosition(query, activityTypes);
+
     // check that the latest marker was saved with proper key
-    verify(mockConnectorStore, times(1)).putString(refreshMarkerKey(query), latestSyncMarker);
+    verify(mockConnectorStore, times(1)).putString(syncMarkerKey(query), "222");
+    // check that the codes of activity types with the latest marker was saved with proper key
+    verify(mockConnectorStore, times(1)).putString(lastSyncedCodesKey(query),
+        activityTypeRecord2.getCode() + "@@@" + activityTypeRecord3.getCode());
   }
 
   @Test
-  void clearRefreshMarker() {
+  void clearSyncMarker() {
     final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
 
-    activityTypeSyncStore.clearRefreshMarker(query);
+    activityTypeSyncStore.clearSyncMarker(query);
 
-    verify(mockConnectorStore, times(1)).putString(refreshMarkerKey(query), null);
+    verify(mockConnectorStore, times(1)).putString(syncMarkerKey(query), null);
   }
 
   @Test
@@ -174,31 +151,12 @@ class ActivityTypeSyncWithMarkerStoreTest {
   }
 
   @Test
-  void saveRefreshSession() {
-    final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
-    final String syncSessionId = faker.numerify("sync-session-###");
-
-    activityTypeSyncStore.saveRefreshSession(query, syncSessionId);
-
-    verify(mockConnectorStore, times(1)).putString(refreshSessionKey(query), syncSessionId);
-  }
-
-  @Test
-  void getRefreshSession() {
+  void clearSyncSession() {
     final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
 
-    activityTypeSyncStore.getRefreshSession(query);
+    activityTypeSyncStore.clearSyncSession(query);
 
-    verify(mockConnectorStore, times(1)).getString(refreshSessionKey(query));
-  }
-
-  @Test
-  void clearRefreshSession() {
-    final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
-
-    activityTypeSyncStore.clearRefreshSession(query);
-
-    verify(mockConnectorStore, times(1)).putString(refreshSessionKey(query), null);
+    verify(mockConnectorStore, times(1)).putString(syncSessionKey(query), null);
   }
 
   @Test
@@ -206,28 +164,21 @@ class ActivityTypeSyncWithMarkerStoreTest {
     final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
     assertThat(activityTypeSyncStore.syncMarkerKey(query))
         .isEqualTo(syncMarkerKey(query));
-    assertThat(activityTypeSyncStore.refreshMarkerKey(query))
-        .isEqualTo(refreshMarkerKey(query));
     assertThat(activityTypeSyncStore.syncSessionKey(query))
         .isEqualTo(syncSessionKey(query));
-    assertThat(activityTypeSyncStore.refreshSessionKey(query))
-        .isEqualTo(refreshSessionKey(query));
+    assertThat(activityTypeSyncStore.lastSyncedCodesKey(query))
+        .isEqualTo(lastSyncedCodesKey(query));
   }
 
   private String syncMarkerKey(final ActivityTypeQuery query) {
     return query.hashCode() + "_activity_type_sync_marker";
   }
 
-  private String refreshMarkerKey(final ActivityTypeQuery query) {
-    return query.hashCode() + "_activity_type_refresh_marker";
-  }
-
   private String syncSessionKey(final ActivityTypeQuery query) {
     return query.hashCode() + "_activity_type_sync_session";
   }
 
-  private String refreshSessionKey(final ActivityTypeQuery query) {
-    return query.hashCode() + "_activity_type_refresh_session";
+  private String lastSyncedCodesKey(final ActivityTypeQuery query) {
+    return query.hashCode() + "_activity_type_last_sync_codes";
   }
-
 }

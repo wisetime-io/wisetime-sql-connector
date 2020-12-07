@@ -35,7 +35,8 @@ class ActivityTypeSyncWithMarkerServiceTest {
 
   private final ConnectedDatabase databaseMock = mock(ConnectedDatabase.class);
   private final ConnectApi connectApiMock = mock(ConnectApi.class);
-  private final ActivityTypeSyncWithMarkerStore activityTypeSyncStoreMock = mock(ActivityTypeSyncWithMarkerStore.class);
+  private final ActivityTypeSyncWithMarkerStore activityTypeDrainSyncStore = mock(ActivityTypeSyncWithMarkerStore.class);
+  private final ActivityTypeSyncWithMarkerStore activityTypeRefreshSyncStore = mock(ActivityTypeSyncWithMarkerStore.class);
 
   private ActivityTypeSyncWithMarkerService activityTypeSyncWithMarkerService;
 
@@ -43,7 +44,8 @@ class ActivityTypeSyncWithMarkerServiceTest {
   void init() {
     activityTypeSyncWithMarkerService =
         new ActivityTypeSyncWithMarkerService(mock(ConnectorStore.class), connectApiMock, databaseMock);
-    activityTypeSyncWithMarkerService.setActivityTypeSyncStore(activityTypeSyncStoreMock);
+    activityTypeSyncWithMarkerService.setActivityTypeDrainSyncStore(activityTypeDrainSyncStore);
+    activityTypeSyncWithMarkerService.setActivityTypeRefreshSyncStore(activityTypeRefreshSyncStore);
   }
 
   @Test
@@ -51,14 +53,14 @@ class ActivityTypeSyncWithMarkerServiceTest {
     final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
 
     // defines the first run
-    when(activityTypeSyncStoreMock.getSyncMarker(query))
+    when(activityTypeDrainSyncStore.getSyncMarker(query))
         .thenReturn(query.getInitialSyncMarker());
 
     final String syncSessionId = faker.numerify("session-###");
     when(connectApiMock.startSyncSession())
         .thenReturn(syncSessionId);
 
-    when(databaseMock.getActivityTypes(query, query.getInitialSyncMarker()))
+    when(databaseMock.getActivityTypes(query, query.getInitialSyncMarker(), List.of()))
         .thenReturn(List.of());
 
     // empty activity types should be synced
@@ -69,7 +71,7 @@ class ActivityTypeSyncWithMarkerServiceTest {
     verify(connectApiMock, times(1)).completeSyncSession(syncSessionId);
     // empty activity types are not synced
     verify(connectApiMock, never()).syncActivityTypes(any(), any());
-    verify(activityTypeSyncStoreMock, never()).saveSyncMarker(any(), any());
+    verify(activityTypeDrainSyncStore, never()).markSyncPosition(any(), any());
   }
 
   @Test
@@ -79,36 +81,44 @@ class ActivityTypeSyncWithMarkerServiceTest {
     final ActivityTypeRecord firstBatchActivityType = RandomEntities.randomActivityTypeRecord();
     final ActivityTypeRecord secondBatchActivityType = RandomEntities.randomActivityTypeRecord();
 
-    // defines the first run
-    when(activityTypeSyncStoreMock.getSyncMarker(query))
-        .thenReturn(query.getInitialSyncMarker());
+    when(activityTypeDrainSyncStore.getSyncMarker(query))
+        // defines the first run
+        .thenReturn(query.getInitialSyncMarker())
+        // invoked again when requesting activity type records
+        .thenReturn(query.getInitialSyncMarker())
+        // invoked after the first batch
+        .thenReturn(firstBatchActivityType.getSyncMarker())
+        // invoked after the second batch
+        .thenReturn(secondBatchActivityType.getSyncMarker());
+
+    when(activityTypeDrainSyncStore.getLastSyncedCodes(query))
+        .thenReturn(List.of())
+        .thenReturn(List.of(firstBatchActivityType.getCode()))
+        .thenReturn(List.of(secondBatchActivityType.getCode()));
 
     final String syncSessionId = faker.numerify("session-###");
     when(connectApiMock.startSyncSession())
         .thenReturn(syncSessionId);
 
-    when(activityTypeSyncStoreMock.saveSyncMarker(query, List.of(firstBatchActivityType)))
-        .thenReturn(firstBatchActivityType.getSyncMarker());
-    when(activityTypeSyncStoreMock.saveSyncMarker(query, List.of(secondBatchActivityType)))
-        .thenReturn(secondBatchActivityType.getSyncMarker());
-
-    when(databaseMock.getActivityTypes(query, query.getInitialSyncMarker()))
+    when(databaseMock.getActivityTypes(query, query.getInitialSyncMarker(), List.of()))
         .thenReturn(List.of(firstBatchActivityType));
-    when(databaseMock.getActivityTypes(query, firstBatchActivityType.getSyncMarker()))
+    when(databaseMock.getActivityTypes(query, firstBatchActivityType.getSyncMarker(),
+        List.of(firstBatchActivityType.getCode())))
         .thenReturn(List.of(secondBatchActivityType));
-    when(databaseMock.getActivityTypes(query, secondBatchActivityType.getSyncMarker()))
+    when(databaseMock.getActivityTypes(query, secondBatchActivityType.getSyncMarker(),
+        List.of(secondBatchActivityType.getCode())))
         .thenReturn(List.of());
 
     activityTypeSyncWithMarkerService.performActivityTypeUpdate(query);
 
     // check that all activity types (2 batches) were synced withing session
     // sync marker should be save after each batch sync
-    final InOrder inOrder = Mockito.inOrder(connectApiMock, activityTypeSyncStoreMock);
+    final InOrder inOrder = Mockito.inOrder(connectApiMock, activityTypeDrainSyncStore);
     inOrder.verify(connectApiMock, times(1)).startSyncSession();
     inOrder.verify(connectApiMock, times(1)).syncActivityTypes(List.of(firstBatchActivityType), syncSessionId);
-    inOrder.verify(activityTypeSyncStoreMock, times(1)).saveSyncMarker(query, List.of(firstBatchActivityType));
+    inOrder.verify(activityTypeDrainSyncStore, times(1)).markSyncPosition(query, List.of(firstBatchActivityType));
     inOrder.verify(connectApiMock, times(1)).syncActivityTypes(List.of(secondBatchActivityType), syncSessionId);
-    inOrder.verify(activityTypeSyncStoreMock, times(1)).saveSyncMarker(query, List.of(secondBatchActivityType));
+    inOrder.verify(activityTypeDrainSyncStore, times(1)).markSyncPosition(query, List.of(secondBatchActivityType));
     inOrder.verify(connectApiMock, times(1)).completeSyncSession(any());
   }
 
@@ -116,52 +126,65 @@ class ActivityTypeSyncWithMarkerServiceTest {
   void performActivityTypeUpdate_subsequentRuns_noActivityTypes() {
     final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
     final String prevSyncMarker = faker.numerify("sync_marker_###");
+    final List<String> prevSyncedCodes = List.of(faker.numerify("code-###"), faker.numerify("code-###"));
 
-    when(activityTypeSyncStoreMock.getSyncMarker(query))
+    when(activityTypeDrainSyncStore.getSyncMarker(query))
         .thenReturn(prevSyncMarker);
+    when(activityTypeDrainSyncStore.getLastSyncedCodes(query))
+        .thenReturn(prevSyncedCodes);
 
-    when(databaseMock.getActivityTypes(query, prevSyncMarker))
+    when(databaseMock.getActivityTypes(query, prevSyncMarker, prevSyncedCodes))
         .thenReturn(List.of());
 
     activityTypeSyncWithMarkerService.performActivityTypeUpdate(query);
 
     // empty activity types should NOT be synced as NO session should be started/completed
     verifyZeroInteractions(connectApiMock);
-    verify(activityTypeSyncStoreMock, never()).saveSyncMarker(any(), any());
+    verify(activityTypeDrainSyncStore, never()).markSyncPosition(any(), any());
   }
 
   @Test
   void performActivityTypeUpdate_subsequentRuns() {
     final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
     final String prevSyncMarker = faker.numerify("sync_marker_###");
+    final List<String> prevSyncedCodes = List.of(faker.numerify("code-###"), faker.numerify("code-###"));
 
     final ActivityTypeRecord firstBatchActivityType = RandomEntities.randomActivityTypeRecord();
     final ActivityTypeRecord secondBatchActivityType = RandomEntities.randomActivityTypeRecord();
 
-    when(activityTypeSyncStoreMock.getSyncMarker(query))
-        .thenReturn(prevSyncMarker);
-
-    when(activityTypeSyncStoreMock.saveSyncMarker(query, List.of(firstBatchActivityType)))
-        .thenReturn(firstBatchActivityType.getSyncMarker());
-    when(activityTypeSyncStoreMock.saveSyncMarker(query, List.of(secondBatchActivityType)))
+    when(activityTypeDrainSyncStore.getSyncMarker(query))
+        // check for the first run
+        .thenReturn(prevSyncMarker)
+        // invoked again when requesting activity type records
+        .thenReturn(prevSyncMarker)
+        // invoked after the first batch
+        .thenReturn(firstBatchActivityType.getSyncMarker())
+        // invoked after the second batch
         .thenReturn(secondBatchActivityType.getSyncMarker());
 
-    when(databaseMock.getActivityTypes(query, prevSyncMarker))
+    when(activityTypeDrainSyncStore.getLastSyncedCodes(query))
+        .thenReturn(prevSyncedCodes)
+        .thenReturn(List.of(firstBatchActivityType.getCode()))
+        .thenReturn(List.of(secondBatchActivityType.getCode()));
+
+    when(databaseMock.getActivityTypes(query, prevSyncMarker, prevSyncedCodes))
         .thenReturn(List.of(firstBatchActivityType));
-    when(databaseMock.getActivityTypes(query, firstBatchActivityType.getSyncMarker()))
+    when(databaseMock.getActivityTypes(query, firstBatchActivityType.getSyncMarker(),
+        List.of(firstBatchActivityType.getCode())))
         .thenReturn(List.of(secondBatchActivityType));
-    when(databaseMock.getActivityTypes(query, secondBatchActivityType.getSyncMarker()))
+    when(databaseMock.getActivityTypes(query, secondBatchActivityType.getSyncMarker(),
+        List.of(secondBatchActivityType.getCode())))
         .thenReturn(List.of());
 
     activityTypeSyncWithMarkerService.performActivityTypeUpdate(query);
 
     // check that all activity types (2 batches) were synced without session
     // sync marker should be save after each batch sync
-    final InOrder inOrder = Mockito.inOrder(connectApiMock, activityTypeSyncStoreMock);
+    final InOrder inOrder = Mockito.inOrder(connectApiMock, activityTypeDrainSyncStore);
     inOrder.verify(connectApiMock, times(1)).syncActivityTypes(List.of(firstBatchActivityType), "");
-    inOrder.verify(activityTypeSyncStoreMock, times(1)).saveSyncMarker(query, List.of(firstBatchActivityType));
+    inOrder.verify(activityTypeDrainSyncStore, times(1)).markSyncPosition(query, List.of(firstBatchActivityType));
     inOrder.verify(connectApiMock, times(1)).syncActivityTypes(List.of(secondBatchActivityType), "");
-    inOrder.verify(activityTypeSyncStoreMock, times(1)).saveSyncMarker(query, List.of(secondBatchActivityType));
+    inOrder.verify(activityTypeDrainSyncStore, times(1)).markSyncPosition(query, List.of(secondBatchActivityType));
     verify(connectApiMock, never()).startSyncSession();
     verify(connectApiMock, never()).completeSyncSession(any());
   }
@@ -171,26 +194,26 @@ class ActivityTypeSyncWithMarkerServiceTest {
     final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
 
     // slow loop is not started yet
-    when(activityTypeSyncStoreMock.getRefreshSession(query))
+    when(activityTypeRefreshSyncStore.getSyncSession(query))
         .thenReturn(Optional.empty());
 
     final String syncSessionId = faker.numerify("session-###");
     when(connectApiMock.startSyncSession())
         .thenReturn(syncSessionId);
 
-    when(activityTypeSyncStoreMock.getRefreshMarker(query))
+    when(activityTypeRefreshSyncStore.getSyncMarker(query))
         .thenReturn(query.getInitialSyncMarker());
 
     final List<ActivityTypeRecord> batch = List.of(
         RandomEntities.randomActivityTypeRecord(),
         RandomEntities.randomActivityTypeRecord());
-    when(databaseMock.getActivityTypes(query, query.getInitialSyncMarker()))
+    when(databaseMock.getActivityTypes(query, query.getInitialSyncMarker(), List.of()))
         .thenReturn(batch);
 
     activityTypeSyncWithMarkerService.performActivityTypeUpdateSlowLoop(query);
 
     verify(connectApiMock, times(1)).syncActivityTypes(batch, syncSessionId);
-    verify(activityTypeSyncStoreMock, times(1)).saveRefreshMarker(query, batch);
+    verify(activityTypeRefreshSyncStore, times(1)).markSyncPosition(query, batch);
     // slow loop is not finished, session should not be completed
     verify(connectApiMock, never()).completeSyncSession(any());
   }
@@ -201,15 +224,19 @@ class ActivityTypeSyncWithMarkerServiceTest {
 
     // slow loop is already started
     final String syncSessionId = faker.numerify("session-###");
-    when(activityTypeSyncStoreMock.getRefreshSession(query))
+    when(activityTypeRefreshSyncStore.getSyncSession(query))
         .thenReturn(Optional.of(syncSessionId));
 
     final String refreshSyncMarker = faker.numerify("sync_marker_###");
-    when(activityTypeSyncStoreMock.getRefreshMarker(query))
+    when(activityTypeRefreshSyncStore.getSyncMarker(query))
         .thenReturn(refreshSyncMarker);
 
+    final List<String> prevRefreshedCodes = List.of(faker.numerify("code-###"), faker.numerify("code-###"));
+    when(activityTypeRefreshSyncStore.getLastSyncedCodes(query))
+        .thenReturn(prevRefreshedCodes);
+
     // no more activity types, slow loop is finished
-    when(databaseMock.getActivityTypes(query, refreshSyncMarker))
+    when(databaseMock.getActivityTypes(query, refreshSyncMarker, prevRefreshedCodes))
         .thenReturn(List.of());
 
     activityTypeSyncWithMarkerService.performActivityTypeUpdateSlowLoop(query);
@@ -217,8 +244,8 @@ class ActivityTypeSyncWithMarkerServiceTest {
     // slow loop is finished, sync session should be completed
     verify(connectApiMock, times(1)).completeSyncSession(syncSessionId);
     // syncMarker and syncSession should be cleared for slow loop
-    verify(activityTypeSyncStoreMock, times(1)).clearRefreshMarker(query);
-    verify(activityTypeSyncStoreMock, times(1)).clearRefreshSession(query);
+    verify(activityTypeRefreshSyncStore, times(1)).clearSyncMarker(query);
+    verify(activityTypeRefreshSyncStore, times(1)).clearSyncSession(query);
 
     // nothing to sync
     verify(connectApiMock, never()).syncActivityTypes(any(), any());

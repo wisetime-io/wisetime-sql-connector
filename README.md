@@ -297,7 +297,7 @@ The yaml configuration file expects single SQL query to be provided.
 
 Selecting an empty list will disable all the existing WiseTime activity types.
 
-If there are any activity types you would like to skip syncing, you can use `skippedCodes` property. It's optional so can be omitted. You must avoid using `skipped_codes` in your SQL in this case.
+If there are any activity types you would like to skip syncing, you can use `skippedCodes` property. It's required in case of using `sync_marker`.
 
 WiseTime supports 2 ways of activity types sync:
 - Using `sync_marker`
@@ -306,7 +306,7 @@ WiseTime supports 2 ways of activity types sync:
 #### Activity type sync using `sync_marker` 
 
 This is a preferable way of activity type sync as it allows syncing activity types in batches, and do a slow loop sync.
-It can be used if there is any NOT updatable column with unique values that can be used as `sync_marker` (e.g. `ID`).
+It can be used if there is any NOT updatable column or column updatable increasingly only. It should be used as `sync_marker` (e.g. `updated_at`, `ID`).
 The query must be sorted by `sync_marker` (e.g. `ORDER BY [sync_marker]`).
 The `initialSyncMarker` is required and specifies the first value to be used for `:previous_sync_marker`.
 
@@ -318,11 +318,11 @@ skippedCodes:
 sql: >
   SELECT TOP 100
   [ACTIVITYCODE] AS [code],
-  [ACTIVITYCODE] AS [sync_marker],
+  [UPDATED_AT] AS [sync_marker],
   [ACTIVITYNAME] AS [label]
   [ACTIVITYDESCRIPTION] AS [description]
   FROM [dbo].[TEST_ACTIVITYCODES]
-  WHERE [ACTIVITYCODE] NOT IN (:skipped_codes) AND [ACTIVITYCODE] > :previous_sync_marker
+  WHERE [ACTIVITYCODE] NOT IN (:skipped_codes) AND [UPDATED_AT] >= :previous_sync_marker
   ORDER BY [sync_marker];
 ```
 

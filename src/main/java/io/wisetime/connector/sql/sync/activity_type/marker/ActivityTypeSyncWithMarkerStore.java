@@ -9,25 +9,38 @@ import com.google.common.base.Preconditions;
 import io.wisetime.connector.datastore.ConnectorStore;
 import io.wisetime.connector.sql.queries.ActivityTypeQuery;
 import io.wisetime.connector.sql.sync.activity_type.ActivityTypeRecord;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 /**
  * @author yehor.lashkul
  */
+@RequiredArgsConstructor
 class ActivityTypeSyncWithMarkerStore {
 
+  private static final String CODES_DELIMITER = "@@@";
+
   private final ConnectorStore connectorStore;
+  private final String keySpace;
 
   public ActivityTypeSyncWithMarkerStore(ConnectorStore connectorStore) {
-    this.connectorStore = connectorStore;
+    this(connectorStore, "");
   }
 
-  String saveSyncMarker(ActivityTypeQuery query, List<ActivityTypeRecord> activityTypes) {
+  void markSyncPosition(ActivityTypeQuery query, List<ActivityTypeRecord> activityTypes) {
     Preconditions.checkArgument(activityTypes.size() > 0, "activity types can't be empty");
+
     final String latestMarker = activityTypes.get(activityTypes.size() - 1).getSyncMarker();
     connectorStore.putString(syncMarkerKey(query), latestMarker);
-    return latestMarker;
+
+    final String latestSyncedCodes = activityTypes.stream()
+        .filter(activityType -> activityType.getSyncMarker().equals(latestMarker))
+        .map(ActivityTypeRecord::getCode)
+        .collect(Collectors.joining(CODES_DELIMITER));
+    connectorStore.putString(lastSyncedCodesKey(query), latestSyncedCodes);
   }
 
   String getSyncMarker(ActivityTypeQuery query) {
@@ -35,20 +48,15 @@ class ActivityTypeSyncWithMarkerStore {
         .orElse(query.getInitialSyncMarker());
   }
 
-  String saveRefreshMarker(ActivityTypeQuery query, List<ActivityTypeRecord> activityTypes) {
-    Preconditions.checkArgument(activityTypes.size() > 0, "activity types can't be empty");
-    final String latestMarker = activityTypes.get(activityTypes.size() - 1).getSyncMarker();
-    connectorStore.putString(refreshMarkerKey(query), latestMarker);
-    return latestMarker;
+  void clearSyncMarker(ActivityTypeQuery query) {
+    connectorStore.putString(syncMarkerKey(query), null);
   }
 
-  String getRefreshMarker(ActivityTypeQuery query) {
-    return connectorStore.getString(refreshMarkerKey(query))
-        .orElse(query.getInitialSyncMarker());
-  }
-
-  void clearRefreshMarker(ActivityTypeQuery query) {
-    connectorStore.putString(refreshMarkerKey(query), null);
+  List<String> getLastSyncedCodes(ActivityTypeQuery query) {
+    return connectorStore.getString(lastSyncedCodesKey(query))
+        .map(refs -> refs.split(CODES_DELIMITER))
+        .map(Arrays::asList)
+        .orElse(List.of());
   }
 
   void saveSyncSession(ActivityTypeQuery query, String syncSessionId) {
@@ -59,35 +67,22 @@ class ActivityTypeSyncWithMarkerStore {
     return connectorStore.getString(syncSessionKey(query));
   }
 
-  void saveRefreshSession(ActivityTypeQuery query, String syncSessionId) {
-    connectorStore.putString(refreshSessionKey(query), syncSessionId);
-  }
-
-  Optional<String> getRefreshSession(ActivityTypeQuery query) {
-    return connectorStore.getString(refreshSessionKey(query));
-  }
-
-  void clearRefreshSession(ActivityTypeQuery query) {
-    connectorStore.putString(refreshSessionKey(query), null);
+  void clearSyncSession(ActivityTypeQuery query) {
+    connectorStore.putString(syncSessionKey(query), null);
   }
 
   @VisibleForTesting
   String syncMarkerKey(final ActivityTypeQuery query) {
-    return query.hashCode() + "_activity_type_sync_marker";
+    return keySpace + query.hashCode() + "_activity_type_sync_marker";
   }
 
   @VisibleForTesting
-  String refreshMarkerKey(final ActivityTypeQuery query) {
-    return query.hashCode() + "_activity_type_refresh_marker";
+  String lastSyncedCodesKey(final ActivityTypeQuery query) {
+    return keySpace + query.hashCode() + "_activity_type_last_sync_codes";
   }
 
   @VisibleForTesting
   String syncSessionKey(final ActivityTypeQuery query) {
-    return query.hashCode() + "_activity_type_sync_session";
-  }
-
-  @VisibleForTesting
-  String refreshSessionKey(final ActivityTypeQuery query) {
-    return query.hashCode() + "_activity_type_refresh_session";
+    return keySpace + query.hashCode() + "_activity_type_sync_session";
   }
 }
