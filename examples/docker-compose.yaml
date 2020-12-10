@@ -30,6 +30,9 @@ services:
       TAG_UPSERT_PATH: /Connector/  # Change this to something meaningful, e.g. the name of the connected system
       TAG_SQL_FILE: /etc/wisetime-sql-connector/tag_sql.yaml
 
+      ACTIVITY_TYPE_SCAN: ENABLED # Disabled by default
+      ACTIVITY_TYPE_SQL_FILE: /etc/wisetime-sql-connector/activity_types_sql.yaml
+
       JDBC_URL: "jdbc:sqlserver://HOST:PORT;databaseName=DATABASE_NAME;ssl=request;useCursors=true"
       JDBC_USER: USERNAME
       JDBC_PASSWORD: PASSWORD
