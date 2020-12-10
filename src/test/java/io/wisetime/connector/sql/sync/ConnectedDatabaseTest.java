@@ -9,7 +9,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 import com.github.javafaker.Faker;
-import com.zaxxer.hikari.HikariDataSource;
 import io.vavr.control.Try;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -23,11 +22,11 @@ public class ConnectedDatabaseTest {
 
   @Test
   void toTagSyncRecord_allDataPresent() throws SQLException {
-    HikariDataSource dataSource = mock(HikariDataSource.class);
-    ConnectedDatabase connectedDatabase = new ConnectedDatabase(dataSource);
-    Map<String, String> dataMap = getTestDataMap();
-    ResultSet resultSet = createMockResultSet(dataMap);
-    TagSyncRecord tagSyncRecord = connectedDatabase.toTagSyncRecord(resultSet);
+    final Map<String, String> dataMap = getTestDataMap();
+    final ResultSet resultSet = createMockResultSet(dataMap);
+
+    final TagSyncRecord tagSyncRecord = TagSyncRecord.fluentJdbcMapper().map(resultSet);
+
     assertThat(tagSyncRecord.getSyncMarker()).isEqualTo(dataMap.get("sync_marker"));
     assertThat(tagSyncRecord.getTagDescription()).isEqualTo(dataMap.get("tag_description"));
     assertThat(tagSyncRecord.getUrl()).isEqualTo(dataMap.get("url"));
@@ -39,13 +38,13 @@ public class ConnectedDatabaseTest {
 
   @Test
   void toTagSyncRecord_missingOptionalData() throws SQLException {
-    HikariDataSource dataSource = mock(HikariDataSource.class);
-    ConnectedDatabase connectedDatabase = new ConnectedDatabase(dataSource);
-    Map<String, String> dataMap = getTestDataMap();
+    final Map<String, String> dataMap = getTestDataMap();
     dataMap.remove("tag_metadata");
     dataMap.remove("url");
-    ResultSet resultSet = createMockResultSet(dataMap);
-    TagSyncRecord tagSyncRecord = connectedDatabase.toTagSyncRecord(resultSet);
+    final ResultSet resultSet = createMockResultSet(dataMap);
+
+    final TagSyncRecord tagSyncRecord = TagSyncRecord.fluentJdbcMapper().map(resultSet);
+
     assertThat(tagSyncRecord.getSyncMarker()).isEqualTo(dataMap.get("sync_marker"));
     assertThat(tagSyncRecord.getTagDescription()).isEqualTo(dataMap.get("tag_description"));
     assertThat(tagSyncRecord.getUrl()).isEqualTo(null);
@@ -63,7 +62,7 @@ public class ConnectedDatabaseTest {
         "additional_keyword", FAKER.company().name(),
         "tag_description", FAKER.company().industry(),
         "sync_marker", FAKER.idNumber().valid());
-    return new HashMap(dataMap);
+    return new HashMap<>(dataMap);
   }
 
   private ResultSet createMockResultSet(Map<String, String> fields) {
@@ -71,6 +70,4 @@ public class ConnectedDatabaseTest {
     fields.forEach((key, value) -> Try.of(() -> doReturn(value).when(mockResultSet).getString(key)));
     return mockResultSet;
   }
-
-
 }

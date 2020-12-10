@@ -4,6 +4,7 @@
 
 package io.wisetime.connector.sql.sync;
 
+import static io.wisetime.connector.sql.RandomEntities.randomActivityTypeRecord;
 import static io.wisetime.connector.sql.RandomEntities.randomTagSyncRecord;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -11,14 +12,20 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
+import com.github.javafaker.Faker;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import io.wisetime.connector.api_client.ApiClient;
 import io.wisetime.connector.config.RuntimeConfig;
 import io.wisetime.connector.sql.ConnectorLauncher.SqlConnectorConfigKey;
+import io.wisetime.connector.sql.sync.activity_type.ActivityTypeRecord;
+import io.wisetime.generated.connect.ActivityType;
+import io.wisetime.generated.connect.SyncActivityTypesRequest;
+import io.wisetime.generated.connect.SyncSession;
 import io.wisetime.generated.connect.UpsertTagRequest;
 import java.io.IOException;
 import java.util.List;
@@ -32,6 +39,8 @@ import org.mockito.ArgumentCaptor;
  * @author shane.xie
  */
 class ConnectApiTest {
+
+  private final Faker faker = Faker.instance();
 
   private static ApiClient mockApiClient = mock(ApiClient.class);
   private static ConnectApi connectApi;
@@ -63,7 +72,7 @@ class ConnectApiTest {
   void upsertWiseTimeTags_sends_correct_requests() throws Exception {
     final TagSyncRecord record1 = randomTagSyncRecord();
     final TagSyncRecord record2 = randomTagSyncRecord();
-    final List<TagSyncRecord> tagSyncRecords = ImmutableList.of(record1, record2);
+    final List<TagSyncRecord> tagSyncRecords = List.of(record1, record2);
 
     connectApi.upsertWiseTimeTags(tagSyncRecords);
     ArgumentCaptor<List<UpsertTagRequest>> argument = ArgumentCaptor.forClass(List.class);
@@ -71,7 +80,7 @@ class ConnectApiTest {
 
     final UpsertTagRequest request1 = new UpsertTagRequest()
         .name(record1.getTagName())
-        .additionalKeywords(ImmutableList.of(record1.getAdditionalKeyword()))
+        .additionalKeywords(List.of(record1.getAdditionalKeyword()))
         .url(record1.getUrl())
         .externalId(record1.getExternalId())
         .metadata(gson.fromJson(record1.getTagMetadata(), new TypeToken<Map<String, String>>() {
@@ -84,7 +93,7 @@ class ConnectApiTest {
         .name(record2.getTagName())
         .url(record2.getUrl())
         .externalId(record2.getExternalId())
-        .additionalKeywords(ImmutableList.of(record2.getAdditionalKeyword()))
+        .additionalKeywords(List.of(record2.getAdditionalKeyword()))
         .metadata(gson.fromJson(record2.getTagMetadata(), new TypeToken<Map<String, String>>() {
         }.getType()))
         .description(record2.getTagDescription())
@@ -101,7 +110,7 @@ class ConnectApiTest {
     TagSyncRecord record = randomTagSyncRecord();
     record.setTagDescription(null);
 
-    connectApi.upsertWiseTimeTags(ImmutableList.of(record));
+    connectApi.upsertWiseTimeTags(List.of(record));
 
     ArgumentCaptor<List<UpsertTagRequest>> argument = ArgumentCaptor.forClass(List.class);
     verify(mockApiClient).tagUpsertBatch(argument.capture());
@@ -115,7 +124,7 @@ class ConnectApiTest {
     TagSyncRecord record = randomTagSyncRecord();
     record.setTagDescription("");
 
-    connectApi.upsertWiseTimeTags(ImmutableList.of(record));
+    connectApi.upsertWiseTimeTags(List.of(record));
 
     ArgumentCaptor<List<UpsertTagRequest>> argument = ArgumentCaptor.forClass(List.class);
     verify(mockApiClient).tagUpsertBatch(argument.capture());
@@ -128,7 +137,44 @@ class ConnectApiTest {
   void upsertWiseTimeTags_should_throw_runtime_exception() throws Exception {
     TagSyncRecord record = randomTagSyncRecord();
     doThrow(new IOException()).when(mockApiClient).tagUpsertBatch(anyList());
-    assertThrows(RuntimeException.class, () -> connectApi.upsertWiseTimeTags(ImmutableList.of(record)));
+    assertThrows(RuntimeException.class, () -> connectApi.upsertWiseTimeTags(List.of(record)));
   }
 
+  @Test
+  void startSyncSession() throws Exception {
+    final String syncSessionId = faker.numerify("sync-session-###");
+    when(mockApiClient.activityTypesStartSyncSession())
+        .thenReturn(new SyncSession().syncSessionId(syncSessionId));
+
+    final String result = connectApi.startSyncSession();
+
+    assertThat(result).isEqualTo(syncSessionId);
+    verify(mockApiClient, times(1)).activityTypesStartSyncSession();
+  }
+
+  @Test
+  void completeSyncSession() throws Exception {
+    final String syncSessionId = faker.numerify("sync-session-###");
+
+    connectApi.completeSyncSession(syncSessionId);
+
+    verify(mockApiClient, times(1)).activityTypesCompleteSyncSession(
+        new SyncSession()
+            .syncSessionId(syncSessionId));
+  }
+
+  @Test
+  void syncActivityTypes() throws Exception {
+    final ActivityTypeRecord record = randomActivityTypeRecord();
+    final String syncSessionId = faker.numerify("sync-session-###");
+
+    connectApi.syncActivityTypes(List.of(record), syncSessionId);
+
+    verify(mockApiClient, times(1)).syncActivityTypes(new SyncActivityTypesRequest()
+        .syncSessionId(syncSessionId)
+        .activityTypes(List.of(new ActivityType()
+            .code(record.getCode())
+            .label(record.getLabel())
+            .description(record.getDescription()))));
+  }
 }

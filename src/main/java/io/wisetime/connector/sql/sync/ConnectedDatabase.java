@@ -8,11 +8,13 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.zaxxer.hikari.HikariDataSource;
 import io.vavr.control.Try;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import io.wisetime.connector.sql.queries.ActivityTypeQuery;
+import io.wisetime.connector.sql.sync.activity_type.ActivityTypeRecord;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.commons.lang3.StringUtils;
 import org.codejargon.fluentjdbc.api.FluentJdbc;
 import org.codejargon.fluentjdbc.api.FluentJdbcBuilder;
 import org.codejargon.fluentjdbc.api.mapper.Mappers;
@@ -51,8 +53,28 @@ public class ConnectedDatabase {
         .select(sql)
         .namedParam("previous_sync_marker", syncMarker)
         .namedParam("skipped_ids", skippedIds)
-        .iterateResult(resultSet -> results.add(toTagSyncRecord(resultSet)));
+        .iterateResult(TagSyncRecord.fluentJdbcMapper(), results::add);
     return results;
+  }
+
+  public List<ActivityTypeRecord> getActivityTypes(final ActivityTypeQuery query) {
+    return getActivityTypes(query, StringUtils.EMPTY, List.of());
+  }
+
+  public List<ActivityTypeRecord> getActivityTypes(
+      final ActivityTypeQuery query, final String syncMarker, final List<String> lastSyncedCodesToSkip) {
+    query.enforceValid();
+
+    final List<String> codesToSkip = Stream
+        .concat(query.getSkippedCodes().stream(), lastSyncedCodesToSkip.stream())
+        .filter(StringUtils::isNotEmpty)
+        .collect(Collectors.toList());
+
+    return query()
+        .select(query.getSql())
+        .namedParam("skipped_codes", codesToSkip)
+        .namedParam("previous_sync_marker", syncMarker)
+        .listResult(ActivityTypeRecord.fluentJdbcMapper(query.hasSyncMarker()));
   }
 
   public void close() {
@@ -62,21 +84,5 @@ public class ConnectedDatabase {
   @VisibleForTesting
   Query query() {
     return fluentJdbc.query();
-  }
-
-  @VisibleForTesting
-  TagSyncRecord toTagSyncRecord(final ResultSet resultSet) throws SQLException {
-    final TagSyncRecord tagSyncRecord = new TagSyncRecord();
-    tagSyncRecord.setId(resultSet.getString("id"));
-    tagSyncRecord.setTagName(resultSet.getString("tag_name"));
-    tagSyncRecord.setUrl(Try.of(() -> resultSet.getString("url")).getOrNull());
-    tagSyncRecord.setExternalId(Try.of(() -> resultSet.getString("external_id")).getOrNull());
-    tagSyncRecord.setTagMetadata(
-        Try.of(() -> Optional.ofNullable(resultSet.getString("tag_metadata")).orElse("{}"))
-            .getOrElse("{}"));
-    tagSyncRecord.setAdditionalKeyword(resultSet.getString("additional_keyword"));
-    tagSyncRecord.setTagDescription(resultSet.getString("tag_description"));
-    tagSyncRecord.setSyncMarker(resultSet.getString("sync_marker"));
-    return tagSyncRecord;
   }
 }

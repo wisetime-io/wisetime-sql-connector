@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import io.wisetime.connector.sql.queries.ActivityTypeQuery;
+import io.wisetime.connector.sql.sync.activity_type.ActivityTypeRecord;
 import io.wisetime.test_docker.ContainerRuntimeSpec;
 import io.wisetime.test_docker.DockerLauncher;
 import io.wisetime.test_docker.containers.MySqlServer;
@@ -17,7 +19,6 @@ import java.util.concurrent.TimeUnit;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.shaded.com.google.common.collect.ImmutableList;
 
 /**
  * @author dchandler
@@ -51,7 +52,7 @@ class ConnectedDatabase_mySqlTest {
   @Test
   void getTagsToSync_invalid_sql() {
     assertThrows(IllegalArgumentException.class, () ->
-        database.getTagsToSync("SELECT 1", "", ImmutableList.of())
+        database.getTagsToSync("SELECT 1", "", List.of())
     );
   }
 
@@ -79,7 +80,7 @@ class ConnectedDatabase_mySqlTest {
             + " LIMIT 50;",
 
         "2019-07-21",
-        ImmutableList.of("P0436021")
+        List.of("P0436021")
     );
 
     final TagSyncRecord result = new TagSyncRecord();
@@ -112,7 +113,7 @@ class ConnectedDatabase_mySqlTest {
             + "  LIMIT 50;",
 
         "80001",
-        ImmutableList.of("80001")
+        List.of("80001")
     );
 
     final TagSyncRecord result = new TagSyncRecord();
@@ -149,7 +150,7 @@ class ConnectedDatabase_mySqlTest {
             + " ORDER BY DATE_UPDATED ASC"
             + " LIMIT 50;",
         "2019-07-21",
-        ImmutableList.of("P0436021")
+        List.of("P0436021")
     );
 
     final TagSyncRecord result = new TagSyncRecord();
@@ -166,6 +167,53 @@ class ConnectedDatabase_mySqlTest {
     assertThat(tagSyncRecords)
         .as("Query should return one record")
         .containsExactly(result);
+  }
+
+  @Test
+  void getActivityTypes_noSkippedCodes() {
+    final ActivityTypeQuery query = new ActivityTypeQuery();
+    query.setSql("SELECT ACTIVITYCODE AS code, ACTIVITYNAME AS label, ACTIVITYDESCRIPTION AS description"
+        + "  FROM TEST_ACTIVITYCODES");
+
+    assertThat(database.getActivityTypes(query))
+        .as("all records should be returned")
+        .containsExactlyInAnyOrder(
+            new ActivityTypeRecord("12345", "Billable", "Billable description"),
+            new ActivityTypeRecord("23456", "Non-Billable", "Non-Billable description"),
+            new ActivityTypeRecord("34567", "Default", "Default description"));
+  }
+
+  @Test
+  void getActivityTypes_withSkippedCodes() {
+    final ActivityTypeQuery query = new ActivityTypeQuery(
+        "SELECT ACTIVITYCODE AS code, ACTIVITYNAME AS label, ACTIVITYDESCRIPTION AS description"
+            + "  FROM TEST_ACTIVITYCODES"
+            + "  WHERE ACTIVITYCODE NOT IN (:skipped_codes)",
+        null,
+        List.of("23456")); // code of Non-Billable activity type
+
+    assertThat(database.getActivityTypes(query))
+        .as("all records except excluded should be returned")
+        .containsExactlyInAnyOrder(
+            new ActivityTypeRecord("12345", "Billable", "Billable description"),
+            new ActivityTypeRecord("34567", "Default", "Default description"));
+  }
+
+  @Test
+  void getActivityTypes_withSyncMarker() {
+    final ActivityTypeQuery query = new ActivityTypeQuery(
+        "SELECT ACTIVITYCODE AS code, ACTIVITYCODE AS sync_marker, ACTIVITYNAME AS label, ACTIVITYDESCRIPTION AS description"
+            + "  FROM TEST_ACTIVITYCODES"
+            + "  WHERE ACTIVITYCODE >= :previous_sync_marker AND ACTIVITYCODE NOT IN (:skipped_codes)",
+        "0",
+        List.of("0"));
+
+    assertThat(database.getActivityTypes(query))
+        .as("all records should be returned")
+        .containsExactlyInAnyOrder(
+            new ActivityTypeRecord("12345", "Billable", "Billable description", "12345"),
+            new ActivityTypeRecord("23456", "Non-Billable", "Non-Billable description", "23456"),
+            new ActivityTypeRecord("34567", "Default", "Default description", "34567"));
   }
 }
 

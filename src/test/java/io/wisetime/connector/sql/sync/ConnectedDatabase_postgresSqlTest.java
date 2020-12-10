@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import io.wisetime.connector.sql.queries.ActivityTypeQuery;
+import io.wisetime.connector.sql.sync.activity_type.ActivityTypeRecord;
 import io.wisetime.test_docker.ContainerRuntimeSpec;
 import io.wisetime.test_docker.DockerLauncher;
 import io.wisetime.test_docker.containers.Postgres;
@@ -170,5 +172,52 @@ class ConnectedDatabase_postgresSqlTest {
     assertThat(tagSyncRecords)
         .as("Query should return one record")
         .containsExactly(result);
+  }
+
+  @Test
+  void getActivityTypes() {
+    final ActivityTypeQuery query = new ActivityTypeQuery();
+    query.setSql("SELECT ACTIVITYCODE AS code, ACTIVITYNAME AS label, ACTIVITYDESCRIPTION AS description"
+            + "  FROM TEST_ACTIVITYCODES");
+
+    assertThat(database.getActivityTypes(query))
+        .as("all records should be returned")
+        .containsExactlyInAnyOrder(
+            new ActivityTypeRecord("12345", "Billable", "Billable description"),
+            new ActivityTypeRecord("23456", "Non-Billable", "Non-Billable description"),
+            new ActivityTypeRecord("34567", "Default", "Default description"));
+  }
+
+  @Test
+  void getActivityTypes_withSkippedCodes() {
+    final ActivityTypeQuery query = new ActivityTypeQuery(
+        "SELECT ACTIVITYCODE AS code, ACTIVITYNAME AS label, ACTIVITYDESCRIPTION AS description"
+            + "  FROM TEST_ACTIVITYCODES"
+            + "  WHERE ACTIVITYCODE NOT IN (:skipped_codes)",
+        null,
+        ImmutableList.of("23456")); // code of Non-Billable activity type
+
+    assertThat(database.getActivityTypes(query))
+        .as("all records except excluded should be returned")
+        .containsExactlyInAnyOrder(
+            new ActivityTypeRecord("12345", "Billable", "Billable description"),
+            new ActivityTypeRecord("34567", "Default", "Default description"));
+  }
+
+  @Test
+  void getActivityTypes_withSyncMarker() {
+    final ActivityTypeQuery query = new ActivityTypeQuery(
+        "SELECT ACTIVITYCODE AS code, ACTIVITYCODE AS sync_marker, ACTIVITYNAME AS label, ACTIVITYDESCRIPTION AS description"
+            + "  FROM TEST_ACTIVITYCODES"
+            + "  WHERE ACTIVITYCODE >= :previous_sync_marker AND ACTIVITYCODE NOT IN (:skipped_codes)",
+        "0",
+        List.of("0"));
+
+    assertThat(database.getActivityTypes(query))
+        .as("all records should be returned")
+        .containsExactlyInAnyOrder(
+            new ActivityTypeRecord("12345", "Billable", "Billable description", "12345"),
+            new ActivityTypeRecord("23456", "Non-Billable", "Non-Billable description", "23456"),
+            new ActivityTypeRecord("34567", "Default", "Default description", "34567"));
   }
 }

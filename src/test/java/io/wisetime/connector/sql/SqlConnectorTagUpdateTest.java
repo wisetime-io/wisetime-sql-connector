@@ -23,16 +23,15 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.eventbus.EventBus;
 import io.wisetime.connector.api_client.ApiClient;
 import io.wisetime.connector.datastore.ConnectorStore;
+import io.wisetime.connector.sql.queries.ActivityTypeQueryProvider;
 import io.wisetime.connector.sql.queries.TagQuery;
 import io.wisetime.connector.sql.queries.TagQueryProvider;
 import io.wisetime.connector.sql.sync.ConnectApi;
 import io.wisetime.connector.sql.sync.ConnectedDatabase;
-import io.wisetime.connector.sql.sync.SyncStore;
 import io.wisetime.connector.sql.sync.TagSyncRecord;
-import java.util.Arrays;
+import io.wisetime.connector.sql.sync.TagSyncStore;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -50,21 +49,17 @@ class SqlConnectorTagUpdateTest {
   private static TagQueryProvider mockTagQueryProvider = mock(TagQueryProvider.class);
   private static ApiClient mockApiClient = mock(ApiClient.class);
   private static ConnectorStore mockConnectorStore = mock(ConnectorStore.class);
-  private static SyncStore mockDrainSyncStore = mock(SyncStore.class);
-  private static SyncStore mockRefreshSyncStore = mock(SyncStore.class);
+  private static TagSyncStore mockDrainSyncStore = mock(TagSyncStore.class);
+  private static TagSyncStore mockRefreshSyncStore = mock(TagSyncStore.class);
   private static ConnectApi mockConnectApi = mock(ConnectApi.class);
   private static SqlConnector connector;
-  private static SqlConnector mockConnector = mock(SqlConnector.class);
-  private static EventBus eventBus = new EventBus();
 
   @BeforeAll
   static void setUp() {
-    connector = new SqlConnector(mockDatabase, mockTagQueryProvider);
-    connector.setDrainSyncStore(mockDrainSyncStore);
-    connector.setRefreshSyncStore(mockRefreshSyncStore);
+    connector = new SqlConnector(mockDatabase, mockTagQueryProvider, mock(ActivityTypeQueryProvider.class));
+    connector.setTagDrainSyncStore(mockDrainSyncStore);
+    connector.setTagRefreshSyncStore(mockRefreshSyncStore);
     connector.setConnectApi(mockConnectApi);
-
-    eventBus.register(mockConnector);
   }
 
   @AfterEach
@@ -82,14 +77,14 @@ class SqlConnectorTagUpdateTest {
 
   @Test
   void performTagUpdate_no_configured_tag_queries() {
-    when(mockTagQueryProvider.getTagQueries()).thenReturn(ImmutableList.of());
+    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of());
     connector.performTagUpdate();
     verifyZeroInteractions(mockDatabase, mockApiClient, mockConnectorStore);
   }
 
   @Test
   void performTagUpdate_no_tags_to_sync() {
-    when(mockTagQueryProvider.getTagQueries())
+    when(mockTagQueryProvider.getQueries())
         .thenReturn(ImmutableList.of(new TagQuery("one", "SELECT 1", "",
             Collections.singletonList("0"), true)));
     when(mockDrainSyncStore.getSyncMarker(any(TagQuery.class))).thenReturn("");
@@ -105,7 +100,7 @@ class SqlConnectorTagUpdateTest {
 
   @Test
   void performTagUpdate_exception_does_not_prevent_next_run() {
-    when(mockTagQueryProvider.getTagQueries())
+    when(mockTagQueryProvider.getQueries())
         .thenReturn(ImmutableList.of(new TagQuery("one", "SELECT 1", "",
             Collections.singletonList("0"), true)));
 
@@ -135,7 +130,7 @@ class SqlConnectorTagUpdateTest {
   @Test
   void syncAllNewRecords_perform_sync_multiple_database_results() {
     TagQuery query = new TagQuery("cases", "SELECT 1", "1", Collections.singletonList("skipped1"), true);
-    when(mockTagQueryProvider.getTagQueries()).thenReturn(ImmutableList.of(query));
+    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(query));
     String marker = "10";
     when(mockDrainSyncStore.getSyncMarker(query)).thenReturn(marker);
     when(mockDrainSyncStore.getLastSyncedIds(query)).thenReturn(ImmutableList.of("synced1"));
@@ -219,7 +214,7 @@ class SqlConnectorTagUpdateTest {
   void refreshOneBatch_continuous_resync_turned_off() {
     final TagQuery query = randomTagQuery("cases");
     query.setContinuousResync(false);
-    when(mockTagQueryProvider.getTagQueries()).thenReturn(ImmutableList.of(query));
+    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(query));
     connector.performTagUpdateSlowLoop();
     verifyZeroInteractions(mockDrainSyncStore, mockDatabase, mockApiClient);
   }
@@ -228,7 +223,7 @@ class SqlConnectorTagUpdateTest {
   void refreshOneBatch_disallow_sync() {
     final TagQuery query = randomTagQuery("cases");
     query.setContinuousResync(true);
-    when(mockTagQueryProvider.getTagQueries())
+    when(mockTagQueryProvider.getQueries())
         .thenReturn(ImmutableList.of(query))
         .thenReturn(ImmutableList.of());
     connector.performTagUpdateSlowLoop();
@@ -239,7 +234,7 @@ class SqlConnectorTagUpdateTest {
   void refreshOneBatch_reset_sync() {
     TagQuery query = randomTagQuery("cases");
     query.setContinuousResync(true);
-    when(mockTagQueryProvider.getTagQueries())
+    when(mockTagQueryProvider.getQueries())
         .thenReturn(ImmutableList.of(query))
         .thenReturn(ImmutableList.of(query))
         .thenReturn(ImmutableList.of());
@@ -251,7 +246,7 @@ class SqlConnectorTagUpdateTest {
   @Test
   void refreshOneBatch_perform_sync() {
     TagQuery query = new TagQuery("cases", "SELECT 1", "1", Collections.singletonList("skipped1"), true);
-    when(mockTagQueryProvider.getTagQueries()).thenReturn(ImmutableList.of(query));
+    when(mockTagQueryProvider.getQueries()).thenReturn(ImmutableList.of(query));
     String marker = "10";
     when(mockRefreshSyncStore.getSyncMarker(query)).thenReturn(marker);
     when(mockRefreshSyncStore.getLastSyncedIds(query)).thenReturn(ImmutableList.of("synced1"));
@@ -308,12 +303,5 @@ class SqlConnectorTagUpdateTest {
     assertThat(syncRecordsArguments.get(0).get(1).getTagName())
         .as("Record matches per returned order")
         .isEqualTo(query1Record2.getTagName());
-  }
-
-  @Test
-  void performTagUpdate_send_event() {
-    List<TagQuery> tagQueries = Arrays.asList(randomTagQuery("cases"), randomTagQuery("projects"));
-    eventBus.post(tagQueries);
-    verify(mockConnector).onTagQueriesChanged(tagQueries);
   }
 }

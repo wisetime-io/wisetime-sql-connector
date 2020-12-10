@@ -4,12 +4,15 @@
 
 package io.wisetime.connector.sql;
 
-import com.google.common.eventbus.EventBus;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import io.wisetime.connector.ConnectorController;
 import io.wisetime.connector.config.RuntimeConfig;
 import io.wisetime.connector.config.RuntimeConfigKey;
+import io.wisetime.connector.sql.queries.ActivityTypeQuery;
+import io.wisetime.connector.sql.queries.ActivityTypeQueryProvider;
+import io.wisetime.connector.sql.queries.QueryProvider;
+import io.wisetime.connector.sql.queries.TagQuery;
 import io.wisetime.connector.sql.queries.TagQueryProvider;
 import io.wisetime.connector.sql.sync.ConnectedDatabase;
 import java.nio.file.Path;
@@ -23,10 +26,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class ConnectorLauncher {
 
-  private static EventBus eventBus;
-
   public static void main(final String... args) throws Exception {
-    eventBus = new EventBus();
     ConnectorController connectorController = buildConnectorController();
     connectorController.start();
   }
@@ -38,9 +38,15 @@ public class ConnectorLauncher {
         RuntimeConfig.getString(SqlConnectorConfigKey.TAG_SQL_FILE)
             .orElseThrow(() -> new RuntimeException("Missing TAG_SQL_FILE configuration"))
     );
-    final TagQueryProvider tagQueryProvider = new TagQueryProvider(tagSqlPath, eventBus);
-    SqlConnector sqlConnector = new SqlConnector(database, tagQueryProvider);
-    eventBus.register(sqlConnector);
+    final QueryProvider<TagQuery> tagQueryProvider = new TagQueryProvider(tagSqlPath);
+
+    final QueryProvider<ActivityTypeQuery> activityTypeQueryProvider =
+        RuntimeConfig.getString(SqlConnectorConfigKey.ACTIVITY_TYPE_SQL_FILE)
+            .map(Paths::get)
+            .map(path -> (QueryProvider<ActivityTypeQuery>) new ActivityTypeQueryProvider(path))
+            .orElseGet(QueryProvider::noOp);
+
+    SqlConnector sqlConnector = new SqlConnector(database, tagQueryProvider, activityTypeQueryProvider);
     return ConnectorController.newBuilder()
         .withWiseTimeConnector(sqlConnector)
         // This connector does not process posted time
@@ -56,7 +62,8 @@ public class ConnectorLauncher {
     JDBC_USER("JDBC_USER"),
     JDBC_PASSWORD("JDBC_PASSWORD"),
     TAG_UPSERT_PATH("TAG_UPSERT_PATH"),
-    TAG_SQL_FILE("TAG_SQL_FILE");
+    TAG_SQL_FILE("TAG_SQL_FILE"),
+    ACTIVITY_TYPE_SQL_FILE("ACTIVITY_TYPE_SQL_FILE");
 
     private final String configKey;
 

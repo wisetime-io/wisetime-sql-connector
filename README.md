@@ -2,6 +2,8 @@
 
 The WiseTime SQL Connector connects [WiseTime](https://wisetime.io) to SQL databases and will upsert a new WiseTime tag whenever a new entity is discovered using the configured SQL.
 
+The WiseTime SQL Connector can also sync activity types to WiseTime if configured.
+
 In order to use the WiseTime SQL Connector, you will need a [WiseTime Connect](https://wisetime.io/docs/connect/) API key. The WiseTime SQL Connector runs as a Docker container and is easy to set up and operate.
 
 ## Database Permissions Requirements
@@ -285,8 +287,72 @@ The following configuration parameters are optional.
 
 | Environment Variable | Description |
 | ---  | --- |
+| ACTIVITY_TYPE_SQL_FILE | The path to a YAML configuration file containing the SQL queries to run to fetch all activity types to be propagated to WiseTime. The connector will watch the file for updates and is able to switch to the new queries as the file is updated, without restarting the connector. See below for file format. |
 | DATA_DIR | If set, the connector will use the directory as the location for storing data to keep track on the cases and projects it has synced. By default, WiseTime SQL Connector will create a temporary dir under /tmp as its data storage. |
 | LOG_LEVEL | Define log level. Available values are: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` and `OFF`. Default is `INFO`. |
+
+### `ACTIVITY_TYPE_SQL_FILE` Requirements
+
+The yaml configuration file expects single SQL query to be provided.
+
+Selecting an empty list will disable all the existing WiseTime activity types.
+
+If there are any activity types you would like to skip syncing, you can use `skippedCodes` property. It's required in case of using `sync_marker`.
+
+WiseTime supports 2 ways of activity types sync:
+- Using `sync_marker`
+- All in one sync
+
+#### Activity type sync using `sync_marker` 
+
+This is a preferable way of activity type sync as it allows syncing activity types in batches, and do a slow loop sync.
+It can be used if there is any NOT updatable column or column updatable increasingly only. It should be used as `sync_marker` (e.g. `updated_at`, `ID`).
+The query must be sorted by `sync_marker` (e.g. `ORDER BY [sync_marker]`).
+The `initialSyncMarker` is required and specifies the first value to be used for `:previous_sync_marker`.
+
+Here's an example:
+```yaml
+initialSyncMarker: 0
+skippedCodes:
+  - 23456
+sql: >
+  SELECT TOP 100
+  [ACTIVITYCODE] AS [code],
+  [UPDATED_AT] AS [sync_marker],
+  [ACTIVITYNAME] AS [label]
+  [ACTIVITYDESCRIPTION] AS [description]
+  FROM [dbo].[TEST_ACTIVITYCODES]
+  WHERE [ACTIVITYCODE] NOT IN (:skipped_codes) AND [UPDATED_AT] >= :previous_sync_marker
+  ORDER BY [sync_marker];
+```
+
+#### All in one sync
+
+If there's no column you can use as `sync_marker` you should avoid it. You should also avoid using `TOP`/`LIMIT` in your query so connector will fetch all the activity types on each run and sync them if any has been changed/created/deleted since previous sync.
+
+It's highly recommended to use `ORDER BY` in your query to reduce the potential load on WiseTime as we use a caching mechanism that is order-dependent
+ 
+Here's an example:
+```yaml
+sql: >
+  SELECT
+  [ACTIVITYCODE] AS [code],
+  [ACTIVITYNAME] AS [label]
+  [ACTIVITYDESCRIPTION] AS [description]
+  FROM [dbo].[TEST_ACTIVITYCODES];
+  ORDER BY [code];
+```
+
+#### Selected Fields
+
+The `ACTIVITY_TYPE_SQL_FILE` must select the relevant information as `code`, `label` and `description` of the activity type.
+
+| Field | Explanation |
+--- | ---
+| code | Will be used as activity type code during time posting |
+| label | Used as the WiseTime console label of the created activity type |
+| description | Used as the WiseTime console description of the created activity type |
+| sync_marker | Used as the sync position marker so that the connector remembers which records it has already synced. Should be comparable. Should NOT be updatable if it's not a date. |
 
 ## Running the WiseTime SQL Connector
 
@@ -298,6 +364,7 @@ docker run -d \
     -e API_KEY=yourwisetimeapikey \
     -e TAG_UPSERT_PATH=/My Connected System/ \
     -e TAG_SQL_FILE=/connector/tag_sql.yaml \
+    -e ACTIVITY_TYPE_SQL_FILE=/connector/activity_type_sql.yaml \
     -e JDBC_URL="jdbc:sqlserver://HOST:PORT;databaseName=DATABASE_NAME;ssl=request;useCursors=true" \
     -e JDBC_USER=dbuser \
     -e JDBC_PASSWORD=dbpass \
