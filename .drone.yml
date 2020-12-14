@@ -111,7 +111,7 @@ services:
   - name: mssql-service
     image: mcr.microsoft.com/mssql/server
     environment:
-      SA_PASSWORD: A_Str0ng_Required_Password
+      SA_PASSWORD: Str0ng#Passw#rd123
       ACCEPT_EULA: Y
   - name: postgres-service
     image: registry.dev.wisetime.com/test/postgres:latest

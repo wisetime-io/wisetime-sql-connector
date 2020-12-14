@@ -30,12 +30,7 @@ class ConnectedDatabase_sqlServerTest {
   @BeforeEach
   void setUp() {
     final DockerLauncher launcher = DockerLauncher.instance();
-    final SqlServer sqlServer = new SqlServer() {
-      @Override
-      public String getImageId() {
-        return super.getImageId() + ":2017-latest-ubuntu";
-      }
-    };
+    final SqlServer sqlServer = new SqlServer();
     final ContainerRuntimeSpec container = launcher.createContainer(sqlServer);
     final HikariConfig hikariConfig = new HikariConfig();
     hikariConfig.setJdbcUrl(sqlServer.getJdbcUrl(container));
