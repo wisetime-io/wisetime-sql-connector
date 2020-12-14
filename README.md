@@ -287,6 +287,8 @@ The following configuration parameters are optional.
 
 | Environment Variable | Description |
 | ---  | --- |
+| TAG_SCAN | If unset, this defaults to `ENABLED`: Set mode for scanning external system for tags and uploading to WiseTime. Possible values: ENABLED, DISABLED. |
+| ACTIVITY_TYPE_SCAN | If unset, this defaults to `DISABLED`: Set mode for scanning external system for activity types and uploading to WiseTime. Possible values: ENABLED, DISABLED. |
 | ACTIVITY_TYPE_SQL_FILE | The path to a YAML configuration file containing the SQL queries to run to fetch all activity types to be propagated to WiseTime. The connector will watch the file for updates and is able to switch to the new queries as the file is updated, without restarting the connector. See below for file format. |
 | DATA_DIR | If set, the connector will use the directory as the location for storing data to keep track on the cases and projects it has synced. By default, WiseTime SQL Connector will create a temporary dir under /tmp as its data storage. |
 | LOG_LEVEL | Define log level. Available values are: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` and `OFF`. Default is `INFO`. |
