@@ -49,6 +49,7 @@ public class ConnectorLauncher {
     SqlConnector sqlConnector = new SqlConnector(database, tagQueryProvider, activityTypeQueryProvider);
     return ConnectorController.newBuilder()
         .withWiseTimeConnector(sqlConnector)
+        .disableActivityTypesScan()
         // This connector does not process posted time
         .useTagsOnly()
         .build();
