@@ -7,7 +7,6 @@ package io.wisetime.connector.sql.queries;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

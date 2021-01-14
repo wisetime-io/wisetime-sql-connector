@@ -11,8 +11,8 @@ plugins {
     java
     `maven-publish`
     id("com.google.cloud.tools.jib") version "1.4.0"
-    id("io.freefair.lombok") version "3.8.4"
-    id("io.wisetime.versionChecker").version("0.10.6")
+    id("io.freefair.lombok") version "5.2.1"
+    id("io.wisetime.versionChecker").version("0.10.15")
     id("fr.brouillard.oss.gradle.jgitver").version("0.9.1")
     id("com.github.ben-manes.versions").version("0.21.0")
 }
@@ -83,7 +83,7 @@ application {
 }
 
 jacoco {
-    toolVersion = "0.8.4"
+    toolVersion = "0.8.6"
 }
 apply(from = "$rootDir/gradle/jacoco.gradle")
 
@@ -112,13 +112,7 @@ jgitver {
     autoIncrementPatch = false
 }
 
-checkstyle {
-    toolVersion = "8.21"
-    configProperties["checkstyleConfigDir"] = file("$rootDir/gradle")
-    configFile = file("$rootDir/gradle/checkstyle.xml")
-    isIgnoreFailures = false
-    isShowViolations = true
-}
+apply(from = "$rootDir/gradle/checkstyle.gradle")
 
 tasks {
     check {
@@ -159,9 +153,7 @@ tasks {
     jacocoTestReport {
         reports.findByName("xml")?.isEnabled = true
         reports.findByName("csv")?.isEnabled = false
-
-        // disable html creation if droneTest property was set
-        reports.findByName("html")?.isEnabled = !project.hasProperty("droneTest")
+        reports.findByName("html")?.isEnabled = true
     }
 
     test {
