@@ -150,12 +150,6 @@ tasks {
         }
     }
 
-    jacocoTestReport {
-        reports.findByName("xml")?.isEnabled = true
-        reports.findByName("csv")?.isEnabled = false
-        reports.findByName("html")?.isEnabled = true
-    }
-
     test {
         testLogging {
             // skip logging PASSED

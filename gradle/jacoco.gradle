@@ -10,6 +10,14 @@ ext {
     ]
 }
 
+jacocoTestReport {
+    reports {
+        xml.enabled = true
+        html.enabled = true
+        csv.enabled = false
+    }
+}
+
 jacocoTestCoverageVerification {
     sourceDirectories.from jacocoTestReport.sourceDirectories
     classDirectories.from jacocoTestReport.classDirectories
