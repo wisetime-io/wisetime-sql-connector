@@ -1,12 +1,10 @@
 
 ext {
-    jcLineMin = 0.96
-    jcInstructionMin = 0.96
-    jcClassMin = 0.99
+    jcLineMin = 0.85
+    jcInstructionMin = 0.85
+    jcClassMin = 0.90
 
     jacocoExcludes = [
-            '**/*Provider*',
-            '**/*Launcher*',
     ]
 }
 
