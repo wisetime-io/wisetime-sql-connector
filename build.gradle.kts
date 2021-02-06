@@ -11,7 +11,7 @@ plugins {
   `maven-publish`
   id("com.google.cloud.tools.jib") version "2.7.0"
   id("io.freefair.lombok") version "5.3.0"
-  id("io.wisetime.versionChecker").version("0.10.16")
+  id("io.wisetime.versionChecker").version("10.11.1")
   id("fr.brouillard.oss.gradle.jgitver").version("0.9.1")
   id("com.github.ben-manes.versions").version("0.21.0")
 }
