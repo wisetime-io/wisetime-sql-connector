@@ -189,7 +189,7 @@ deployment-permissions:
       - view
 
 environment-permissions:
-  - hq-stage-eu:
+  - Beta - Publish image with beta tag:
       - groups:
           - bamboo-deploy-team-staging
         permissions:
@@ -201,7 +201,7 @@ environment-permissions:
           - view
           - edit
           - deploy
-  - hq-prod-eu:
+  - Stable - Publish image with latest tag:
       - groups:
           - bamboo-deploy-team-prod
         permissions:
