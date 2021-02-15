@@ -11,7 +11,7 @@ plugins {
   `maven-publish`
   id("com.google.cloud.tools.jib") version "2.7.0"
   id("io.freefair.lombok") version "5.3.0"
-  id("io.wisetime.versionChecker").version("10.11.1")
+  id("io.wisetime.versionChecker").version("10.11.22")
   id("fr.brouillard.oss.gradle.jgitver").version("0.9.1")
   id("com.github.ben-manes.versions").version("0.21.0")
 }
@@ -34,7 +34,7 @@ dependencies {
   implementation("org.apache.commons:commons-configuration2:2.4") {
     exclude("commons-logging")
   }
-  implementation("com.google.guava:guava:28.2-jre")
+  implementation("com.google.guava:guava:30.1-jre")
   implementation("com.google.code.gson:gson:2.8.6")
 
   implementation("ch.qos.logback:logback-classic:1.2.3")
