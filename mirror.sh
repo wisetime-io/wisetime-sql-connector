@@ -3,6 +3,7 @@ set -o errexit ; set -o errtrace ; set -o pipefail
 
 git fetch --tags
 git checkout master
+rm -rf bamboo-specs
 mkdir -p ~/.ssh
 # Ensure we can talk to GitHub
 ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
