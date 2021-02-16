@@ -4,11 +4,15 @@ set -o errexit ; set -o errtrace ; set -o pipefail
 git config --global user.email "devops@wisetime.com"
 git config --global user.name "WiseTime Bot"
 git fetch --tags
+# Create Orphan branch
 git checkout --orphan temp_branch
+# Remove unwanted files/dirs from the repo and create fresh commit
 rm -rf bamboo-specs mirror.sh
 git add -A
 git commit -am "Mirror Repo"
+# Delete master branch
 git branch -D master
+# Rename current orphan branch as master
 git branch -m master
 mkdir -p ~/.ssh
 # Ensure we can talk to GitHub
