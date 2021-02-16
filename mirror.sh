@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -o errexit ; set -o errtrace ; set -o pipefail
 
+git config --global user.email "devops@wisetime.com"
+git config --global user.name "WiseTime Mirror Bot"
 git fetch --tags
 git checkout --orphan temp_branch
 rm -rf bamboo-specs mirror.sh
