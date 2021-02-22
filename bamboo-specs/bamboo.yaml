@@ -214,3 +214,221 @@ environment-permissions:
           - edit
           - deploy
 ...
+
+---
+version: 2
+plan:
+  project-key: CAPI
+  key: WCSA
+  name: wt-connector-sql artifacts arm64
+stages:
+- ARTIFACT1:
+    manual: false
+    final: false
+    jobs:
+    - create-artifact
+create-artifact:
+  key: JOB1
+  tasks:
+  - checkout:
+      force-clean-build: 'false'
+  - command:
+      executable: make
+      argument: docker-arm64v8
+      envrionment: JAVA_HOME="/usr/lib/jvm/zulu-11-amd64"
+  artifacts:
+  - name: jib-image.tar
+    location: build/
+    pattern: jib-image.tar
+    shared: true
+    required: true
+triggers: []
+branches:
+  create: manually
+  delete: never
+  link-to-jira: true
+notifications: []
+labels: []
+other:
+  concurrent-build-plugin: system-default
+---
+version: 2
+plan:
+  key: CAPI-WCSA
+plan-permissions:
+  - groups:
+      - bamboo-build-team
+    permissions:
+      - view
+      - edit
+      - build
+  - groups:
+      - bamboo-admin
+    permissions:
+      - view
+      - edit
+      - build
+      - clone
+      - admin
+  - roles:
+      - logged-in
+    permissions:
+      - view
+...
+---
+version: 2
+deployment:
+  name: _Publish wisetime-sql-connector arm64
+  source-plan: CAPI-WCSA
+release-naming:
+  next-version-name: 1.0.23
+  applies-to-branches: false
+  auto-increment: true
+  auto-increment-variables: []
+environments:
+- Stable - Publish image with latest tag
+- Beta - Publish image with beta tag
+Stable - Publish image with latest tag:
+  triggers: &id001 []
+  tasks:
+  - clean
+  - artifact-download:
+      artifacts:
+      - name: jib-image.tar
+  - script:
+      interpreter: SHELL
+      scripts:
+      - |-
+        docker load < jib-image.tar
+        docker tag wisetime/wisetime-sql-connector-arm64v8:latest "wisetime/wisetime-sql-connector-arm64v8:${bamboo.deploy.release}"
+  - any-task:
+      plugin-key: com.atlassian.bamboo.plugins.bamboo-docker-plugin:task.docker.cli
+      configuration:
+        commandOption: push
+        pushSharedCredentialsId: '233668609'
+        pushRepository: wisetime/wisetime-sql-connector-arm64v8:${bamboo.deploy.release}
+        registryOption: hub
+  - any-task:
+      plugin-key: com.atlassian.bamboo.plugins.bamboo-docker-plugin:task.docker.cli
+      configuration:
+        commandOption: push
+        pushSharedCredentialsId: '233668609'
+        pushRepository: wisetime/wisetime-sql-connector-arm64v8:latest
+        registryOption: hub
+  final-tasks:
+  - script:
+      interpreter: SHELL
+      scripts:
+      - |-
+        #!/bin/bash
+        set -o errexit ; set -o errtrace ; set -o pipefail
+
+        author="$bamboo_ManualBuildTriggerReason_userName"
+        threadKey=''
+        detailsUrl="$bamboo_resultsUrl"
+        buildPlan="$bamboo_shortPlanName"
+        message=''
+
+        if [ "$bamboo_jobFailed" = true ] ; then
+            threadKey='failed'
+            message="Bamboo deployment plan *$buildPlan* started by $author *failed*. Details on <$detailsUrl|Bamboo>."
+        else
+            threadKey='success'
+            message="Bamboo deploy plan *$buildPlan* started by *$author* finished successfully. Details on <$detailsUrl|Bamboo>."
+        fi
+
+        curl -XPOST 'https://chat.googleapis.com/v1/spaces/AAAAkPqy808/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=kjHX7ucCYG6RmKLzCBRuyRVf8V9H36joRxJaF_-2a70%3D&threadKey='$threadKey\
+          -d "{\"text\":\"$message\"}"\
+          -H "Content-type: application/json"
+  variables: {}
+  requirements: []
+  notifications: []
+Beta - Publish image with beta tag:
+  triggers: *id001
+  tasks:
+  - clean
+  - artifact-download:
+      artifacts:
+      - name: jib-image.tar
+  - script:
+      interpreter: SHELL
+      scripts:
+      - |-
+        docker load < jib-image.tar
+        docker tag wisetime/wisetime-sql-connector-arm64v8:latest wisetime/wisetime-sql-connector-arm64v8:beta
+  - any-task:
+      plugin-key: com.atlassian.bamboo.plugins.bamboo-docker-plugin:task.docker.cli
+      configuration:
+        commandOption: push
+        pushSharedCredentialsId: '233668609'
+        pushRepository: wisetime/wisetime-sql-connector-arm64v8:beta
+        registryOption: hub
+  final-tasks:
+  - script:
+      interpreter: SHELL
+      scripts:
+      - |-
+        #!/bin/bash
+        set -o errexit ; set -o errtrace ; set -o pipefail
+
+        author="$bamboo_ManualBuildTriggerReason_userName"
+        threadKey=''
+        detailsUrl="$bamboo_resultsUrl"
+        buildPlan="$bamboo_shortPlanName"
+        message=''
+
+        if [ "$bamboo_jobFailed" = true ] ; then
+            threadKey='failed'
+            message="Bamboo deployment plan *$buildPlan* started by $author *failed*. Details on <$detailsUrl|Bamboo>."
+        else
+            threadKey='success'
+            message="Bamboo deploy plan *$buildPlan* started by *$author* finished successfully. Details on <$detailsUrl|Bamboo>."
+        fi
+
+        curl -XPOST 'https://chat.googleapis.com/v1/spaces/AAAAkPqy808/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=kjHX7ucCYG6RmKLzCBRuyRVf8V9H36joRxJaF_-2a70%3D&threadKey='$threadKey\
+          -d "{\"text\":\"$message\"}"\
+          -H "Content-type: application/json"
+  variables: {}
+  requirements: []
+  notifications: []
+---
+version: 2
+deployment:
+  name: _Publish wisetime-sql-connector arm64
+deployment-permissions:
+  - groups:
+      - bamboo-admin
+    permissions:
+      - view
+      - edit
+  - roles:
+      - logged-in
+    permissions:
+      - view
+
+environment-permissions:
+  - Beta - Publish image with beta tag:
+      - groups:
+          - bamboo-deploy-team-staging
+        permissions:
+          - view
+          - deploy
+      - groups:
+          - bamboo-admin
+        permissions:
+          - view
+          - edit
+          - deploy
+  - Stable - Publish image with latest tag:
+      - groups:
+          - bamboo-deploy-team-prod
+        permissions:
+          - view
+          - deploy
+      - groups:
+          - bamboo-admin
+        permissions:
+          - view
+          - edit
+          - deploy
+...
