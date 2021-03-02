@@ -17,7 +17,7 @@ plugins {
 }
 
 repositories {
-  jcenter()
+  mavenCentral()
 
   maven {
     // Our published releases repo
