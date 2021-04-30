@@ -24,15 +24,19 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.http.client.HttpResponseException;
 
 /**
  * @author shane.xie
  */
 public class ConnectApi {
 
+  private final Gson gson = new Gson();
+  private final Runnable noop = () -> {
+  };
+
   private final ApiClient apiClient;
   private final String tagUpsertPath;
-  private static final Gson gson = new Gson();
 
   public ConnectApi(final ApiClient apiClient) {
     this.apiClient = apiClient;
@@ -63,14 +67,28 @@ public class ConnectApi {
   }
 
   public void completeSyncSession(String syncSessionId) {
+    completeSyncSession(syncSessionId, noop);
+  }
+
+  public void completeSyncSession(String syncSessionId, Runnable onInvalidSession) {
     try {
       apiClient.activityTypesCompleteSyncSession(new SyncSession().syncSessionId(syncSessionId));
+    } catch (HttpResponseException e) {
+      onInvalidSession.run();
+      throw new RuntimeException(e);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
 
   public void syncActivityTypes(Collection<ActivityTypeRecord> activityTypeRecords, String sessionId) {
+    syncActivityTypes(activityTypeRecords, sessionId, noop);
+  }
+
+  public void syncActivityTypes(
+      Collection<ActivityTypeRecord> activityTypeRecords,
+      String sessionId,
+      Runnable onInvalidSession) {
     final List<ActivityType> activityTypes = activityTypeRecords.stream()
         .map(activityTypeRecord -> new ActivityType()
             .code(activityTypeRecord.getCode())
@@ -82,6 +100,9 @@ public class ConnectApi {
       apiClient.syncActivityTypes(new SyncActivityTypesRequest()
           .syncSessionId(sessionId)
           .activityTypes(activityTypes));
+    } catch (HttpResponseException e) {
+      onInvalidSession.run();
+      throw new RuntimeException(e);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
