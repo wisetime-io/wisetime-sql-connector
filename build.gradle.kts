@@ -11,7 +11,7 @@ plugins {
   `maven-publish`
   id("com.google.cloud.tools.jib") version "2.8.0"
   id("io.freefair.lombok") version "5.3.0"
-  id("io.wisetime.versionChecker").version("10.11.22")
+  id("io.wisetime.versionChecker").version("10.11.46")
   id("fr.brouillard.oss.gradle.jgitver").version("0.9.1")
   id("com.github.ben-manes.versions").version("0.21.0")
 }
@@ -29,7 +29,7 @@ repositories {
 }
 
 dependencies {
-  implementation("io.wisetime:wisetime-connector:3.0.1")
+  implementation("io.wisetime:wisetime-connector:3.0.11")
   implementation("io.vavr:vavr:0.10.3")
   implementation("org.apache.commons:commons-configuration2:2.4") {
     exclude("commons-logging")
@@ -58,11 +58,26 @@ dependencies {
   testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
   testRuntime("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
 
-  testImplementation("io.wisetime:wisetime-test-support:2.6.4")
-  testImplementation("org.flywaydb:flyway-core:7.4.0")
+  testImplementation("io.wisetime:wisetime-test-support:2.6.13")
+  testImplementation("org.flywaydb:flyway-core:7.5.4")
   testImplementation("com.github.javafaker:javafaker:1.0.1")
   testImplementation("org.mockito:mockito-core:3.0.0")
   testImplementation("org.assertj:assertj-core:3.13.2")
+}
+
+configurations.all {
+  resolutionStrategy {
+    eachDependency {
+      if (requested.group == "com.fasterxml.jackson.core") {
+        useVersion("2.12.3")
+        because("use consistent version for all transitive dependencies")
+      }
+      if (requested.name == "commons-lang3") {
+        useVersion("3.12.0")
+        because("use consistent version for all transitive dependencies")
+      }
+    }
+  }
 }
 
 java {
