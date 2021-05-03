@@ -24,11 +24,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpResponseException;
 
 /**
  * @author shane.xie
  */
+@Slf4j
 public class ConnectApi {
 
   private final Gson gson = new Gson();
@@ -71,14 +74,9 @@ public class ConnectApi {
   }
 
   public void completeSyncSession(String syncSessionId, Runnable onInvalidSession) {
-    try {
-      apiClient.activityTypesCompleteSyncSession(new SyncSession().syncSessionId(syncSessionId));
-    } catch (HttpResponseException e) {
-      onInvalidSession.run();
-      throw new RuntimeException(e);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    sessionApiCall(
+        () -> apiClient.activityTypesCompleteSyncSession(new SyncSession().syncSessionId(syncSessionId)),
+        onInvalidSession);
   }
 
   public void syncActivityTypes(Collection<ActivityTypeRecord> activityTypeRecords, String sessionId) {
@@ -96,16 +94,11 @@ public class ConnectApi {
             .description(activityTypeRecord.getDescription()))
         .collect(Collectors.toList());
 
-    try {
-      apiClient.syncActivityTypes(new SyncActivityTypesRequest()
-          .syncSessionId(sessionId)
-          .activityTypes(activityTypes));
-    } catch (HttpResponseException e) {
-      onInvalidSession.run();
-      throw new RuntimeException(e);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    sessionApiCall(
+        () -> apiClient.syncActivityTypes(new SyncActivityTypesRequest()
+            .syncSessionId(sessionId)
+            .activityTypes(activityTypes)),
+        onInvalidSession);
   }
 
   private UpsertTagRequest toUpsertTagRequest(final TagSyncRecord tagSyncRecord, final String path) {
@@ -125,5 +118,24 @@ public class ConnectApi {
       request.description(tagSyncRecord.getTagDescription());
     }
     return request;
+  }
+
+  private void sessionApiCall(SessionVoidApiCall call, Runnable onInvalidSession) {
+    try {
+      call.invoke();
+    } catch (HttpResponseException e) {
+      if (e.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
+        log.warn("Session not found! Clearing sync session and refresh marker to start from the beginning.");
+        onInvalidSession.run();
+      }
+      throw new RuntimeException(e);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private interface SessionVoidApiCall {
+
+    void invoke() throws IOException;
   }
 }

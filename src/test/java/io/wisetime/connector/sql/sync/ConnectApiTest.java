@@ -13,6 +13,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -217,5 +218,24 @@ class ConnectApiTest {
 
     // check that callback is invoked
     verify(callbackMock, times(1)).run();
+  }
+
+  @Test
+  @DisplayName("syncActivityTypes should NOT invoke callback if get any error except 404")
+  void syncActivityTypes_anyNon404Error() throws Exception {
+    final ActivityTypeRecord record = randomActivityTypeRecord();
+    final String syncSessionId = faker.numerify("sync-session-###");
+    final Runnable callbackMock = mock(Runnable.class);
+
+    doThrow(new HttpResponseException(faker.number().numberBetween(405, 599), "error"))
+        .when(mockApiClient).syncActivityTypes(any());
+
+    assertThatThrownBy(() -> connectApi.syncActivityTypes(List.of(record), syncSessionId, callbackMock))
+        .as("exception should be thrown to retry")
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("error");
+
+    // check that callback is NOT invoked
+    verify(callbackMock, never()).run();
   }
 }
