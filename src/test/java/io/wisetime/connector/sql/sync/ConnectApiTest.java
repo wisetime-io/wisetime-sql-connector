@@ -7,10 +7,13 @@ package io.wisetime.connector.sql.sync;
 import static io.wisetime.connector.sql.RandomEntities.randomActivityTypeRecord;
 import static io.wisetime.connector.sql.RandomEntities.randomTagSyncRecord;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -30,8 +33,10 @@ import io.wisetime.generated.connect.UpsertTagRequest;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import org.apache.http.client.HttpResponseException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -164,6 +169,24 @@ class ConnectApiTest {
   }
 
   @Test
+  @DisplayName("completeSyncSession should invoke callback if session not found")
+  void completeSyncSession_withOnInvalidSessionCallback() throws Exception {
+    final String syncSessionId = faker.numerify("sync-session-###");
+    final Runnable callbackMock = mock(Runnable.class);
+
+    doThrow(new HttpResponseException(404, "not found"))
+        .when(mockApiClient).activityTypesCompleteSyncSession(any());
+
+    assertThatThrownBy(() -> connectApi.completeSyncSession(syncSessionId, callbackMock))
+        .as("exception should be thrown to retry")
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("not found");
+
+    // check that callback is invoked
+    verify(callbackMock, times(1)).run();
+  }
+
+  @Test
   void syncActivityTypes() throws Exception {
     final ActivityTypeRecord record = randomActivityTypeRecord();
     final String syncSessionId = faker.numerify("sync-session-###");
@@ -176,5 +199,43 @@ class ConnectApiTest {
             .code(record.getCode())
             .label(record.getLabel())
             .description(record.getDescription()))));
+  }
+
+  @Test
+  @DisplayName("syncActivityTypes should invoke callback if session not found")
+  void syncActivityTypes_withOnInvalidSessionCallback() throws Exception {
+    final ActivityTypeRecord record = randomActivityTypeRecord();
+    final String syncSessionId = faker.numerify("sync-session-###");
+    final Runnable callbackMock = mock(Runnable.class);
+
+    doThrow(new HttpResponseException(404, "not found"))
+        .when(mockApiClient).syncActivityTypes(any());
+
+    assertThatThrownBy(() -> connectApi.syncActivityTypes(List.of(record), syncSessionId, callbackMock))
+        .as("exception should be thrown to retry")
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("not found");
+
+    // check that callback is invoked
+    verify(callbackMock, times(1)).run();
+  }
+
+  @Test
+  @DisplayName("syncActivityTypes should NOT invoke callback if get any error except 404")
+  void syncActivityTypes_anyNon404Error() throws Exception {
+    final ActivityTypeRecord record = randomActivityTypeRecord();
+    final String syncSessionId = faker.numerify("sync-session-###");
+    final Runnable callbackMock = mock(Runnable.class);
+
+    doThrow(new HttpResponseException(faker.number().numberBetween(405, 599), "error"))
+        .when(mockApiClient).syncActivityTypes(any());
+
+    assertThatThrownBy(() -> connectApi.syncActivityTypes(List.of(record), syncSessionId, callbackMock))
+        .as("exception should be thrown to retry")
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("error");
+
+    // check that callback is NOT invoked
+    verify(callbackMock, never()).run();
   }
 }

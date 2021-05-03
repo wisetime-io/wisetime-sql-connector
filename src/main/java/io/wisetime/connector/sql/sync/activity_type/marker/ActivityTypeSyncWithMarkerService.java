@@ -55,7 +55,7 @@ public class ActivityTypeSyncWithMarkerService implements ActivityTypeSyncServic
     new DrainRun<>(
         () -> getUnsyncedRecords(query, activityTypeDrainSyncStore),
         newBatch -> {
-          connectApi.syncActivityTypes(newBatch, syncSessionId);
+          connectApi.syncActivityTypes(newBatch, syncSessionId, () -> activityTypeDrainSyncStore.resetSyncPosition(query));
           activityTypeDrainSyncStore.markSyncPosition(query, newBatch);
           log.info("New activity type detection: " + formatActivityTypes(newBatch));
         }
@@ -71,7 +71,7 @@ public class ActivityTypeSyncWithMarkerService implements ActivityTypeSyncServic
   public void performActivityTypeUpdateSlowLoop(ActivityTypeQuery query) {
     final String syncSessionId = getOrStartSyncSession(activityTypeRefreshSyncStore, query);
     if (refreshOneBatch(query, syncSessionId)) {
-      connectApi.completeSyncSession(syncSessionId);
+      connectApi.completeSyncSession(syncSessionId, () -> activityTypeRefreshSyncStore.resetSyncPosition(query));
       // Next refresh batch to start again from the beginning
       log.info("Resetting activity types refresh to start from the beginning");
       activityTypeRefreshSyncStore.resetSyncPosition(query);
@@ -95,7 +95,8 @@ public class ActivityTypeSyncWithMarkerService implements ActivityTypeSyncServic
       return true;
     }
 
-    connectApi.syncActivityTypes(refreshActivityTypes, syncSessionId);
+    connectApi.syncActivityTypes(refreshActivityTypes, syncSessionId,
+        () -> activityTypeRefreshSyncStore.resetSyncPosition(query));
     activityTypeRefreshSyncStore.markSyncPosition(query, refreshActivityTypes);
     log.info("Existing activity types refresh: " + formatActivityTypes(refreshActivityTypes));
     return false;

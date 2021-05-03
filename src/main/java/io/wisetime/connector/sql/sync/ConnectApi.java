@@ -24,15 +24,22 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.HttpResponseException;
 
 /**
  * @author shane.xie
  */
+@Slf4j
 public class ConnectApi {
+
+  private final Gson gson = new Gson();
+  private final Runnable noop = () -> {
+  };
 
   private final ApiClient apiClient;
   private final String tagUpsertPath;
-  private static final Gson gson = new Gson();
 
   public ConnectApi(final ApiClient apiClient) {
     this.apiClient = apiClient;
@@ -63,14 +70,23 @@ public class ConnectApi {
   }
 
   public void completeSyncSession(String syncSessionId) {
-    try {
-      apiClient.activityTypesCompleteSyncSession(new SyncSession().syncSessionId(syncSessionId));
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    completeSyncSession(syncSessionId, noop);
+  }
+
+  public void completeSyncSession(String syncSessionId, Runnable onInvalidSession) {
+    sessionApiCall(
+        () -> apiClient.activityTypesCompleteSyncSession(new SyncSession().syncSessionId(syncSessionId)),
+        onInvalidSession);
   }
 
   public void syncActivityTypes(Collection<ActivityTypeRecord> activityTypeRecords, String sessionId) {
+    syncActivityTypes(activityTypeRecords, sessionId, noop);
+  }
+
+  public void syncActivityTypes(
+      Collection<ActivityTypeRecord> activityTypeRecords,
+      String sessionId,
+      Runnable onInvalidSession) {
     final List<ActivityType> activityTypes = activityTypeRecords.stream()
         .map(activityTypeRecord -> new ActivityType()
             .code(activityTypeRecord.getCode())
@@ -78,13 +94,11 @@ public class ConnectApi {
             .description(activityTypeRecord.getDescription()))
         .collect(Collectors.toList());
 
-    try {
-      apiClient.syncActivityTypes(new SyncActivityTypesRequest()
-          .syncSessionId(sessionId)
-          .activityTypes(activityTypes));
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    sessionApiCall(
+        () -> apiClient.syncActivityTypes(new SyncActivityTypesRequest()
+            .syncSessionId(sessionId)
+            .activityTypes(activityTypes)),
+        onInvalidSession);
   }
 
   private UpsertTagRequest toUpsertTagRequest(final TagSyncRecord tagSyncRecord, final String path) {
@@ -104,5 +118,24 @@ public class ConnectApi {
       request.description(tagSyncRecord.getTagDescription());
     }
     return request;
+  }
+
+  private void sessionApiCall(SessionVoidApiCall call, Runnable onInvalidSession) {
+    try {
+      call.invoke();
+    } catch (HttpResponseException e) {
+      if (e.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
+        log.warn("Session not found! Clearing sync session and refresh marker to start from the beginning.");
+        onInvalidSession.run();
+      }
+      throw new RuntimeException(e);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private interface SessionVoidApiCall {
+
+    void invoke() throws IOException;
   }
 }

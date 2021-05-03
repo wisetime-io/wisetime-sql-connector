@@ -4,7 +4,10 @@
 
 package io.wisetime.connector.sql.sync.activity_type.marker;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -22,6 +25,7 @@ import io.wisetime.connector.sql.sync.activity_type.ActivityTypeRecord;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
@@ -115,9 +119,11 @@ class ActivityTypeSyncWithMarkerServiceTest {
     // sync marker should be save after each batch sync
     final InOrder inOrder = Mockito.inOrder(connectApiMock, activityTypeDrainSyncStore);
     inOrder.verify(connectApiMock, times(1)).startSyncSession();
-    inOrder.verify(connectApiMock, times(1)).syncActivityTypes(List.of(firstBatchActivityType), syncSessionId);
+    inOrder.verify(connectApiMock, times(1))
+        .syncActivityTypes(eq(List.of(firstBatchActivityType)), eq(syncSessionId), any());
     inOrder.verify(activityTypeDrainSyncStore, times(1)).markSyncPosition(query, List.of(firstBatchActivityType));
-    inOrder.verify(connectApiMock, times(1)).syncActivityTypes(List.of(secondBatchActivityType), syncSessionId);
+    inOrder.verify(connectApiMock, times(1))
+        .syncActivityTypes(eq(List.of(secondBatchActivityType)), eq(syncSessionId), any());
     inOrder.verify(activityTypeDrainSyncStore, times(1)).markSyncPosition(query, List.of(secondBatchActivityType));
     inOrder.verify(connectApiMock, times(1)).completeSyncSession(any());
   }
@@ -181,12 +187,41 @@ class ActivityTypeSyncWithMarkerServiceTest {
     // check that all activity types (2 batches) were synced without session
     // sync marker should be save after each batch sync
     final InOrder inOrder = Mockito.inOrder(connectApiMock, activityTypeDrainSyncStore);
-    inOrder.verify(connectApiMock, times(1)).syncActivityTypes(List.of(firstBatchActivityType), "");
+    inOrder.verify(connectApiMock, times(1)).syncActivityTypes(eq(List.of(firstBatchActivityType)), eq(""), any());
     inOrder.verify(activityTypeDrainSyncStore, times(1)).markSyncPosition(query, List.of(firstBatchActivityType));
-    inOrder.verify(connectApiMock, times(1)).syncActivityTypes(List.of(secondBatchActivityType), "");
+    inOrder.verify(connectApiMock, times(1)).syncActivityTypes(eq(List.of(secondBatchActivityType)), eq(""), any());
     inOrder.verify(activityTypeDrainSyncStore, times(1)).markSyncPosition(query, List.of(secondBatchActivityType));
     verify(connectApiMock, never()).startSyncSession();
     verify(connectApiMock, never()).completeSyncSession(any());
+    verify(connectApiMock, never()).completeSyncSession(any(), any());
+  }
+
+  @Test
+  @DisplayName("performActivityTypeUpdate should clear sync position in case of invalid session")
+  void performActivityTypeUpdate_onInvalidSession() {
+    final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
+
+    // defines the first run so sync with new session will happen
+    when(activityTypeDrainSyncStore.getSyncMarker(query))
+        .thenReturn(query.getInitialSyncMarker());
+
+    when(databaseMock.getActivityTypes(query, query.getInitialSyncMarker(), List.of()))
+        .thenReturn(List.of(RandomEntities.randomActivityTypeRecord()));
+
+    // simulate session not found
+    doAnswer(invocation -> {
+      // invoke callback
+      invocation.getArgument(2, Runnable.class).run();
+      throw new RuntimeException("not found");
+    }).when(connectApiMock).syncActivityTypes(any(), any(), any());
+
+    assertThatThrownBy(() -> activityTypeSyncWithMarkerService.performActivityTypeUpdate(query))
+        .as("exception should be thrown to retry")
+        .isInstanceOf(RuntimeException.class);
+
+    // check that sync position is cleared when onInvalidSession is invoked
+    // so drain run will start from the beginning
+    verify(activityTypeDrainSyncStore, times(1)).resetSyncPosition(query);
   }
 
   @Test
@@ -212,10 +247,11 @@ class ActivityTypeSyncWithMarkerServiceTest {
 
     activityTypeSyncWithMarkerService.performActivityTypeUpdateSlowLoop(query);
 
-    verify(connectApiMock, times(1)).syncActivityTypes(batch, syncSessionId);
+    verify(connectApiMock, times(1)).syncActivityTypes(eq(batch), eq(syncSessionId), any());
     verify(activityTypeRefreshSyncStore, times(1)).markSyncPosition(query, batch);
     // slow loop is not finished, session should not be completed
     verify(connectApiMock, never()).completeSyncSession(any());
+    verify(connectApiMock, never()).completeSyncSession(any(), any());
   }
 
   @Test
@@ -242,7 +278,7 @@ class ActivityTypeSyncWithMarkerServiceTest {
     activityTypeSyncWithMarkerService.performActivityTypeUpdateSlowLoop(query);
 
     // slow loop is finished, sync session should be completed
-    verify(connectApiMock, times(1)).completeSyncSession(syncSessionId);
+    verify(connectApiMock, times(1)).completeSyncSession(eq(syncSessionId), any());
     // syncMarker and syncSession should be cleared for slow loop
     verify(activityTypeRefreshSyncStore, times(1)).resetSyncPosition(query);
 
@@ -250,6 +286,39 @@ class ActivityTypeSyncWithMarkerServiceTest {
     verify(connectApiMock, never()).syncActivityTypes(any(), any());
     // we should use previously saved session
     verify(connectApiMock, never()).startSyncSession();
+  }
+
+  @Test
+  @DisplayName("performActivityTypeUpdateSlowLoop should clear sync position in case of invalid session")
+  void performActivityTypeUpdateSlowLoop_onInvalidSession() {
+    final ActivityTypeQuery query = RandomEntities.randomActivityTypeQuery();
+
+    final String refreshSyncMarker = faker.numerify("sync_marker_###");
+    when(activityTypeRefreshSyncStore.getSyncMarker(query))
+        .thenReturn(refreshSyncMarker);
+
+    final List<String> prevRefreshedCodes = List.of(faker.numerify("code-###"), faker.numerify("code-###"));
+    when(activityTypeRefreshSyncStore.getLastSyncedCodes(query))
+        .thenReturn(prevRefreshedCodes);
+
+    // no more activity types, slow loop is finished
+    when(databaseMock.getActivityTypes(query, refreshSyncMarker, prevRefreshedCodes))
+        .thenReturn(List.of());
+
+    // simulate session not found
+    doAnswer(invocation -> {
+      // invoke callback
+      invocation.getArgument(1, Runnable.class).run();
+      throw new RuntimeException("not found");
+    }).when(connectApiMock).completeSyncSession(any(), any());
+
+    assertThatThrownBy(() -> activityTypeSyncWithMarkerService.performActivityTypeUpdateSlowLoop(query))
+        .as("exception should be thrown to retry")
+        .isInstanceOf(RuntimeException.class);
+
+    // check that sync position is cleared when onInvalidSession is invoked
+    // so slow loop will start from the beginning
+    verify(activityTypeRefreshSyncStore, times(1)).resetSyncPosition(query);
   }
 
 }
