@@ -21,11 +21,10 @@ create-artifact:
           - |-
             #!/bin/bash
             set -o errexit ; set -o errtrace ; set -o pipefail
-
+            source "$HOME/.sdkman/bin/sdkman-init.sh" && sdk env
             ./gradlew -Djib.to.auth.username=wisetimedev -Djib.to.auth.password=${bamboo.DOCKER_HUB_PASSWORD} jib
             #./gradlew -Djib.to.auth.username=wisetimedev -Djib.to.auth.password=${bamboo.DOCKER_HUB_PASSWORD} jib -PtargetArch=arm64v8
             ./gradlew -q printVersionStr > image_tag.txt
-        environment: JAVA_HOME="/usr/lib/jvm/zulu-11-amd64"
   artifacts:
     - name: Docker Image Tag
       pattern: image_tag.txt
