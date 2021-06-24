@@ -9,11 +9,11 @@ plugins {
   jacoco
   java
   `maven-publish`
-  id("com.google.cloud.tools.jib") version "2.8.0"
+  id("com.google.cloud.tools.jib") version "3.0.0"
   id("io.freefair.lombok") version "5.3.0"
-  id("io.wisetime.versionChecker").version("10.11.46")
+  id("io.wisetime.versionChecker").version("10.11.56")
   id("fr.brouillard.oss.gradle.jgitver").version("0.9.1")
-  id("com.github.ben-manes.versions").version("0.21.0")
+  id("com.github.ben-manes.versions").version("0.38.0")
 }
 
 repositories {
@@ -29,7 +29,7 @@ repositories {
 }
 
 dependencies {
-  implementation("io.wisetime:wisetime-connector:3.0.11")
+  implementation("io.wisetime:wisetime-connector:3.0.13")
   implementation("io.vavr:vavr:0.10.3")
   implementation("org.apache.commons:commons-configuration2:2.4") {
     exclude("commons-logging")
