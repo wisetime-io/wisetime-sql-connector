@@ -25,7 +25,6 @@ import io.wisetime.generated.connect.TimeGroup;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import spark.Request;
 
 /**
  * @author shane.xie
@@ -68,7 +67,7 @@ class SqlConnectorTest {
   @Test
   void postTime_is_unsupported() {
     assertThrows(UnsupportedOperationException.class, () ->
-        connector.postTime(mock(Request.class), mock(TimeGroup.class))
+        connector.postTime(mock(TimeGroup.class))
     );
   }
 

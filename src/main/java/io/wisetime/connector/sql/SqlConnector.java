@@ -33,7 +33,6 @@ import lombok.AccessLevel;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import spark.Request;
 
 /**
  * @author shane.xie
@@ -193,7 +192,7 @@ public class SqlConnector implements WiseTimeConnector {
   }
 
   @Override
-  public PostResult postTime(Request request, TimeGroup timeGroup) {
+  public PostResult postTime(TimeGroup timeGroup) {
     throw new UnsupportedOperationException("Time posting is not supported by the WiseTime SQL Connector");
   }
 

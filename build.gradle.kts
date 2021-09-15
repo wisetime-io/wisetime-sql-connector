@@ -11,7 +11,7 @@ plugins {
   `maven-publish`
   id("com.google.cloud.tools.jib") version "3.0.0"
   id("io.freefair.lombok") version "5.3.0"
-  id("io.wisetime.versionChecker").version("10.11.62")
+  id("io.wisetime.versionChecker").version("10.11.74")
   id("fr.brouillard.oss.gradle.jgitver").version("0.9.1")
   id("com.github.ben-manes.versions").version("0.38.0")
 }
@@ -29,13 +29,16 @@ repositories {
 }
 
 dependencies {
-  implementation("io.wisetime:wisetime-connector:3.0.13")
+  implementation("io.wisetime:wisetime-connector:4.0.7")
+  implementation("org.apache.httpcomponents:httpcore:4.4.14")
+  implementation("org.springframework.boot:spring-boot-starter-validation:2.5.4")
+  implementation("commons-codec:commons-codec:1.15")
   implementation("io.vavr:vavr:0.10.3")
   implementation("org.apache.commons:commons-configuration2:2.4") {
     exclude("commons-logging")
   }
   implementation("com.google.guava:guava:30.1-jre")
-  implementation("com.google.code.gson:gson:2.8.6")
+  implementation("com.google.code.gson:gson:2.8.8")
 
   implementation("ch.qos.logback:logback-classic:1.2.3")
   implementation("ch.qos.logback:logback-core:1.2.3")
@@ -58,7 +61,7 @@ dependencies {
   testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
   testRuntime("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
 
-  testImplementation("io.wisetime:wisetime-test-support:2.6.13")
+  testImplementation("io.wisetime:wisetime-test-support:2.6.28")
   testImplementation("org.flywaydb:flyway-core:7.5.4")
   testImplementation("com.github.javafaker:javafaker:1.0.1")
   testImplementation("org.mockito:mockito-core:3.0.0")

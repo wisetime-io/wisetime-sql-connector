@@ -234,7 +234,6 @@ create-artifact:
   - command:
       executable: make
       argument: docker-arm64v8
-      envrionment: JAVA_HOME="/usr/lib/jvm/zulu-11-amd64"
   artifacts:
   - name: jib-image.tar
     location: build/
