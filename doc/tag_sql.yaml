@@ -8,22 +8,14 @@ sql: >
          IRN          AS tag_name,
          IRN          AS additional_keyword,
          TITLE        AS tag_description,
-         DATE_UPDATED AS sync_marker,
-         URL          as url,
-         (
-             SELECT json_build_object
-             (
-                 'LOCATION', array_to_string(array_agg(LOCATION), ' '),
-                 'COUNTRY', array_to_string(array_agg(COUNTRY), ' ')
-             )
-             FROM TEST_TAG_METADATA
-             WHERE TEST_TAG_METADATA.IRN = TEST_CASES.IRN
-         )            AS tag_metadata
+         URL          AS url,
+         IRN          AS external_id,
+         DATE_UPDATED AS sync_marker
   FROM TEST_CASES
-  WHERE DATE_UPDATED >= TO_TIMESTAMP(:previous_sync_marker, 'YYYY-MM-DD')
+  WHERE DATE_UPDATED >= TO_DATE(:previous_sync_marker, 'YYYY-MM-DD')
     AND IRN NOT IN (:skipped_ids)
   ORDER BY DATE_UPDATED ASC
-  LIMIT 100;
+  LIMIT 50;
 continuousResync: yes
 
 ---
@@ -32,40 +24,14 @@ initialSyncMarker: 0
 skippedIds:
   - 0
 sql: >
-  SELECT PRJ_ID                AS id,
-         IRN                   AS tag_name,
-         CONCAT('FID', PRJ_ID) AS additional_keyword,
-         DESCRIPTION           AS tag_description,
-         PRJ_ID                AS sync_marker,
-         (
-             SELECT json_build_object
-             (
-                 'LOCATION', array_to_string(array_agg(LOCATION), ' '),
-                 'COUNTRY', array_to_string(array_agg(COUNTRY), ' ')
-             )
-             FROM TEST_TAG_METADATA
-             WHERE TEST_TAG_METADATA.IRN = TEST_PROJECTS.IRN
-         )                     AS tag_metadata
+  SELECT PRJ_ID          AS id,
+         IRN             AS tag_name,
+         'FID' || PRJ_ID AS additional_keyword,
+         DESCRIPTION     AS tag_description,
+         PRJ_ID          AS sync_marker
   FROM TEST_PROJECTS
-  WHERE PRJ_ID::varchar(255) >= :previous_sync_marker
-    AND PRJ_ID::varchar(255) NOT IN (:skipped_ids)
+  WHERE PRJ_ID >= :previous_sync_marker::int
+    AND PRJ_ID NOT IN (:skipped_ids::int)
   ORDER BY PRJ_ID ASC
-  LIMIT 100;
+  LIMIT 50;
 continuousResync: no
-
----
-name: missing-placeholders
-initialSyncMarker: 0
-skippedIds:
-  - 0
-sql: >
-  SELECT 'missing required fields and parameter placeholders';
-continuousResync: no
-
----
-name: default-continuous-resync
-initialSyncMarker: 0
-skippedIds:
-  - 0
-sql: >
-  SELECT 'default continuous resync is true';
