@@ -4,25 +4,26 @@ skippedIds:
   - P01003789
   - P1025477
 sql: >
-  SELECT TOP 100
-  [IRN] as [id],
-  [IRN] AS [tag_name],
-  [IRN] AS [additional_keyword],
-  [TITLE] AS [tag_description],
-  [DATE_UPDATED] AS [sync_marker],
-  [URL] as [url],
-  (SELECT
-     [LOCATION] as location,
-     [COUNTRY] as country
-      FROM [dbo].[TEST_TAG_METADATA]
-      WHERE [dbo].[TEST_TAG_METADATA].[IRN]= [dbo].[TEST_CASES].[IRN]
-      FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
-      )
-      AS [tag_metadata]
-  FROM [dbo].[TEST_CASES]
-  WHERE [DATE_UPDATED] >= :previous_sync_marker
-  AND [IRN] NOT IN (:skipped_ids)
-  ORDER BY [DATE_UPDATED] ASC;
+  SELECT IRN          as id,
+         IRN          AS tag_name,
+         IRN          AS additional_keyword,
+         TITLE        AS tag_description,
+         DATE_UPDATED AS sync_marker,
+         URL          as url,
+         (
+             SELECT json_build_object
+             (
+                 'LOCATION', array_to_string(array_agg(LOCATION), ' '),
+                 'COUNTRY', array_to_string(array_agg(COUNTRY), ' ')
+             )
+             FROM TEST_TAG_METADATA
+             WHERE TEST_TAG_METADATA.IRN = TEST_CASES.IRN
+         )            AS tag_metadata
+  FROM TEST_CASES
+  WHERE DATE_UPDATED >= TO_TIMESTAMP(:previous_sync_marker, 'YYYY-MM-DD')
+    AND IRN NOT IN (:skipped_ids)
+  ORDER BY DATE_UPDATED ASC
+  LIMIT 100;
 continuousResync: yes
 
 ---
@@ -31,23 +32,21 @@ initialSyncMarker: 0
 skippedIds:
   - 0
 sql: >
-  SELECT TOP 100
-  [PRJ_ID] AS [id],
-  [IRN] AS [tag_name],
-  CONCAT('FID', [PRJ_ID]) AS [additional_keyword],
-  [DESCRIPTION] AS [tag_description],
-  [PRJ_ID] AS [sync_marker],
-  (SELECT
-      [LOCATION] as location,
-      [COUNTRY] as country
-       FROM [dbo].[TEST_TAG_METADATA]
-       WHERE [dbo].[TEST_TAG_METADATA].[IRN]= [dbo].[TEST_PROJECTS].[IRN]
-       FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
-       )  AS [tag_metadata]
-  FROM [dbo].[TEST_PROJECTS]
-  WHERE [PRJ_ID] >= :previous_sync_marker
-  AND [PRJ_ID] NOT IN (:skipped_ids)
-  ORDER BY [PRJ_ID] ASC;
+  SELECT PRJ_ID                AS id,
+         IRN                   AS tag_name,
+         CONCAT('FID', PRJ_ID) AS additional_keyword,
+         DESCRIPTION           AS tag_description,
+         PRJ_ID                AS sync_marker,
+         (
+             SELECT LOCATION as location
+             FROM TEST_TAG_METADATA
+             WHERE TEST_TAG_METADATA.IRN = TEST_PROJECTS.IRN
+         )                     AS tag_metadata
+  FROM TEST_PROJECTS
+  WHERE PRJ_ID >= :previous_sync_marker
+    AND PRJ_ID NOT IN (:skipped_ids)
+  ORDER BY PRJ_ID ASC
+  LIMIT 100;
 continuousResync: no
 
 ---
