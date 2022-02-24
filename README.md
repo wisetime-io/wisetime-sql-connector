@@ -377,6 +377,8 @@ The SQL connector runs self-checks to determine whether it is healthy. If health
 
 ## Building
 
+> FIXME: There is no 'docker' target in `Makefile`, also no `Dockerfile`, how can we run `make docker`? The blow instructions are out of date?
+
 To build a Docker image of the WiseTime SQL Connector, run:
 
 ```text
