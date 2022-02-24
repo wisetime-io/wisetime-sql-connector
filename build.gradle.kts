@@ -78,7 +78,7 @@ configurations.all {
   resolutionStrategy {
     eachDependency {
       if (requested.group == "com.fasterxml.jackson.core") {
-        useVersion("2.12.3")
+        useVersion("2.13.1")
         because("use consistent version for all transitive dependencies")
       }
       if (requested.name == "commons-lang3") {
@@ -87,9 +87,6 @@ configurations.all {
       }
     }
     force("org.slf4j:jcl-over-slf4j:1.7.36")
-    force("com.fasterxml.jackson.core:jackson-annotations:2.13.1")
-    force("com.fasterxml.jackson.core:jackson-core:2.13.1")
-    force("com.fasterxml.jackson.core:jackson-databind:2.13.1")
   }
 }
 
