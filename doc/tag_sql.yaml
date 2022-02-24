@@ -38,13 +38,17 @@ sql: >
          DESCRIPTION           AS tag_description,
          PRJ_ID                AS sync_marker,
          (
-             SELECT LOCATION as location
+             SELECT json_build_object
+             (
+                 'LOCATION', array_to_string(array_agg(LOCATION), ' '),
+                 'COUNTRY', array_to_string(array_agg(COUNTRY), ' ')
+             )
              FROM TEST_TAG_METADATA
              WHERE TEST_TAG_METADATA.IRN = TEST_PROJECTS.IRN
          )                     AS tag_metadata
   FROM TEST_PROJECTS
-  WHERE PRJ_ID >= :previous_sync_marker
-    AND PRJ_ID NOT IN (:skipped_ids)
+  WHERE PRJ_ID::varchar(255) >= :previous_sync_marker
+    AND PRJ_ID::varchar(255) NOT IN (:skipped_ids)
   ORDER BY PRJ_ID ASC
   LIMIT 100;
 continuousResync: no

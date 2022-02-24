@@ -27,6 +27,7 @@ services:
 
     environment:
       API_KEY: 8aae35f932064d169f0b2efe4104ee1c
+      API_BASE_URL: https://wisetime.ninja/connect/api
 
       TAG_UPSERT_PATH: /Connector/  # Change this to something meaningful, e.g. the name of the connected system
       TAG_SQL_FILE: /etc/wisetime-sql-connector/tag_sql.yaml
