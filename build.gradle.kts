@@ -1,4 +1,5 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
+import io.wisetime.version.model.LegebuildConst
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
@@ -11,7 +12,7 @@ plugins {
   `maven-publish`
   id("com.google.cloud.tools.jib") version "3.0.0"
   id("io.freefair.lombok") version "5.3.0"
-  id("io.wisetime.versionChecker").version("10.11.74")
+  id("io.wisetime.versionChecker").version("10.12.3")
   id("fr.brouillard.oss.gradle.jgitver").version("0.9.1")
   id("com.github.ben-manes.versions").version("0.38.0")
 }
@@ -29,20 +30,25 @@ repositories {
 }
 
 dependencies {
-  implementation("io.wisetime:wisetime-connector:4.0.7")
+  implementation("io.wisetime:wisetime-connector:4.1.0") {
+    exclude("joda-time", "joda-time")
+  }
   implementation("org.apache.httpcomponents:httpcore:4.4.14")
-  implementation("org.springframework.boot:spring-boot-starter-validation:2.5.4")
+  implementation("org.springframework.boot:spring-boot-starter-validation:2.5.4") {
+    exclude("org.apache.logging.log4j", "log4j-api")
+    exclude("org.slf4j", "jul-to-slf4j")
+  }
   implementation("commons-codec:commons-codec:1.15")
   implementation("io.vavr:vavr:0.10.3")
   implementation("org.apache.commons:commons-configuration2:2.4") {
     exclude("commons-logging")
   }
-  implementation("com.google.guava:guava:30.1-jre")
-  implementation("com.google.code.gson:gson:2.8.8")
+  implementation("com.google.guava:guava:${LegebuildConst.GUAVA_VERSION}")
+  implementation("com.google.code.gson:gson:${LegebuildConst.GSON_GOOGLE}")
 
   implementation("ch.qos.logback:logback-classic:1.2.3")
   implementation("ch.qos.logback:logback-core:1.2.3")
-  implementation("org.slf4j:slf4j-api:1.7.30")
+  implementation("org.slf4j:slf4j-api:${LegebuildConst.SLF4J}")
 
   implementation("org.codejargon:fluentjdbc:1.8.3")
   implementation("com.zaxxer:HikariCP:3.3.1")
@@ -61,7 +67,7 @@ dependencies {
   testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
   testRuntime("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
 
-  testImplementation("io.wisetime:wisetime-test-support:2.6.28")
+  testImplementation("io.wisetime:wisetime-test-support:2.6.32")
   testImplementation("org.flywaydb:flyway-core:7.5.4")
   testImplementation("com.github.javafaker:javafaker:1.0.1")
   testImplementation("org.mockito:mockito-core:3.0.0")
@@ -72,7 +78,7 @@ configurations.all {
   resolutionStrategy {
     eachDependency {
       if (requested.group == "com.fasterxml.jackson.core") {
-        useVersion("2.12.3")
+        useVersion("2.13.1")
         because("use consistent version for all transitive dependencies")
       }
       if (requested.name == "commons-lang3") {
@@ -80,6 +86,7 @@ configurations.all {
         because("use consistent version for all transitive dependencies")
       }
     }
+    force("org.slf4j:jcl-over-slf4j:1.7.36")
   }
 }
 
@@ -120,7 +127,8 @@ jib {
     }
   } else {
     from {
-      image = "gcr.io/wise-pub/connect-java-11-j9@sha256:98ec5f00539bdffeb678c3b4a34c07c77e4431395286ecc6a083298089b3d0ec"
+      image =
+        "gcr.io/wise-pub/connect-java-11-j9@sha256:98ec5f00539bdffeb678c3b4a34c07c77e4431395286ecc6a083298089b3d0ec"
     }
     to {
       project.afterEvaluate { // <-- so we evaluate version after it has been set
