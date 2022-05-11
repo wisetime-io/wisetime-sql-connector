@@ -9,9 +9,7 @@ git fetch --tags
 # Create Orphan branch
 git checkout --orphan temp_branch
 # Remove unwanted files/dirs from the repo and create fresh commit
-rm -rf bamboo-specs
-rm -rf bin
-rm .drone.yml
+rm -rf bamboo-specs .github mirror.sh bin .drone.yml
 git add -A
 git commit -am "Mirror Repo"
 # Delete master branch
