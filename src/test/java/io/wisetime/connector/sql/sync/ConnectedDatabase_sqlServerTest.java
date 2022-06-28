@@ -9,11 +9,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import io.wisetime.connector.sql.PlainSqlServer;
 import io.wisetime.connector.sql.queries.ActivityTypeQuery;
 import io.wisetime.connector.sql.sync.activity_type.ActivityTypeRecord;
 import io.wisetime.test_docker.ContainerRuntimeSpec;
 import io.wisetime.test_docker.DockerLauncher;
-import io.wisetime.test_docker.containers.SqlServer;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.flywaydb.core.Flyway;
@@ -30,7 +30,7 @@ class ConnectedDatabase_sqlServerTest {
   @BeforeEach
   void setUp() {
     final DockerLauncher launcher = DockerLauncher.instance();
-    final SqlServer sqlServer = new SqlServer();
+    final PlainSqlServer sqlServer = new PlainSqlServer();
     final ContainerRuntimeSpec container = launcher.createContainer(sqlServer);
     final HikariConfig hikariConfig = new HikariConfig();
     hikariConfig.setJdbcUrl(sqlServer.getJdbcUrl(container));
