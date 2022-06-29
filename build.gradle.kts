@@ -30,9 +30,7 @@ repositories {
 }
 
 dependencies {
-  implementation("io.wisetime:wisetime-connector:4.1.0") {
-    exclude("joda-time", "joda-time")
-  }
+  implementation("io.wisetime:wisetime-connector:4.1.0")
   implementation("org.apache.httpcomponents:httpcore:4.4.14")
   implementation("org.springframework.boot:spring-boot-starter-validation:2.5.4") {
     exclude("org.apache.logging.log4j", "log4j-api")
@@ -86,7 +84,8 @@ configurations.all {
         because("use consistent version for all transitive dependencies")
       }
     }
-    force("org.slf4j:jcl-over-slf4j:1.7.36")
+    force("org.slf4j:jcl-over-slf4j:${LegebuildConst.SLF4J}")
+    force("joda-time:joda-time:${LegebuildConst.JODA_TIME}")
   }
 }
 
