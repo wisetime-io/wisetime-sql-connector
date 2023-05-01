@@ -10,11 +10,11 @@ plugins {
   jacoco
   java
   `maven-publish`
-  id("com.google.cloud.tools.jib") version "3.2.1"
-  id("io.freefair.lombok") version "5.3.0"
+  id("com.google.cloud.tools.jib") version "3.3.1"
+  id("io.freefair.lombok") version "8.0.1"
   id("io.wisetime.versionChecker")
   id("fr.brouillard.oss.gradle.jgitver").version("0.9.1")
-  id("com.github.ben-manes.versions").version("0.38.0")
+  id("com.github.ben-manes.versions").version("0.46.0")
 }
 
 repositories {
@@ -30,7 +30,7 @@ repositories {
 }
 
 dependencies {
-  implementation("io.wisetime:wisetime-connector:4.1.0")
+  implementation("io.wisetime:wisetime-connector:5.0.36")
   implementation("org.apache.httpcomponents:httpcore:4.4.14")
   implementation("org.springframework.boot:spring-boot-starter-validation:2.5.4") {
     exclude("org.apache.logging.log4j", "log4j-api")
@@ -44,23 +44,23 @@ dependencies {
   implementation("com.google.guava:guava:${LegebuildConst.GUAVA_VERSION}")
   implementation("com.google.code.gson:gson:${LegebuildConst.GSON_GOOGLE}")
 
-  implementation("ch.qos.logback:logback-classic:1.2.3")
-  implementation("ch.qos.logback:logback-core:1.2.3")
+  implementation("ch.qos.logback:logback-classic:1.4.5")
+  implementation("ch.qos.logback:logback-core:1.4.5")
   implementation("org.slf4j:slf4j-api:${LegebuildConst.SLF4J}")
 
-  implementation("org.codejargon:fluentjdbc:1.8.3")
-  implementation("com.zaxxer:HikariCP:3.3.1")
+  implementation("org.codejargon:fluentjdbc:1.8.6")
+  implementation("com.zaxxer:HikariCP:5.0.1")
   // Add more databases as we need to support them
   implementation("com.microsoft.sqlserver:mssql-jdbc:7.4.1.jre8")
   implementation("org.antlr:antlr4-runtime:4.8-1")  // For MS SQL Server useFmtOnly feature
-  implementation("mysql:mysql-connector-java:8.0.22") {
+  implementation("mysql:mysql-connector-java:8.0.33") {
     exclude(group = "com.google.protobuf", module = "protobuf-java")
   }
-  implementation("org.postgresql:postgresql:42.2.16")
+  implementation("org.postgresql:postgresql:42.6.0")
 
   implementation("org.yaml:snakeyaml:1.24")
 
-  val junitVersion = "5.5.1"
+  val junitVersion = "5.9.3"
   testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
   testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
   testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
@@ -69,7 +69,7 @@ dependencies {
   testImplementation("org.flywaydb:flyway-core:7.5.4")
   testImplementation("com.github.javafaker:javafaker:1.0.1")
   testImplementation("org.mockito:mockito-core:3.0.0")
-  testImplementation("org.assertj:assertj-core:3.13.2")
+  testImplementation("org.assertj:assertj-core:3.24.2")
 }
 
 configurations.all {
@@ -90,18 +90,12 @@ configurations.all {
 }
 
 java {
-  toolchain {
-    languageVersion.set(JavaLanguageVersion.of(11))
-    vendor.set(JvmVendorSpec.ADOPTOPENJDK)
-    implementation.set(JvmImplementation.J9)
-  }
-  consistentResolution {
-    useCompileClasspathVersions()
-  }
+  sourceCompatibility = JavaVersion.VERSION_11
+  targetCompatibility = JavaVersion.VERSION_11
 }
 
 application {
-  mainClassName = "ConnectorLauncher"
+  mainClass.set("io.wisetime.connector.sql.ConnectorLauncher")
   applicationDefaultJvmArgs = listOf(
     "-server",
     "-Xms128m",
