@@ -74,16 +74,15 @@ steps:
         - refs/heads/master
         - refs/tags/*
 
-  - name: cascade-to-bamboo
-    image: registry.dev.wisetime.com/git
+  - name: build-docker-image
+    image: europe-west3-docker.pkg.dev/wise-pub/tools/jdk/jdk-17:17.0.7.slim
     environment:
-      BAMBOO_USER:
-        from_secret: bamboo-user
-      BAMBOO_PASS:
-        from_secret: bamboo-pass
+      GRADLE_USER_HOME: .gcache
+      GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      GCLOUD_JSON_KEY:
+        from_secret: json-key
     commands:
-      - echo "Caccade to artifact via user $${BAMBOO_USER}"
-      - ./bin/cascade.sh
+      - ./gradlew -Djib.to.auth.username=_json_key -Djib.to.auth.password="$${GCLOUD_JSON_KEY}" jib
     when:
       ref:
         - refs/heads/master
@@ -202,3 +201,10 @@ name: smtp-user
 get:
   path: drone/notify/smtp
   name: user
+
+---
+kind: secret
+name: json-key
+get:
+  path: drone/gcloud
+  name: json_key

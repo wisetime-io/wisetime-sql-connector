@@ -3,7 +3,7 @@ rootProject.name = "wisetime-sql-connector"
 pluginManagement {
 
   plugins {
-    id("io.wisetime.versionChecker") version "10.12.81"
+    id("io.wisetime.versionChecker") version "10.13.14"
   }
 
   resolutionStrategy.eachPlugin {

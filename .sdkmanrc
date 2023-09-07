@@ -1,2 +1,2 @@
 # Set JVM via `sdk env` in rootDir
-java=11.0.11.j9-adpt
+java=17.0.7-sem
