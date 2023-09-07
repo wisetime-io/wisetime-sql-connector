@@ -38,14 +38,14 @@ dependencies {
   }
   implementation("commons-codec:commons-codec:1.15")
   implementation("io.vavr:vavr:0.10.3")
-  implementation("org.apache.commons:commons-configuration2:2.4") {
+  implementation("org.apache.commons:commons-configuration2:2.9.0") {
     exclude("commons-logging")
   }
   implementation("com.google.guava:guava:${LegebuildConst.GUAVA_VERSION}")
   implementation("com.google.code.gson:gson:${LegebuildConst.GSON_GOOGLE}")
 
-  implementation("ch.qos.logback:logback-classic:1.4.5")
-  implementation("ch.qos.logback:logback-core:1.4.5")
+  implementation("ch.qos.logback:logback-classic:1.4.7")
+  implementation("ch.qos.logback:logback-core:1.4.7")
   implementation("org.slf4j:slf4j-api:${LegebuildConst.SLF4J}")
 
   implementation("org.codejargon:fluentjdbc:1.8.6")
