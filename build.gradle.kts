@@ -30,7 +30,7 @@ repositories {
 }
 
 dependencies {
-  implementation("io.wisetime:wisetime-connector:5.0.36")
+  implementation("io.wisetime:wisetime-connector:5.1.6")
   implementation("org.apache.httpcomponents:httpcore:4.4.14")
   implementation("org.springframework.boot:spring-boot-starter-validation:2.5.4") {
     exclude("org.apache.logging.log4j", "log4j-api")
@@ -38,14 +38,14 @@ dependencies {
   }
   implementation("commons-codec:commons-codec:1.15")
   implementation("io.vavr:vavr:0.10.3")
-  implementation("org.apache.commons:commons-configuration2:2.4") {
+  implementation("org.apache.commons:commons-configuration2:2.9.0") {
     exclude("commons-logging")
   }
   implementation("com.google.guava:guava:${LegebuildConst.GUAVA_VERSION}")
   implementation("com.google.code.gson:gson:${LegebuildConst.GSON_GOOGLE}")
 
-  implementation("ch.qos.logback:logback-classic:1.4.5")
-  implementation("ch.qos.logback:logback-core:1.4.5")
+  implementation("ch.qos.logback:logback-classic:1.4.7")
+  implementation("ch.qos.logback:logback-core:1.4.7")
   implementation("org.slf4j:slf4j-api:${LegebuildConst.SLF4J}")
 
   implementation("org.codejargon:fluentjdbc:1.8.6")
@@ -90,8 +90,8 @@ configurations.all {
 }
 
 java {
-  sourceCompatibility = JavaVersion.VERSION_11
-  targetCompatibility = JavaVersion.VERSION_11
+  sourceCompatibility = JavaVersion.VERSION_17
+  targetCompatibility = JavaVersion.VERSION_17
 }
 
 application {
@@ -120,8 +120,7 @@ jib {
     }
   } else {
     from {
-      image =
-        "europe-west3-docker.pkg.dev/wise-pub/tools/connect-java-11-j9@sha256:d4e0e6d00a6babc29b68dd3ae28f46d00400b25b5ee82d9961bb0ecb08970215"
+      image = "europe-west3-docker.pkg.dev/wise-pub/tools/jdk/jdk-17:17.0.7.slim"
     }
     to {
       project.afterEvaluate { // <-- so we evaluate version after it has been set
