@@ -59,7 +59,7 @@ steps:
         path: /cache
 
   - name: build-docker-image
-    image: europe-west3-docker.pkg.dev/wise-pub/tools/jdk/jdk-17:17.0.7.slim
+    image: europe-west3-docker.pkg.dev/wise-pub/tools/jdk/jdk-17:17.0.7.full
     environment:
       GRADLE_USER_HOME: .gcache
       GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
