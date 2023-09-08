@@ -58,24 +58,8 @@ steps:
       - name: host-cache
         path: /cache
 
-  - name: publish-to-s3
-    image: europe-west3-docker.pkg.dev/wise-pub/tools/jdk/jdk-17:17.0.7.slim
-    environment:
-      GRADLE_USER_HOME: .gcache
-      GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
-      AWS_ACCESS_KEY_ID:
-        from_secret: aws-publish-id
-      AWS_SECRET_ACCESS_KEY:
-        from_secret: aws-publish-secret
-    commands:
-      - ./gradlew --info publish -x check -x test
-    when:
-      ref:
-        - refs/heads/master
-        - refs/tags/*
-
   - name: build-docker-image
-    image: europe-west3-docker.pkg.dev/wise-pub/tools/jdk/jdk-17:17.0.7.slim
+    image: europe-west3-docker.pkg.dev/wise-pub/tools/jdk/jdk-17:17.0.7.full
     environment:
       GRADLE_USER_HOME: .gcache
       GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
