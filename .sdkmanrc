@@ -1,0 +1,2 @@
+# Set JVM via `sdk env` in rootDir
+java=17.0.13-sem
