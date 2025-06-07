@@ -1,0 +1,37 @@
+name: cases
+initialSyncMarker: 2001-01-01T00:00:00
+skippedIds:
+  - P01003789
+  - P1025477
+sql: >
+  SELECT IRN          as id,
+         IRN          AS tag_name,
+         IRN          AS additional_keyword,
+         TITLE        AS tag_description,
+         URL          AS url,
+         IRN          AS external_id,
+         DATE_UPDATED AS sync_marker
+  FROM TEST_CASES
+  WHERE DATE_UPDATED >= TO_DATE(:previous_sync_marker, 'YYYY-MM-DD')
+    AND IRN NOT IN (:skipped_ids)
+  ORDER BY DATE_UPDATED ASC
+  LIMIT 50;
+continuousResync: yes
+
+---
+name: keywords
+initialSyncMarker: 0
+skippedIds:
+  - 0
+sql: >
+  SELECT PRJ_ID          AS id,
+         IRN             AS tag_name,
+         'FID' || PRJ_ID AS additional_keyword,
+         DESCRIPTION     AS tag_description,
+         PRJ_ID          AS sync_marker
+  FROM TEST_PROJECTS
+  WHERE PRJ_ID >= :previous_sync_marker::int
+    AND PRJ_ID NOT IN (:skipped_ids::int)
+  ORDER BY PRJ_ID ASC
+  LIMIT 50;
+continuousResync: no
