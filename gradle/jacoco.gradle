@@ -1,0 +1,51 @@
+
+ext {
+    jcLineMin = 0.85
+    jcInstructionMin = 0.85
+    jcClassMin = 0.90
+
+    jacocoExcludes = [
+    ]
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+}
+
+jacocoTestCoverageVerification {
+    sourceDirectories.from jacocoTestReport.sourceDirectories
+    classDirectories.from jacocoTestReport.classDirectories
+    afterEvaluate {
+        classDirectories.from = files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: jacocoExcludes)
+        })
+    }
+
+    violationRules {
+        rule {
+            element = 'BUNDLE'
+            limit {
+                counter = 'LINE'
+                minimum = jcLineMin
+            }
+        }
+        rule {
+            element = 'BUNDLE'
+            limit {
+                counter = 'INSTRUCTION'
+                minimum = jcInstructionMin
+            }
+        }
+        rule {
+            element = 'BUNDLE'
+            limit {
+                counter = 'CLASS'
+                minimum = jcClassMin
+            }
+        }
+    }
+}

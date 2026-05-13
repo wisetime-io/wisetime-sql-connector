@@ -1,0 +1,13 @@
+initialSyncMarker: 0
+skippedCodes:
+  - 23456
+sql: >
+  SELECT ACTIVITYCODE        AS code,
+         ACTIVITYCODE        AS sync_marker,
+         ACTIVITYNAME        AS label,
+         ACTIVITYDESCRIPTION AS description
+  FROM TEST_ACTIVITYCODES
+  WHERE ACTIVITYCODE NOT IN (:skipped_codes)
+    AND ACTIVITYCODE > :previous_sync_marker
+  ORDER BY sync_marker
+  LIMIT 100;
