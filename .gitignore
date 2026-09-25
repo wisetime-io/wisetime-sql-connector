@@ -1,0 +1,9 @@
+.idea/
+.gradle/
+.gradle.properties
+.gcache
+build/
+out/
+src/gen/
+**/*.iml
+**/.DS_Store
