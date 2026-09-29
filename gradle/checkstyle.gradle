@@ -1,0 +1,9 @@
+apply plugin: 'checkstyle'
+
+checkstyle {
+    configFile = new File(rootDir, 'gradle/checkstyle.xml')
+    configProperties.checkstyleConfigDir = new File(rootDir, 'gradle')
+    configProperties.suppressionFile = new File(rootDir, 'gradle/checkstyle_suppressions.xml')
+    ignoreFailures = false
+    showViolations = true
+}
