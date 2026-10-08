@@ -1,0 +1,13 @@
+fieldId: matter-type
+sql: >
+  SELECT
+  [CODE] AS [code],
+  [DESCRIPTION] AS [label]
+  FROM [dbo].[MATTER_TYPE];
+---
+fieldId: practice-area
+sql: >
+  SELECT
+  [CODE] AS [code],
+  [DESCRIPTION] AS [label]
+  FROM [dbo].[PRACTICE_AREA];
