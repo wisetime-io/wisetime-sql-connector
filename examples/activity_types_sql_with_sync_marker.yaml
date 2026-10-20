@@ -1,0 +1,12 @@
+initialSyncMarker: 0
+skippedCodes:
+  - 0
+sql: >
+  SELECT TOP 500
+  [WIPCODE] AS [code],
+  [WIPCODE] AS [sync_marker],
+  [DESCRIPTION] AS [label],
+  [DESCRIPTION] AS [description]
+  FROM [dbo].[WIPTEMPLATE]
+  WHERE [WIPCODE] NOT IN (:skipped_codes) AND [WIPCODE] > :previous_sync_marker
+  ORDER BY [sync_marker];

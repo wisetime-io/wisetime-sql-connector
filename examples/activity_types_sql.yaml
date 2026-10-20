@@ -1,0 +1,9 @@
+sql: >
+  SELECT
+  [WIPCODE] AS [code],
+  [WIPCODE] AS [sync_marker],
+  [DESCRIPTION] AS [label],
+  [DESCRIPTION] AS [description]
+  FROM [dbo].[WIPTEMPLATE]
+  WHERE WIPTYPEID IN ('SERCHG', 'SERLEV', 'SERNON', 'SERNOP')
+  ORDER BY [sync_marker];
