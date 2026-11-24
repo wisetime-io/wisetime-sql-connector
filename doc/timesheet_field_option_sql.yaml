@@ -1,0 +1,13 @@
+fieldId: matter-type
+initialSyncMarker: 1900-01-01
+skippedCodes:
+  - 23456
+sql: >
+  SELECT CODE        AS code,
+         UPDATED_AT  AS sync_marker,
+         DESCRIPTION AS label
+  FROM MATTER_TYPE
+  WHERE CODE NOT IN (:skipped_codes)
+    AND UPDATED_AT >= CAST(:previous_sync_marker AS TIMESTAMP)
+  ORDER BY sync_marker
+  LIMIT 100;
